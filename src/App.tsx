@@ -1,10 +1,12 @@
 import { useRef, useState, useEffect } from 'react';
 import { IRefPhaserGame, PhaserGame } from './game/PhaserGame';
-import Bg from '@/assets/a_011.png';
+import Bg from '@/assets/bg.png';
 import './index.css';
-import Sound from './sound';
 import { Start } from './game/scenes/constants/viewable-handler';
+import store from '@/store';
+import Sound from './sound';
 
+const { Provider } = store;
 
 function App() {
     // The sprite can only be moved in the MainMenu Scene
@@ -17,10 +19,13 @@ function App() {
     }, []);
 
     return (
-        <div id="app" style={{ backgroundImage: `url('${Bg}')` }}>
-            <PhaserGame ref={phaserRef} />
+        <Provider>
+            <div id="app" style={{ backgroundImage: `url('${Bg}')` }}>
+                <PhaserGame ref={phaserRef} />
+            </div>
             <Sound/>
-        </div>
+        </Provider>
+
     )
 }
 

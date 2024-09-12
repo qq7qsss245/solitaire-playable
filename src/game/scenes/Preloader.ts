@@ -1,56 +1,113 @@
 import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { Global } from './constants/state';
-import pipe from '@/assets/a_023.png';
-import adBtn from '@/assets/a_003.png';
-import pink from '@/assets/a_004.png';
-import brown from '@/assets/a_005.png';
-import white from '@/assets/a_006.png';
-import blue from '@/assets/a_008.png';
-import darkBlue from '@/assets/a_012.png';
-import purple from '@/assets/a_013.png';
-import red from '@/assets/a_014.png';
-import hand from '@/assets/a_015.png';
-import waterBlue from '@/assets/a_017.png';
-import yellow from '@/assets/a_018.png';
-import darkYellow from '@/assets/a_019.png';
-import logo from '@/assets/a_007.png';
-import orange from '@/assets/a_024.png';
-import grey from '@/assets/a_028.png';
-import darkGreen from '@/assets/a_029.png';
-import green from '@/assets/a_030.png';
-import lightPurple from '@/assets/a_034.png';
-import candle0 from '@/assets/candle/00.png';
-import candle1 from '@/assets/candle/01.png';
-import candle2 from '@/assets/candle/02.png';
-import candle3 from '@/assets/candle/03.png';
-import candle4 from '@/assets/candle/04.png';
-import candle5 from '@/assets/candle/05.png';
-import candle6 from '@/assets/candle/06.png';
-import candle7 from '@/assets/candle/07.png';
-import candle8 from '@/assets/candle/08.png';
-import candle9 from '@/assets/candle/09.png';
-import candle10 from '@/assets/candle/10.png';
-import candle11 from '@/assets/candle/11.png';
-import candle12 from '@/assets/candle/12.png';
-import candle13 from '@/assets/candle/13.png';
-import candle14 from '@/assets/candle/14.png';
-import candle15 from '@/assets/candle/15.png';
-import candle16 from '@/assets/candle/16.png';
-import candle17 from '@/assets/candle/17.png';
-import candle18 from '@/assets/candle/18.png';
-import candle19 from '@/assets/candle/19.png';
-import candle20 from '@/assets/candle/20.png';
-import candle21 from '@/assets/candle/21.png';
-import candle22 from '@/assets/candle/22.png';
-import candle23 from '@/assets/candle/23.png';
-import candle24 from '@/assets/candle/24.png';
-import candle25 from '@/assets/candle/25.png';
-import candle26 from '@/assets/candle/26.png';
-import candle27 from '@/assets/candle/27.png';
-import candle28 from '@/assets/candle/28.png';
-import candle29 from '@/assets/candle/29.png';
 
+import cardBack from '@/assets/cards/back.png';
+import fill from '@/assets/cards/fill.png';
+import big_b_2 from '@/assets/cards/big/b_2.png';
+import big_b_3 from '@/assets/cards/big/b_3.png';
+import big_b_4 from '@/assets/cards/big/b_4.png';
+import big_b_5 from '@/assets/cards/big/b_5.png';
+import big_b_6 from '@/assets/cards/big/b_6.png';
+import big_b_7 from '@/assets/cards/big/b_7.png';
+import big_b_8 from '@/assets/cards/big/b_8.png';
+import big_b_9 from '@/assets/cards/big/b_9.png';
+import big_b_10 from '@/assets/cards/big/b_10.png';
+import big_b_A from '@/assets/cards/big/b_A.png';
+import big_b_J from '@/assets/cards/big/b_J.png';
+import big_b_Q from '@/assets/cards/big/b_Q.png';
+import big_b_K from '@/assets/cards/big/b_K.png';
+import big_f_2 from '@/assets/cards/big/f_2.png';
+import big_f_3 from '@/assets/cards/big/f_3.png';
+import big_f_4 from '@/assets/cards/big/f_4.png';
+import big_f_5 from '@/assets/cards/big/f_5.png';
+import big_f_6 from '@/assets/cards/big/f_6.png';
+import big_f_7 from '@/assets/cards/big/f_7.png';
+import big_f_8 from '@/assets/cards/big/f_8.png';
+import big_f_9 from '@/assets/cards/big/f_9.png';
+import big_f_10 from '@/assets/cards/big/f_10.png';
+import big_f_A from '@/assets/cards/big/f_A.png';
+import big_f_J from '@/assets/cards/big/f_J.png';
+import big_f_Q from '@/assets/cards/big/f_Q.png';
+import big_f_K from '@/assets/cards/big/f_K.png';
+import big_r_2 from '@/assets/cards/big/r_2.png';
+import big_r_3 from '@/assets/cards/big/r_3.png';
+import big_r_4 from '@/assets/cards/big/r_4.png';
+import big_r_5 from '@/assets/cards/big/r_5.png';
+import big_r_6 from '@/assets/cards/big/r_6.png';
+import big_r_7 from '@/assets/cards/big/r_7.png';
+import big_r_8 from '@/assets/cards/big/r_8.png';
+import big_r_9 from '@/assets/cards/big/r_9.png';
+import big_r_10 from '@/assets/cards/big/r_10.png';
+import big_r_A from '@/assets/cards/big/r_A.png';
+import big_r_J from '@/assets/cards/big/r_J.png';
+import big_r_Q from '@/assets/cards/big/r_Q.png';
+import big_r_K from '@/assets/cards/big/r_K.png';
+import big_s_2 from '@/assets/cards/big/s_2.png';
+import big_s_3 from '@/assets/cards/big/s_3.png';
+import big_s_4 from '@/assets/cards/big/s_4.png';
+import big_s_5 from '@/assets/cards/big/s_5.png';
+import big_s_6 from '@/assets/cards/big/s_6.png';
+import big_s_7 from '@/assets/cards/big/s_7.png';
+import big_s_8 from '@/assets/cards/big/s_8.png';
+import big_s_9 from '@/assets/cards/big/s_9.png';
+import big_s_10 from '@/assets/cards/big/s_10.png';
+import big_s_A from '@/assets/cards/big/s_A.png';
+import big_s_J from '@/assets/cards/big/s_J.png';
+import big_s_Q from '@/assets/cards/big/s_Q.png';
+import big_s_K from '@/assets/cards/big/s_K.png';
+import small_b_2 from '@/assets/cards/small/b_2.png';
+import small_b_3 from '@/assets/cards/small/b_3.png';
+import small_b_4 from '@/assets/cards/small/b_4.png';
+import small_b_5 from '@/assets/cards/small/b_5.png';
+import small_b_6 from '@/assets/cards/small/b_6.png';
+import small_b_7 from '@/assets/cards/small/b_7.png';
+import small_b_8 from '@/assets/cards/small/b_8.png';
+import small_b_9 from '@/assets/cards/small/b_9.png';
+import small_b_10 from '@/assets/cards/small/b_10.png';
+import small_b_A from '@/assets/cards/small/b_A.png';
+import small_b_J from '@/assets/cards/small/b_J.png';
+import small_b_Q from '@/assets/cards/small/b_Q.png';
+import small_b_K from '@/assets/cards/small/b_K.png';
+import small_f_2 from '@/assets/cards/small/f_2.png';
+import small_f_3 from '@/assets/cards/small/f_3.png';
+import small_f_4 from '@/assets/cards/small/f_4.png';
+import small_f_5 from '@/assets/cards/small/f_5.png';
+import small_f_6 from '@/assets/cards/small/f_6.png';
+import small_f_7 from '@/assets/cards/small/f_7.png';
+import small_f_8 from '@/assets/cards/small/f_8.png';
+import small_f_9 from '@/assets/cards/small/f_9.png';
+import small_f_10 from '@/assets/cards/small/f_10.png';
+import small_f_A from '@/assets/cards/small/f_A.png';
+import small_f_J from '@/assets/cards/small/f_J.png';
+import small_f_Q from '@/assets/cards/small/f_Q.png';
+import small_f_K from '@/assets/cards/small/f_K.png';
+import small_r_2 from '@/assets/cards/small/r_2.png';
+import small_r_3 from '@/assets/cards/small/r_3.png';
+import small_r_4 from '@/assets/cards/small/r_4.png';
+import small_r_5 from '@/assets/cards/small/r_5.png';
+import small_r_6 from '@/assets/cards/small/r_6.png';
+import small_r_7 from '@/assets/cards/small/r_7.png';
+import small_r_8 from '@/assets/cards/small/r_8.png';
+import small_r_9 from '@/assets/cards/small/r_9.png';
+import small_r_10 from '@/assets/cards/small/r_10.png';
+import small_r_A from '@/assets/cards/small/r_A.png';
+import small_r_J from '@/assets/cards/small/r_J.png';
+import small_r_Q from '@/assets/cards/small/r_Q.png';
+import small_r_K from '@/assets/cards/small/r_K.png';
+import small_s_2 from '@/assets/cards/small/s_2.png';
+import small_s_3 from '@/assets/cards/small/s_3.png';
+import small_s_4 from '@/assets/cards/small/s_4.png';
+import small_s_5 from '@/assets/cards/small/s_5.png';
+import small_s_6 from '@/assets/cards/small/s_6.png';
+import small_s_7 from '@/assets/cards/small/s_7.png';
+import small_s_8 from '@/assets/cards/small/s_8.png';
+import small_s_9 from '@/assets/cards/small/s_9.png';
+import small_s_10 from '@/assets/cards/small/s_10.png';
+import small_s_A from '@/assets/cards/small/s_A.png';
+import small_s_J from '@/assets/cards/small/s_J.png';
+import small_s_Q from '@/assets/cards/small/s_Q.png';
+import small_s_K from '@/assets/cards/small/s_K.png';
 
 export class Preloader extends Scene {
     constructor() {
@@ -62,59 +119,24 @@ export class Preloader extends Scene {
         EventBus.once('game-start', () => {
             Global.started = true;
         })
-
     }
 
     preload() {
-       this.load.image('pipe', pipe);
-       this.load.image('adBtn', adBtn);
-       this.load.image('pink', pink);
-       this.load.image('brown', brown);
-       this.load.image('white', white);
-       this.load.image('blue', blue);
-       this.load.image('darkBlue', darkBlue);
-       this.load.image('purple', purple);
-       this.load.image('red', red);
-       this.load.image('hand', hand);
-       this.load.image('waterBlue', waterBlue);
-       this.load.image('yellow', yellow);
-       this.load.image('darkYellow', darkYellow);
-       this.load.image('logo', logo);
-       this.load.image('orange', orange);
-       this.load.image('grey', grey);
-       this.load.image('darkGreen', darkGreen);
-       this.load.image('green', green);
-       this.load.image('lightPurple', lightPurple);
-       this.load.image('candle0', candle0);
-       this.load.image('candle1', candle1);
-       this.load.image('candle2', candle2);
-       this.load.image('candle3', candle3);
-       this.load.image('candle4', candle4);
-       this.load.image('candle5', candle5);
-       this.load.image('candle6', candle6);
-       this.load.image('candle7', candle7);
-       this.load.image('candle8', candle8);
-       this.load.image('candle9', candle9);
-       this.load.image('candle10', candle10);
-       this.load.image('candle11', candle11);
-       this.load.image('candle12', candle12);
-       this.load.image('candle13', candle13);
-       this.load.image('candle14', candle14);
-       this.load.image('candle15', candle15);
-       this.load.image('candle16', candle16);
-       this.load.image('candle17', candle17);
-       this.load.image('candle18', candle18);
-       this.load.image('candle19', candle19);
-       this.load.image('candle20', candle20);
-       this.load.image('candle21', candle21);
-       this.load.image('candle22', candle22);
-       this.load.image('candle23', candle23);
-       this.load.image('candle24', candle24);
-       this.load.image('candle25', candle25);
-       this.load.image('candle26', candle26);
-       this.load.image('candle27', candle27);
-       this.load.image('candle28', candle28);
-       this.load.image('candle29', candle29);
+       const images = [
+        {fill}, {cardBack},
+        {big_b_2}, {big_b_3}, {big_b_4}, {big_b_5}, {big_b_6}, {big_b_7}, {big_b_8}, {big_b_9}, {big_b_10}, {big_b_A}, {big_b_J}, {big_b_Q}, {big_b_K},
+        {big_f_2}, {big_f_3}, {big_f_4}, {big_f_5}, {big_f_6}, {big_f_7}, {big_f_8}, {big_f_9}, {big_f_10}, {big_f_A}, {big_f_J}, {big_f_Q}, {big_f_K},
+        {big_r_2}, {big_r_3}, {big_r_4}, {big_r_5}, {big_r_6}, {big_r_7}, {big_r_8}, {big_r_9}, {big_r_10}, {big_r_A}, {big_r_J}, {big_r_Q}, {big_r_K},
+        {big_s_2}, {big_s_3}, {big_s_4}, {big_s_5}, {big_s_6}, {big_s_7}, {big_s_8}, {big_s_9}, {big_s_10}, {big_s_A}, {big_s_J}, {big_s_Q}, {big_s_K},
+        {small_b_2}, {small_b_3}, {small_b_4}, {small_b_5}, {small_b_6}, {small_b_7}, {small_b_8}, {small_b_9}, {small_b_10}, {small_b_A}, {small_b_J}, {small_b_Q}, {small_b_K},
+        {small_f_2}, {small_f_3}, {small_f_4}, {small_f_5}, {small_f_6}, {small_f_7}, {small_f_8}, {small_f_9}, {small_f_10}, {small_f_A}, {small_f_J}, {small_f_Q}, {small_f_K},
+        {small_r_2}, {small_r_3}, {small_r_4}, {small_r_5}, {small_r_6}, {small_r_7}, {small_r_8}, {small_r_9}, {small_r_10}, {small_r_A}, {small_r_J}, {small_r_Q}, {small_r_K},
+        {small_s_2}, {small_s_3}, {small_s_4}, {small_s_5}, {small_s_6}, {small_s_7}, {small_s_8}, {small_s_9}, {small_s_10}, {small_s_A}, {small_s_J}, {small_s_Q}, {small_s_K},
+       ];
+       images.forEach(image => {
+        const [[key, value]] = Object.entries(image);
+        this.load.image(key, value);
+       });
     }
 
 
