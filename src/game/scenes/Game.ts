@@ -2,6 +2,7 @@ import { Scene, GameObjects } from 'phaser';
 import store from '@/store'
 import Card from '../components/card';
 import { EventBus } from '../EventBus';
+import download from './constants/download';
 
 export class Game extends Scene {
 
@@ -16,18 +17,37 @@ export class Game extends Scene {
     store = store;
     cardRatio: number = 0;
     decksContainer: GameObjects.Container;
+    currentDeal: string;
+    stack: GameObjects.Image;
+    currentStack: Card;
 
     constructor() {
         super('Game');
     }
 
     create() {
+        this.handleDrag();
         this.generateFill();
         this.generateDecks();
+        this.generateStack();
         EventBus.on('card_fill', () => {
             this.generateFill();
             this.generateDecks();
-        }, this)
+        }, this);
+        const downBtn = this.add.image(540, 1700, 'download').setDisplaySize(380, 120).setOrigin(.5, .5);
+        downBtn.setInteractive();
+        downBtn.on('pointerdown', download);
+    }
+
+    handleDrag() {
+        this.input.on('drag', (pointer, obj, dragX, dragY) => {
+            obj.x = dragX;
+            obj.y = dragY;
+        });
+        this.input.on('dragstart', (pointer, gameObject) => { });
+        this.input.on('dragend', (pointer, obj, dropZone) => {
+            EventBus.emit('card_drop', obj);
+        });
     }
 
     generateFill() {
@@ -51,7 +71,7 @@ export class Game extends Scene {
     }
 
     generateDecks() {
-        const [{ decks }, {update}] = this.store.getModel('game');
+        const [{ decks }, { update }] = this.store.getModel('game');
         if (this.decksContainer) this.decksContainer.destroy();
         this.decksContainer = this.add.container(this.padding, (this.fillContainer?.list[0] as GameObjects.Image).displayHeight * 2.5);
         update({ decksContainer: this.decksContainer });
@@ -67,11 +87,48 @@ export class Game extends Scene {
         });
     }
 
+    generateStack() {
+        const [{ stacks, stacks_current, size }] = this.store.getModel('game');
+        if (!this.stack) {
+            if (stacks.length) {
+                this.stack = this.add.image(this.screenWidth - this.padding - this.columnWidth, 160, 'cardBack')
+                    .setOrigin(0, 0)
+                    .setDisplaySize(this.columnWidth, this.columnWidth * this.cardRatio)
+                    .setInteractive();
+                this.stack.on('pointerdown', () => {
+                    this.deal();
+                    this.generateStack();
+                });
+            }
+        } else {
+            if (this.stack && !stacks.length) {
+                this.stack.destroy();
+            }
+            if (stacks_current) {
+                if (this.currentStack) {
+                    this.currentStack.destroy();
+                }
+                console.log('currentStack', `${size}_${stacks_current}`);
+                this.currentStack = new Card(this, 0, 0, `${stacks_current}`, false, this.columnWidth, this.columnWidth * this.cardRatio);
+                this.add.container(this.screenWidth - this.gap - this.padding - this.columnWidth * 2, 160).add(this.currentStack);;
+            }
+        }
+    }
+
+    deal() {
+        const [{ stacks, stacks_current }, { update }] = this.store.getModel('game');
+        const newStacks = stacks.slice();
+        if (stacks_current) newStacks.unshift(stacks_current);
+        const next = newStacks.pop();
+        update({ stacks_current: next, stacks: newStacks });
+    }
+
 
 
     onResize() {
 
     }
+
 
 
 

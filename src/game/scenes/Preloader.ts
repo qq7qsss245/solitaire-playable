@@ -108,6 +108,7 @@ import small_s_A from '@/assets/cards/small/s_A.png';
 import small_s_J from '@/assets/cards/small/s_J.png';
 import small_s_Q from '@/assets/cards/small/s_Q.png';
 import small_s_K from '@/assets/cards/small/s_K.png';
+import download from '@/assets/download.png';
 
 export class Preloader extends Scene {
     constructor() {
@@ -123,6 +124,7 @@ export class Preloader extends Scene {
 
     preload() {
        const images = [
+        {download},
         {fill}, {cardBack},
         {big_b_2}, {big_b_3}, {big_b_4}, {big_b_5}, {big_b_6}, {big_b_7}, {big_b_8}, {big_b_9}, {big_b_10}, {big_b_A}, {big_b_J}, {big_b_Q}, {big_b_K},
         {big_f_2}, {big_f_3}, {big_f_4}, {big_f_5}, {big_f_6}, {big_f_7}, {big_f_8}, {big_f_9}, {big_f_10}, {big_f_A}, {big_f_J}, {big_f_Q}, {big_f_K},
