@@ -104,7 +104,38 @@ const game = createModel({
         if (deck.length > 0) {
           deck[deck.length - 1].back = false;
         }
-      })
+      });
+      return state;
+    },
+    snap: (state, payload) => {
+      let cards: Card[] = [];
+      const {target_card, card} = payload;
+      for (let i = 0; i < state.decks.length; i++) {
+        for (let j = 0; j < state.decks[i].length; j++) {
+          if (state.decks[i][j].suit === card.suit) {
+            // 删除j后面的元素
+            cards = state.decks[i].splice(j, state.decks[i].length - j);
+            cards.shift();
+            break;
+          } 
+        }
+      }
+      for (let i = 0; i < state.decks.length; i++) {
+        for (let j = 0; j < state.decks[i].length; j++) {
+          if (state.decks[i][j].suit === target_card.suit) {
+            if (j === state.decks[i].length - 1) {
+              state.decks[i].push({
+                suit: card.suit,
+                back: false
+              });
+              state.stacks_current = '';
+              cards.forEach(card => {
+                state.decks[i].push(card);
+              })
+            }
+          } 
+        }
+      }
       return state;
     }
   },
