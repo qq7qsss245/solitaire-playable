@@ -231,6 +231,8 @@ export class Game extends Scene {
                                 c.y = (to[1] + 2 + index) * this.stashPadding;
                                 c.img.destroy();
                                 c.img = this.add.sprite(0, 0, c.img.texture.key).setDisplaySize(c.width, c.height).setOrigin(0, 0);
+                                c.list.forEach(item => item.destroy());
+                                c.removeAll();
                                 c.add(c.img);
                                 // deckContainer.moveTo(c, deckContainer.list.length - 1);
                                 console.log(deckContainer.getAll());
