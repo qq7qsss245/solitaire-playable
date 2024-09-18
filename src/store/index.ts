@@ -24,28 +24,28 @@ const initialState: Model = {
   stacks: [],
   stacks_current: '',
   decks: [
-    [{ suit: 'f_3', back: false }],
+    [{ suit: 'f_3', back: true }],
     [
       { suit: 'r_10', back: true },
-      { suit: 'r_4', back: false }
+      { suit: 'r_4', back: true }
     ],
     [
       { suit: 'r_2', back: true },
       { suit: 'b_9', back: true },
-      { suit: 'f_J', back: false }
+      { suit: 'f_J', back: true }
     ],
     [      
       { suit: 'r_7', back: true },
       { suit: 'r_6', back: true },
-      { suit: 'b_5', back: true },
-      { suit: 's_8', back: false }
+      { suit: 'r_J', back: true },
+      { suit: 's_8', back: true }
     ],
     [
       { suit: 'b_6', back: true },
       { suit: 'b_7', back: true },
       { suit: 's_5', back: true },
       { suit: 'b_A', back: true },
-      { suit: 'f_K', back: false }
+      { suit: 'f_K', back: true }
     ],
     [
       { suit: 'r_Q', back: true },
@@ -53,7 +53,7 @@ const initialState: Model = {
       { suit: 's_A', back: true },
       { suit: 'f_8', back: true },
       { suit: 'r_A', back: true },
-      { suit: 's_K', back: false }
+      { suit: 's_K', back: true }
     ],
     [
       { suit: 's_J', back: true },
@@ -62,7 +62,7 @@ const initialState: Model = {
       { suit: 's_10', back: true },
       { suit: 'b_2', back: true },
       { suit: 'b_K', back: true },
-      { suit: 'f_A', back: false }
+      { suit: 'f_A', back: true }
     ],
   ],
   orientation: 1

@@ -6,7 +6,7 @@ const checkMap = ['f', 'b', 'r', 's'];
 const suitMap = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 export default class Card extends GameObjects.Container {
   store: typeof store;
-  suit: string;
+  suit: string = "";
   back: boolean;
   width: number;
   height: number;
@@ -27,9 +27,9 @@ export default class Card extends GameObjects.Container {
     this.graphics.lineStyle(2, 0xff0000, 1); // 红色边框用于碰撞区域
     this.render();
     EventBus.on('card_drop', (obj: GameObjects.Sprite) => {
-      const [{size}] = store.getModel("game");
+      const [{ size }] = store.getModel("game");
       const objId = obj.texture.key.replace(`${size}_`, '');
-      if ( objId === this.suit) {
+      if (objId === this.suit) {
         this.checkFill(objId);
       }
     });
@@ -41,10 +41,10 @@ export default class Card extends GameObjects.Container {
   render() {
     const [{ size }] = this.store.getModel('game');
     if (this.back) {
-      this.img = this.scene.add.sprite(0, 0, 'cardBack').setOrigin(0, 0);
+      this.img = this.scene.add.sprite(this.width/2, this.height/2, 'cardBack');
       this.removeInteractive();
     } else {
-      this.img = this.scene.add.sprite(0, 0, `${size}_${this.suit}`).setOrigin(0, 0);
+      this.img = this.scene.add.sprite(this.width/2, this.height/2, `${size}_${this.suit}`);
       this.img.setInteractive();
       this.setInteractive();
       this.scene.input.setDraggable(this.img);
@@ -55,7 +55,7 @@ export default class Card extends GameObjects.Container {
   }
 
 
-  isCardRight (id1: string, id2: string) {
+  isCardRight(id1: string, id2: string) {
     const [suit1, number1] = id1.split('_');
     const [suit2, number2] = id2.split('_');
     const is1Red = checkMap.findIndex(id => id === suit1) > 1;
@@ -66,7 +66,7 @@ export default class Card extends GameObjects.Container {
 
   checkSnap(): boolean {
     let result = false;
-    const [{ decksContainer }, {snap}] = this.store.getModel('game');
+    const [{ decksContainer }, { snap }] = this.store.getModel('game');
     decksContainer?.list.forEach((d, index) => {
       const deck = d as GameObjects.Container;
       deck.list.forEach((c, cardIndex) => {
@@ -78,10 +78,10 @@ export default class Card extends GameObjects.Container {
                 target_card: {
                   suit: card.suit,
                 },
-                card: {suit: this.suit}
+                card: { suit: this.suit }
               });
               EventBus.emit('card_snapped', this.suit, [index, cardIndex]);
-              result =  true;
+              result = true;
             }
           }
         }
@@ -124,17 +124,18 @@ export default class Card extends GameObjects.Container {
           this.removeInteractive();
           this.destroy();
           if (this.img.scene)
-          this.img.destroy();
+            this.img.destroy();
         }
       } else {
-        const  snapped = this.checkSnap();
-        if (!snapped && this.list.length === 0 ) {
+        const snapped = this.checkSnap();
+        if (!snapped && this.list.length === 0) {
           if (this.img.scene) {
-            this.img.setPosition(0, 0);
+            this.img.setPosition(this.width/2, this.height/2);
             this.add(this.img);
           }
+          EventBus.emit('reset_card');
         }
-      } 
+      }
     }
     )
     setTimeout(() => this.fillObjId = '', 100)
@@ -153,7 +154,7 @@ export default class Card extends GameObjects.Container {
     this.graphics.strokeRect(bounds2.x, bounds2.y, bounds2.width, bounds2.height);
   }
 
-  checkCardCollisionGraphics (card1: Card, card2: Card) {
+  checkCardCollisionGraphics(card1: Card, card2: Card) {
     const card1Bounds = card1.img.getBounds();
     const card2Bounds = card2.img.getBounds();
     const matrix1 = card1.getWorldTransformMatrix();
@@ -162,18 +163,33 @@ export default class Card extends GameObjects.Container {
     const y1 = matrix1.ty + card1Bounds.y;
     const x2 = matrix2.tx + card2Bounds.x;
     const y2 = matrix2.ty + card2Bounds.y;
-    const absoluteBounds1 = new Phaser.Geom.Rectangle(x1, y1,card1Bounds.width, card1Bounds.height);
+    const absoluteBounds1 = new Phaser.Geom.Rectangle(x1, y1, card1Bounds.width, card1Bounds.height);
     const absoluteBounds2 = new Phaser.Geom.Rectangle(x2, y2, card2Bounds.width, card2Bounds.height);
     return Phaser.Geom.Intersects.RectangleToRectangle(absoluteBounds1, absoluteBounds2);
   }
 
 
   show() {
+    console.log('show called');
     const [{ size }] = this.store.getModel('game');
     this.back = false;
     //TODO: 翻转动画
-    this.img.destroy();
-    this.img = this.scene.add.sprite(0, 0, `${size}_${this.suit}`).setOrigin(0, 0);
+    const scaleY = this.img.scaleY;
+    this.scene.tweens.add({
+      targets: [this.img],
+      scaleY: 0,
+      duration: 100,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.img.setTexture(`${size}_${this.suit}`);
+        this.scene.tweens.add({
+          targets: [this.img],
+          scaleY,
+          duration: 100,
+          ease: 'Sine.easeInOut',
+        });
+      }
+    });
     this.img.setInteractive();
     this.scene.input.setDraggable(this.img);
     this.setInteractive();
@@ -184,7 +200,8 @@ export default class Card extends GameObjects.Container {
   }
 
   changeToBig() {
-    
+    const [{ size }] = this.store.getModel('game');
+
   }
 
 

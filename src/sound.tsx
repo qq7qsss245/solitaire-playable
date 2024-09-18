@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import bgm from '@/assets/audios/bgm.mp3';
+import popup from '@/assets/audios/popup.mp3';
 import { EventBus } from "./game/EventBus";
 
 const Sound: React.FC = () => {
     useEffect(() => {
         const bgmEffect = new Audio(bgm);
+        const popupEffect = new Audio(popup);
         bgmEffect.loop = true;
         window.addEventListener('touchstart', () => {
             setTimeout(() => {
@@ -24,6 +26,9 @@ const Sound: React.FC = () => {
         });
         EventBus.on('pauseAd', () => {
             bgmEffect.pause();
+        });
+        EventBus.on('popup_show', () => {
+            popupEffect.play();
         });
     }, []);
 

@@ -34,6 +34,7 @@ export class Game extends Scene {
         this.generateFill();
         this.generateDecks();
         this.generateStack();
+        this.checkBack();
         EventBus.on('card_fill', (id: string) => {
             this.refreshFill();
             this.refreshDecks([id]);
@@ -45,7 +46,10 @@ export class Game extends Scene {
             this.refreshDecks([target, ...this.followingCards.map(c => c.suit)], to);
             this.followingCards = [];
         }, this);
-        EventBus.emit('popup_show');
+        setTimeout(() => {
+            EventBus.emit('popup_show');
+        }, 700);
+        
     }
 
 
@@ -97,8 +101,8 @@ export class Game extends Scene {
         const id = obj.texture.key.replace(`${size}_`, '');
         const afterCards = this.getAfterCards(id);
         afterCards.forEach((card, index) => {
-            card.img.x = 0;
-            card.img.y = 0;
+            card.img.x = card.width / 2 ;
+            card.img.y = card.height / 2 ;
             card.add(card.img);       
         });
     }
@@ -112,7 +116,6 @@ export class Game extends Scene {
         });
         this.input.on('dragstart', (pointer, gameObject: GameObjects.Sprite) => {
             this.currentDragContainer = gameObject.parentContainer;
-            this.currentDragPosition = [gameObject.x, gameObject.y];
             if (gameObject.parentContainer) {
                 const container = gameObject.parentContainer as Card;
                 gameObject.parentContainer.remove(gameObject);
@@ -122,7 +125,7 @@ export class Game extends Scene {
                 const id = container.suit;
                 const cards = this.getAfterCards(id);
                 cards.forEach(card => {
-                    card.removeAll();
+                    card.img.parentContainer.remove(card.img);
                     card.img.x += card.getWorldTransformMatrix().tx;
                     card.img.y += card.getWorldTransformMatrix().ty;
                 });
@@ -131,7 +134,9 @@ export class Game extends Scene {
         });
         this.input.on('dragend', (pointer, obj: GameObjects.Sprite, dropZone) => {
             EventBus.emit('card_drop', obj);
-            this.stopFollow(obj);
+            EventBus.once('reset_card', () => {
+                this.stopFollow(obj)
+            })
         });
     }
 
@@ -193,7 +198,7 @@ export class Game extends Scene {
     }
 
     refreshDecks(targets: string[], to?: [number, number]) {
-        const [{ decks }, { update }] = this.store.getModel('game');
+        const [{ size }, { update }] = this.store.getModel('game');
         const id = JSON.stringify({ targets, to });
         if (this.cardMoveID === id) return;
         this.cardMoveID = id;
@@ -203,7 +208,7 @@ export class Game extends Scene {
             this.currentStack.x = 0;
             this.currentStack.y = (to[1] + 1) * this.stashPadding;
             this.currentStack.add(this.draggingSprite);
-            this.draggingSprite.setPosition(0, 0)
+            this.draggingSprite.setPosition(this.columnWidth/2, this.columnWidth * this.cardRatio / 2)
         } else {
             //把下面的foreach 改成 for循环
             for (let i = 0; i < this.decksContainer.list.length; i++) {
@@ -220,42 +225,34 @@ export class Game extends Scene {
                             deckContainer.add(card);
                             card.x = 0;
                             card.y = (to[1] + 1) * this.stashPadding;
-                            this.draggingSprite.setPosition(0, 0);
-
+                            this.draggingSprite.setPosition(card.width/2, card.height/2);
                             card.add(card.img);
                             let front = card;
                             this.followingCards.forEach((c, index) => {
-                                deckContainer.add(c);
+                                c.remove(c.img);
                                 c.x = 0;
                                 c.y = (to[1] + 2 + index) * this.stashPadding;
-                                c.img.destroy();
-                                c.img = this.add.sprite(0, 0, 'cardBack').setDisplaySize(c.width, c.height).setOrigin(0, 0);
-                                c.list.forEach(item => item.destroy());
-                                c.removeAll();
+                                c.img.setTexture(`${size}_${c.suit}`);
+                                c.img.setPosition(card.width/2, card.height/2);
                                 c.add(c.img);
-                                deckContainer.moveTo(c, deckContainer.list.length - 1);
+                                deckContainer.add(c);
+                                // deckContainer.moveTo(c, deckContainer.list.length - 1);
                                 console.log(deckContainer.getAll());
+
                                 front = c;
                             });
                         }
-                        const prev = targetDeck.list[j - 1] as Card;
-                        if (prev && prev.suit) {
-                            prev.show();
-                        }
+                        
                         found = true;
                     }
-                    if (j === deck.list.length - 1 && card.back) {
-                        card.show();
-                    }
+                    
                 }
                 if (found) {
                     break;
                 }
             }
         }
-
-
-
+        this.checkBack();
     }
 
     generateStack() {
@@ -276,13 +273,20 @@ export class Game extends Scene {
                 this.stack.destroy();
             }
             if (stacks_current) {
-                if (this.currentStack) {
-                    this.currentStack.destroy();
-                }
                 this.currentStack = new Card(this, 0, 0, `${stacks_current}`, false, this.columnWidth, this.columnWidth * this.cardRatio);
                 this.add.container(this.screenWidth - this.gap - this.padding - this.columnWidth * 2, 160).add(this.currentStack);;
             }
         }
+    }
+
+    checkBack () {
+        this.decksContainer.list.forEach((d, index) => {
+            const deck = d as GameObjects.Container;
+            const lastCard = deck.list[deck.list.length - 1] as Card;
+            if (lastCard && lastCard.back) {
+                setTimeout(() => lastCard.show(), 100 * index)
+            }
+        });
     }
 
     deal() {
