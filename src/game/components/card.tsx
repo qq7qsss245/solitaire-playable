@@ -32,6 +32,9 @@ export default class Card extends GameObjects.Container {
       if ( objId === this.suit) {
         this.checkFill(objId);
       }
+    });
+    EventBus.on('bigCard', () => {
+      this.changeToBig();
     })
   }
 
@@ -181,7 +184,7 @@ export default class Card extends GameObjects.Container {
   }
 
   changeToBig() {
-
+    
   }
 
 

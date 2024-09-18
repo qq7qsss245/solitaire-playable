@@ -5,6 +5,7 @@ import './index.css';
 import { Start } from './game/scenes/constants/viewable-handler';
 import store from '@/store';
 import Sound from './sound';
+import PopUp from './game/components/popup';
 
 const { Provider } = store;
 
@@ -24,6 +25,7 @@ function App() {
                 <PhaserGame ref={phaserRef} />
             </div>
             <Sound/>
+            <PopUp/>
         </Provider>
 
     )

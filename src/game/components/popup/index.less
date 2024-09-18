@@ -1,0 +1,137 @@
+.cover {
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, .75);
+  position: absolute;
+  top: 0;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5%;
+  display: none;
+  .selections {
+    display: flex;
+    width: 80%;
+    justify-content: space-between;
+  }
+  &.show {
+    display: flex;
+    .icon {
+      animation: bounce-in-fwd 0.6s linear both;
+    }
+    .yes {
+      animation-name: bounce-in-fwd;
+      animation-duration: .6s;
+      animation-delay: .1s;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
+    .no {
+      animation-name: bounce-in-fwd;
+      animation-delay: .3s;
+      animation-duration: .6s;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
+  }
+}
+.icon {
+  width: 30%;
+}
+
+.text {
+  width: 80%;
+  animation-delay: .2s;
+}
+
+
+
+.clicked {
+  animation: click 0.2s ease-out both!important;
+  animation-delay: 0s !important;
+
+}
+
+@keyframes bounce-in-fwd {
+  0% {
+    -webkit-transform: scale(0);
+            transform: scale(0);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+    opacity: 0;
+  }
+  38% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+    opacity: 1;
+  }
+  55% {
+    -webkit-transform: scale(0.7);
+            transform: scale(0.7);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  72% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+  81% {
+    -webkit-transform: scale(0.84);
+            transform: scale(0.84);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  89% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+  95% {
+    -webkit-transform: scale(0.95);
+            transform: scale(0.95);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  100% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+}
+
+@keyframes click {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.fadeout {
+  animation: fadeout .2s ease-in-out forward;
+}
+
+@keyframes fadeout {
+  from {
+    opacity: 1;
+    display: flex;
+  }
+
+  to {
+    opacity: 0;
+    display: none;
+  }
+}

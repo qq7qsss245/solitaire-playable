@@ -12,7 +12,7 @@ export class Game extends Scene {
     gap = 20;
     columnsCount = 7;
     columnWidth = (this.containerWidth - this.gap * (this.columnsCount - 1)) / this.columnsCount;
-    stashPadding = 60;
+    stashPadding = 65;
     fillContainer: GameObjects.Container;
     store = store;
     cardRatio: number = 0;
@@ -45,6 +45,7 @@ export class Game extends Scene {
             this.refreshDecks([target, ...this.followingCards.map(c => c.suit)], to);
             this.followingCards = [];
         }, this);
+        EventBus.emit('popup_show');
     }
 
 
@@ -219,22 +220,20 @@ export class Game extends Scene {
                             deckContainer.add(card);
                             card.x = 0;
                             card.y = (to[1] + 1) * this.stashPadding;
-                            this.draggingSprite.destroy();
-                            card.img = this.add.sprite(0, 0, this.draggingSprite.texture.key).setDisplaySize(card.width, card.height).setOrigin(0, 0);
-                            card.add(card.img);
                             this.draggingSprite.setPosition(0, 0);
+
+                            card.add(card.img);
                             let front = card;
                             this.followingCards.forEach((c, index) => {
                                 deckContainer.add(c);
-                                c.setDepth(100);
                                 c.x = 0;
                                 c.y = (to[1] + 2 + index) * this.stashPadding;
                                 c.img.destroy();
-                                c.img = this.add.sprite(0, 0, c.img.texture.key).setDisplaySize(c.width, c.height).setOrigin(0, 0);
+                                c.img = this.add.sprite(0, 0, 'cardBack').setDisplaySize(c.width, c.height).setOrigin(0, 0);
                                 c.list.forEach(item => item.destroy());
                                 c.removeAll();
                                 c.add(c.img);
-                                // deckContainer.moveTo(c, deckContainer.list.length - 1);
+                                deckContainer.moveTo(c, deckContainer.list.length - 1);
                                 console.log(deckContainer.getAll());
                                 front = c;
                             });
@@ -242,8 +241,6 @@ export class Game extends Scene {
                         const prev = targetDeck.list[j - 1] as Card;
                         if (prev && prev.suit) {
                             prev.show();
-                            prev.removeInteractive();
-                            prev.img.removeInteractive();
                         }
                         found = true;
                     }
