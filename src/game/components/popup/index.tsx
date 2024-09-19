@@ -12,11 +12,11 @@ const PopUp: React.FC  = () => {
   const noRef = useRef<HTMLImageElement>(null);
   useEffect(() => {
     EventBus.on('popup_show', () => {
-      // setVisible(true); 
-      // const canvas = document.querySelector('canvas')
-      // if (canvas) {
-      //   canvas.style.filter = 'blur(5px)';
-      // }
+      setVisible(true); 
+      const canvas = document.querySelector('canvas')
+      if (canvas) {
+        canvas.style.filter = 'blur(5px)';
+      }
    });
   }, []);
 
@@ -29,11 +29,15 @@ const PopUp: React.FC  = () => {
     } else {
       yesRef.current?.classList.add('clicked')
     }
+    EventBus.emit('click');
     setTimeout(() => {
       setVisible(false);
       const canvas = document.querySelector('canvas')
       if (canvas) {
         canvas.style.filter = 'unset';
+      }
+      if (size === 'big') {
+        EventBus.emit('change_big')
       }
     }, 600)
     

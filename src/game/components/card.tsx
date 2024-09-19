@@ -32,9 +32,7 @@ export default class Card extends GameObjects.Sprite {
         this.checkFill(objId);
       }
     });
-    EventBus.on('bigCard', () => {
-      this.changeToBig();
-    })
+
   }
 
   render() {
@@ -108,7 +106,6 @@ export default class Card extends GameObjects.Sprite {
       if (Phaser.Geom.Intersects.RectangleToRectangle(itemBounds, cardBounds)) {
         if (this.canFill(index)) {
           // this.img.setPosition(item.x, item.y);
-          this.parentContainer.remove(this);
           fill({
             index,
             card: {
@@ -122,10 +119,13 @@ export default class Card extends GameObjects.Sprite {
         }
       } else {
         const snapped = this.checkSnap();
+        console.log('snap', snapped);
         if (!snapped) {
           if (this.scene) {
             this.setPosition(this.deckX, this.deckY);
-            this.deck.add(this);
+            if (this.deck) {
+              this.deck.add(this);
+            }
           }
           EventBus.emit('reset_card');
         }
@@ -164,7 +164,6 @@ export default class Card extends GameObjects.Sprite {
 
 
   show() {
-    console.log('show called');
     const [{ size }] = this.store.getModel('game');
     this.back = false;
     //TODO: 翻转动画
@@ -190,7 +189,29 @@ export default class Card extends GameObjects.Sprite {
 
   changeToBig() {
     const [{ size }] = this.store.getModel('game');
-
+    this.setTexture(`big_${this.suit}`);
+    //TODO: 翻转动画
+    const scaleY = this.scaleY;
+    const scaleX = this.scaleX;
+    EventBus.emit('rotate');
+    this.scene.tweens.add({
+      targets: [this],
+      scaleY: this.scaleY * 1.2,
+      scaleX: this.scaleX * 1.2,
+      opacity: 0,
+      duration: 200,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: [this],
+          scaleY,
+          scaleX,
+          opacity: 1,
+          duration: 200,
+          ease: 'Sine.easeInOut',
+        });
+      }
+    });
   }
 
 
