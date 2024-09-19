@@ -12,11 +12,11 @@ const PopUp: React.FC  = () => {
   const noRef = useRef<HTMLImageElement>(null);
   useEffect(() => {
     EventBus.on('popup_show', () => {
-      setVisible(true); 
-      const canvas = document.querySelector('canvas')
-      if (canvas) {
-        canvas.style.filter = 'blur(5px)';
-      }
+      // setVisible(true); 
+      // const canvas = document.querySelector('canvas')
+      // if (canvas) {
+      //   canvas.style.filter = 'blur(5px)';
+      // }
    });
   }, []);
 

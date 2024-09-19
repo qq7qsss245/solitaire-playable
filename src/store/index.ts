@@ -37,7 +37,7 @@ const initialState: Model = {
     [      
       { suit: 'r_7', back: true },
       { suit: 'r_6', back: true },
-      { suit: 'r_J', back: true },
+      { suit: 'b_5', back: true },
       { suit: 's_8', back: true }
     ],
     [
