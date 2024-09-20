@@ -1,8 +1,8 @@
 export default function () {
   let win = window as any;
   const { sdk = "" } = win.MRAID_ENV || {};
-  const iosLink = "https://apps.apple.com/app/id1625097467";
-  const androidLink = "https://play.google.com/store/apps/details?id=ball.sort.puzzle.color.sorting.bubble.games";
+  const iosLink = "https://apps.apple.com/us/app/solitaire-card-games-classic/id1564391515";
+  const androidLink = "https://play.google.com/store/apps/details?id=solitaire.patience.card.games.klondike.free";
   const isUnity = /unity/i.test(sdk);
   const isIOS =
     /iPad|iPhone|iPod|Macintosh|Mac OS/i.test(navigator.userAgent) &&

@@ -28,11 +28,12 @@ export class Game extends Scene {
     decksMap: Map<string, Card> = new Map();
     maxStep: number = 20;
     step: number = 0;
+    moving: boolean = false;
     constructor() {
         super('Game');
     }
 
-    checkStep () {
+    checkStep() {
         this.step++;
         console.log(this.step)
         if (this.step > this.maxStep) {
@@ -49,8 +50,6 @@ export class Game extends Scene {
         EventBus.on('card_fill', (id: string) => {
             this.refreshFill();
             this.refreshDecks([id]);
-            this.checkStep();
-            console.log(this.step);
         }, this);
         const downBtn = this.add.image(540, 1700, 'download').setDisplaySize(380, 120).setOrigin(.5, .5);
         downBtn.setInteractive();
@@ -59,15 +58,110 @@ export class Game extends Scene {
             if (!this.decksMap.get(target)) this.decksMap.set(target, this.currentStack);
             this.refreshDecks([target, ...this.followingCards.map(c => c.suit)], to);
             this.followingCards = [];
-            this.checkStep();
         }, this);
         setTimeout(() => {
             EventBus.emit('popup_show');
         }, 700);
         EventBus.once('change_big', () => {
             this.changeToBig();
+        });
+        EventBus.on('auto', (card: Card) => {
+            console.log('auto');
+            this.auto(card);
+        });
+        window.addEventListener('resize', () => {
+            this.onResize();
         })
 
+    }
+
+
+    auto(card: Card) {
+        // 检查是否可以fill
+        const [{ fills }, { fill, snap }] = store.getModel('game');
+        for (let i = 0; i < this.fillContainer.list.length; i++) {
+            const fillImage = this.fillContainer.list[i] as GameObjects.Image;
+            if (card.canFill(i)) {
+                this.moving = true;
+                console.log('called');
+                card.deck.remove(card);
+                card.setOrigin(0, 0);
+                card.x -= card.width / 2;
+                card.y -= card.height / 2;
+                card.setDepth(100);
+                this.tweens.add({
+                    targets: card,
+                    x: fillImage.x + fillImage.getWorldTransformMatrix().tx,
+                    y: fillImage.y + fillImage.getWorldTransformMatrix().ty,
+                    duration: 300,
+                    onComplete: () => {
+                        this.moving = false;
+                        fillImage.setTexture(card.texture.key);
+                        fill({
+                            index: i,
+                            card: {
+                                suit: card.suit,
+                                back: false
+                            }
+                        });
+                        EventBus.emit('card_fill', card.suit);
+                        card.destroy();
+                        this.checkStep();
+                    }
+                });
+                return;
+            }
+        }
+        //检查snap
+        for (let i = 0; i < this.decksContainer.list.length; i++) {
+            const deck = this.decksContainer.list[i] as GameObjects.Container;
+            const lastCard = deck.list[deck.list.length - 1] as Card;
+
+            if (lastCard && card.isCardRight(lastCard.suit, card.suit) && card.deck !== deck) {
+                this.moving = true;
+                const following = this.getAfterCards(card.suit);
+                card.deck.remove(card);
+                card.setOrigin(0.5, 0.5);
+                console.log('y:', lastCard.y + lastCard.getWorldTransformMatrix().ty - card.displayHeight/2)
+                this.tweens.add({
+                    targets: card,
+                    x: lastCard.x + lastCard.getWorldTransformMatrix().tx - lastCard.displayWidth/2,
+                    y: lastCard.y + lastCard.getWorldTransformMatrix().ty - lastCard.displayHeight/2,
+                    ease: 'Sine.easeInOut',
+                    duration: 200,
+                    onComplete: () => {
+                        this.moving = false;
+                        deck.add(card);
+                        card.setPosition(lastCard.x, lastCard.y + this.stashPadding)
+                        card.deck = deck;
+                        this.decksMap.set(card.suit, card);
+                        snap({
+                            target_card: {
+                              suit: lastCard.suit,
+                            },
+                            card: { suit: card.suit }
+                          });
+                        this.checkBack(false);
+                        this.checkStep();
+                    }
+                });
+                following.forEach((fc, index) => {
+                    this.tweens.add({
+                        targets: fc,
+                        x: lastCard.x + lastCard.getWorldTransformMatrix().tx - fc.displayWidth/2,
+                        y: lastCard.y + lastCard.getWorldTransformMatrix().ty - fc.displayHeight/2 + (index + 1) * this.stashPadding,
+                        duration: 200,
+                        ease: 'Sine.easeInOut',
+                        onComplete: () => {
+                            deck.add(fc);
+                            fc.setPosition(lastCard.x, lastCard.y + this.stashPadding * (index + 2));
+                            fc.deck = deck;
+                        }
+                    });
+                });
+                break;
+            }
+        }
     }
 
     changeToBig() {
@@ -86,7 +180,7 @@ export class Game extends Scene {
     }
 
     getAfterCards(id: string): Card[] {
-        const [{decks}] = store.getModel('game');
+        const [{ decks }] = store.getModel('game');
         let result: Card[] = [];
         decks.forEach((deck, deckIndex) => {
             let targetIndex = -1;
@@ -124,6 +218,7 @@ export class Game extends Scene {
     }
 
     handleDrag() {
+        if (this.moving) return;
         this.input.on('drag', (pointer: any, obj: GameObjects.Sprite, dragX: number, dragY: number) => {
             obj.x = dragX + this.currentDragContainer?.getWorldTransformMatrix()?.tx || 0;
             obj.y = dragY + this.currentDragContainer?.getWorldTransformMatrix()?.ty || 0;
@@ -131,6 +226,7 @@ export class Game extends Scene {
 
         });
         this.input.on('dragstart', (pointer, gameObject: Card) => {
+            if (this.moving) return;
             this.currentDragContainer = gameObject.parentContainer;
             if (gameObject.parentContainer) {
                 gameObject.parentContainer.remove(gameObject);
@@ -149,6 +245,7 @@ export class Game extends Scene {
             }
         });
         this.input.on('dragend', (pointer, obj: GameObjects.Sprite, dropZone) => {
+            if (this.moving) return;
             EventBus.emit('card_drop', obj);
             EventBus.once('reset_card', () => {
                 this.stopFollow(obj)
@@ -218,11 +315,14 @@ export class Game extends Scene {
     refreshDecks(targets: string[], to?: [number, number]) {
         const id = JSON.stringify({ targets, to });
         if (this.cardMoveID === id) return;
+        this.checkStep();
         this.cardMoveID = id;
-        let targetDeck: GameObjects.Container | undefined = undefined;
         if (this.currentStack && this.currentStack.suit === targets[0] && to) {
             (this.decksContainer.list[to[0]] as GameObjects.Container).add(this.currentStack);
-            this.draggingSprite.setPosition(this.columnWidth / 2, (to[1] + 1) * this.stashPadding + this.columnWidth * this.cardRatio / 2)
+            this.draggingSprite.setPosition(this.columnWidth / 2, (to[1] + 1) * this.stashPadding + this.columnWidth * this.cardRatio / 2);
+            this.draggingSprite.deckX = this.draggingSprite.x;
+            this.draggingSprite.deckY = this.draggingSprite.y;
+            this.draggingSprite.deck = this.decksContainer.list[to[0]] as GameObjects.Container;
         } else {
             const card = this.draggingSprite;
             if (to) {

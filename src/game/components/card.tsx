@@ -32,7 +32,9 @@ export default class Card extends GameObjects.Sprite {
         this.checkFill(objId);
       }
     });
-
+    this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      EventBus.emit('auto', this);
+    })
   }
 
   render() {
@@ -45,8 +47,9 @@ export default class Card extends GameObjects.Sprite {
       this.setInteractive();
       this.scene.input.setDraggable(this);
     }
-
   }
+
+
 
 
   isCardRight(id1: string, id2: string) {
@@ -73,7 +76,7 @@ export default class Card extends GameObjects.Sprite {
                   suit: card.suit,
                 },
                 card: { suit: this.suit }
-              });
+              });-
               EventBus.emit('card_snapped', this.suit, [index, cardIndex]);
               result = true;
             }
@@ -99,7 +102,6 @@ export default class Card extends GameObjects.Sprite {
     const [{ fillContainer, size, fills }, { fill }] = this.store.getModel('game');
     fillContainer?.list.forEach((i, index) => {
       const item = i as GameObjects.Image;
-
       const itemBounds = (item as GameObjects.Image).getBounds();
       const cardBounds = this.getBounds();
       // 检查是否相交
@@ -119,7 +121,6 @@ export default class Card extends GameObjects.Sprite {
         }
       } else {
         const snapped = this.checkSnap();
-        console.log('snap', snapped);
         if (!snapped) {
           if (this.scene) {
             this.setPosition(this.deckX, this.deckY);
