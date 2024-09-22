@@ -32,9 +32,6 @@ export default class Card extends GameObjects.Sprite {
         this.checkFill(objId);
       }
     });
-    this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      EventBus.emit('auto', this);
-    })
   }
 
   render() {
@@ -47,6 +44,9 @@ export default class Card extends GameObjects.Sprite {
       this.setInteractive();
       this.scene.input.setDraggable(this);
     }
+    this.on('pointerup', () => {
+      EventBus.emit('auto', this);
+    })
   }
 
 
@@ -66,7 +66,7 @@ export default class Card extends GameObjects.Sprite {
     const [{ decksContainer }, { snap }] = this.store.getModel('game');
     decksContainer?.list.forEach((d, index) => {
       const deck = d as GameObjects.Container;
-      deck.list.forEach((c, cardIndex) => {
+      deck.list?.forEach((c, cardIndex) => {
         const card = c as Card;
         if (card.back === false) {
           if (Phaser.Geom.Intersects.RectangleToRectangle(card.getBounds(), this.getBounds())) {

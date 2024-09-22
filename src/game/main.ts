@@ -13,10 +13,6 @@ const config: Phaser.Types.Core.GameConfig = {
     height: 1920,
     transparent: true,
     parent: 'game-container',
-    scale: {
-        mode: Phaser.Scale.FIT, // 缩放模式
-        autoCenter: Phaser.Scale.CENTER_BOTH, // 自动居中
-    },
     scene: [
         Boot,
         Preloader,

@@ -29,6 +29,10 @@ export class Game extends Scene {
     maxStep: number = 20;
     step: number = 0;
     moving: boolean = false;
+    dragStart: number = 0;
+    dragInterval: number = 200;
+    dragInterId: any;
+    deckColumns: GameObjects.Graphics[];
     constructor() {
         super('Game');
     }
@@ -66,8 +70,12 @@ export class Game extends Scene {
             this.changeToBig();
         });
         EventBus.on('auto', (card: Card) => {
-            console.log('auto');
-            this.auto(card);
+            if (Date.now() - this.dragStart < this.dragInterval) {
+                this.auto(card);
+                clearTimeout(this.dragInterId);
+            }
+            console.log(Date.now() - this.dragStart, card);
+
         });
         window.addEventListener('resize', () => {
             this.onResize();
@@ -77,12 +85,12 @@ export class Game extends Scene {
 
 
     auto(card: Card) {
+        let result = false;
         // 检查是否可以fill
         const [{ fills }, { fill, snap }] = store.getModel('game');
         for (let i = 0; i < this.fillContainer.list.length; i++) {
             const fillImage = this.fillContainer.list[i] as GameObjects.Image;
             if (card.canFill(i)) {
-                this.moving = true;
                 console.log('called');
                 card.deck.remove(card);
                 card.setOrigin(0, 0);
@@ -95,7 +103,6 @@ export class Game extends Scene {
                     y: fillImage.y + fillImage.getWorldTransformMatrix().ty,
                     duration: 300,
                     onComplete: () => {
-                        this.moving = false;
                         fillImage.setTexture(card.texture.key);
                         fill({
                             index: i,
@@ -106,6 +113,7 @@ export class Game extends Scene {
                         });
                         EventBus.emit('card_fill', card.suit);
                         card.destroy();
+                        result = true;
                         this.checkStep();
                     }
                 });
@@ -118,15 +126,14 @@ export class Game extends Scene {
             const lastCard = deck.list[deck.list.length - 1] as Card;
 
             if (lastCard && card.isCardRight(lastCard.suit, card.suit) && card.deck !== deck) {
-                this.moving = true;
                 const following = this.getAfterCards(card.suit);
                 card.deck.remove(card);
                 card.setOrigin(0.5, 0.5);
-                console.log('y:', lastCard.y + lastCard.getWorldTransformMatrix().ty - card.displayHeight/2)
+                console.log('y:', lastCard.y + lastCard.getWorldTransformMatrix().ty - card.displayHeight / 2)
                 this.tweens.add({
                     targets: card,
-                    x: lastCard.x + lastCard.getWorldTransformMatrix().tx - lastCard.displayWidth/2,
-                    y: lastCard.y + lastCard.getWorldTransformMatrix().ty - lastCard.displayHeight/2,
+                    x: lastCard.x + lastCard.getWorldTransformMatrix().tx - lastCard.displayWidth / 2,
+                    y: lastCard.y + lastCard.getWorldTransformMatrix().ty - lastCard.displayHeight / 2,
                     ease: 'Sine.easeInOut',
                     duration: 200,
                     onComplete: () => {
@@ -137,19 +144,20 @@ export class Game extends Scene {
                         this.decksMap.set(card.suit, card);
                         snap({
                             target_card: {
-                              suit: lastCard.suit,
+                                suit: lastCard.suit,
                             },
                             card: { suit: card.suit }
-                          });
+                        });
                         this.checkBack(false);
                         this.checkStep();
+                        result = true;
                     }
                 });
                 following.forEach((fc, index) => {
                     this.tweens.add({
                         targets: fc,
-                        x: lastCard.x + lastCard.getWorldTransformMatrix().tx - fc.displayWidth/2,
-                        y: lastCard.y + lastCard.getWorldTransformMatrix().ty - fc.displayHeight/2 + (index + 1) * this.stashPadding,
+                        x: lastCard.x + lastCard.getWorldTransformMatrix().tx - fc.displayWidth / 2,
+                        y: lastCard.y + lastCard.getWorldTransformMatrix().ty - fc.displayHeight / 2 + (index + 1) * this.stashPadding,
                         duration: 200,
                         ease: 'Sine.easeInOut',
                         onComplete: () => {
@@ -162,6 +170,7 @@ export class Game extends Scene {
                 break;
             }
         }
+        return result;
     }
 
     changeToBig() {
@@ -219,19 +228,18 @@ export class Game extends Scene {
 
     handleDrag() {
         if (this.moving) return;
-        this.input.on('drag', (pointer: any, obj: GameObjects.Sprite, dragX: number, dragY: number) => {
-            obj.x = dragX + this.currentDragContainer?.getWorldTransformMatrix()?.tx || 0;
-            obj.y = dragY + this.currentDragContainer?.getWorldTransformMatrix()?.ty || 0;
+        this.input.on('drag', (pointer: any, obj: Card, dragX: number, dragY: number) => {
+            obj.x = dragX + obj.deck.getWorldTransformMatrix()?.tx || 0;
+            obj.y = dragY + obj.deck.getWorldTransformMatrix()?.ty || 0;
             this.followCard(obj, dragX, dragY);
 
         });
         this.input.on('dragstart', (pointer, gameObject: Card) => {
-            if (this.moving) return;
-            this.currentDragContainer = gameObject.parentContainer;
+            this.dragStart = Date.now();
             if (gameObject.parentContainer) {
                 gameObject.parentContainer.remove(gameObject);
-                gameObject.x += this.currentDragContainer.getWorldTransformMatrix().tx;
-                gameObject.y += this.currentDragContainer.getWorldTransformMatrix().ty;
+                gameObject.x += gameObject.deck.getWorldTransformMatrix().tx;
+                gameObject.y += gameObject.deck.getWorldTransformMatrix().ty;
                 this.draggingSprite = gameObject;
                 const id = gameObject.suit;
                 const cards = this.getAfterCards(id);
@@ -244,12 +252,19 @@ export class Game extends Scene {
                 this.followingCards = cards;
             }
         });
-        this.input.on('dragend', (pointer, obj: GameObjects.Sprite, dropZone) => {
-            if (this.moving) return;
-            EventBus.emit('card_drop', obj);
-            EventBus.once('reset_card', () => {
-                this.stopFollow(obj)
-            })
+        this.input.on('dragend', (pointer, obj: Card, dropZone) => {
+            if (Date.now() - this.dragStart > this.dragInterval) {
+                EventBus.emit('card_drop', obj);
+                EventBus.once('reset_card', () => {
+                    if (!obj.deck.list.find((card: any) => card.suit === obj.suit)) {
+                        obj.deck.add(obj);
+                    }
+                    this.stopFollow(obj);
+                })
+            } else {
+                let filled = this.auto(obj);
+            }
+
         });
     }
 

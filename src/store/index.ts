@@ -99,7 +99,7 @@ const game = createModel({
       state.fills[index].push(card);
       // 删除decks里的card
       const deckIndex = state.decks.findIndex(deck => deck.some(c => c.suit === card.suit));
-      state.decks[deckIndex] = state.decks[deckIndex].filter(c => c.suit!== card.suit);
+      state.decks[deckIndex] = state.decks[deckIndex]?.filter(c => c.suit!== card.suit);
       state.decks.forEach(deck => {
         if (deck.length > 0) {
           deck[deck.length - 1].back = false;
