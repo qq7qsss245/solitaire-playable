@@ -26,7 +26,7 @@ export class Game extends Scene {
     cardMoveID: string;
     followingCards: Card[] = [];
     decksMap: Map<string, Card> = new Map();
-    maxStep: number = 20;
+    maxStep: number = 16;
     step: number = 0;
     moving: boolean = false;
     dragStart: number = 0;
@@ -65,7 +65,7 @@ export class Game extends Scene {
         }, this);
         setTimeout(() => {
             EventBus.emit('popup_show');
-        }, 700);
+        }, 1000);
         EventBus.once('change_big', () => {
             this.changeToBig();
         });
