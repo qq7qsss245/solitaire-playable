@@ -26,11 +26,11 @@ export class Game extends Scene {
     cardMoveID: string;
     followingCards: Card[] = [];
     decksMap: Map<string, Card> = new Map();
-    maxStep: number = 16;
+    maxStep: number = 12;
     step: number = 0;
     moving: boolean = false;
     dragStart: number = 0;
-    dragInterval: number = 200;
+    dragInterval: number = 120;
     dragInterId: any;
     deckColumns: GameObjects.Graphics[];
     constructor() {
@@ -69,14 +69,6 @@ export class Game extends Scene {
         EventBus.once('change_big', () => {
             this.changeToBig();
         });
-        EventBus.on('auto', (card: Card) => {
-            if (Date.now() - this.dragStart < this.dragInterval) {
-                this.auto(card);
-                clearTimeout(this.dragInterId);
-            }
-            console.log(Date.now() - this.dragStart, card);
-
-        });
         window.addEventListener('resize', () => {
             this.onResize();
         })
@@ -91,16 +83,15 @@ export class Game extends Scene {
         for (let i = 0; i < this.fillContainer.list.length; i++) {
             const fillImage = this.fillContainer.list[i] as GameObjects.Image;
             if (card.canFill(i)) {
-                console.log('called');
+                result = true;
                 card.deck.remove(card);
                 card.setOrigin(0, 0);
                 card.x -= card.width / 2;
                 card.y -= card.height / 2;
-                card.setDepth(100);
                 this.tweens.add({
                     targets: card,
-                    x: fillImage.x + fillImage.getWorldTransformMatrix().tx,
-                    y: fillImage.y + fillImage.getWorldTransformMatrix().ty,
+                    x: fillImage.x + fillImage.parentContainer.getWorldTransformMatrix().tx,
+                    y: fillImage.y + fillImage.parentContainer.getWorldTransformMatrix().ty,
                     duration: 300,
                     onComplete: () => {
                         fillImage.setTexture(card.texture.key);
@@ -113,11 +104,10 @@ export class Game extends Scene {
                         });
                         EventBus.emit('card_fill', card.suit);
                         card.destroy();
-                        result = true;
                         this.checkStep();
                     }
                 });
-                return;
+                return result;
             }
         }
         //检查snap
@@ -127,13 +117,13 @@ export class Game extends Scene {
 
             if (lastCard && card.isCardRight(lastCard.suit, card.suit) && card.deck !== deck) {
                 const following = this.getAfterCards(card.suit);
+                result = true;
                 card.deck.remove(card);
-                card.setOrigin(0.5, 0.5);
                 console.log('y:', lastCard.y + lastCard.getWorldTransformMatrix().ty - card.displayHeight / 2)
                 this.tweens.add({
                     targets: card,
-                    x: lastCard.x + lastCard.getWorldTransformMatrix().tx - lastCard.displayWidth / 2,
-                    y: lastCard.y + lastCard.getWorldTransformMatrix().ty - lastCard.displayHeight / 2,
+                    x: lastCard.x + lastCard.deck.getWorldTransformMatrix().tx,
+                    y: lastCard.y + lastCard.deck.getWorldTransformMatrix().ty + this.stashPadding,
                     ease: 'Sine.easeInOut',
                     duration: 200,
                     onComplete: () => {
@@ -145,12 +135,12 @@ export class Game extends Scene {
                         snap({
                             target_card: {
                                 suit: lastCard.suit,
+                                back: false
                             },
-                            card: { suit: card.suit }
+                            card: { suit: card.suit, back: true }
                         });
                         this.checkBack(false);
                         this.checkStep();
-                        result = true;
                     }
                 });
                 following.forEach((fc, index) => {
@@ -167,7 +157,37 @@ export class Game extends Scene {
                         }
                     });
                 });
-                break;
+                return result;
+            }
+        }
+        // 检查空白列
+        if (card.suit.endsWith('K')) {
+            for (let i = 0; i < this.decksContainer.list.length; i++) {
+                const deck = this.decksContainer.list[i] as GameObjects.Container;
+                if (deck.list.length === 0) {
+                    result = true;
+                    card.deck.remove(card);
+                    this.tweens.add({
+                        targets: card,
+                        x:  (this.columnWidth + this.gap) * i + card.displayWidth/2 + deck.getWorldTransformMatrix().tx,
+                        y:  deck.y  + card.displayHeight/2 + deck.getWorldTransformMatrix().ty, 
+                        duration: 200,
+                        onComplete: () => {
+                            this.moving = false;
+                            deck.add(card);
+                            card.setPosition(card.displayWidth/2,  card.displayHeight/2);
+                            card.deckX = card.x;
+                            card.deckY = card.y;
+                            card.deck = deck;
+                            this.checkBack(false);
+                            snap({
+                                target_column: i,
+                                card: { suit: card.suit, back: false }
+                            });
+                        }
+                    })
+                    break;
+                }
             }
         }
         return result;
@@ -255,16 +275,17 @@ export class Game extends Scene {
         this.input.on('dragend', (pointer, obj: Card, dropZone) => {
             if (Date.now() - this.dragStart > this.dragInterval) {
                 EventBus.emit('card_drop', obj);
-                EventBus.once('reset_card', () => {
-                    if (!obj.deck.list.find((card: any) => card.suit === obj.suit)) {
-                        obj.deck.add(obj);
-                    }
-                    this.stopFollow(obj);
-                })
             } else {
                 let filled = this.auto(obj);
+                if (!filled && !obj.deck.list.find((card: any) => card.suit === obj.suit)) {
+                    obj.deck.add(obj);
+                    obj.setPosition(obj.deckX, obj.deckY);
+                }
             }
-
+            EventBus.once('reset_card', () => {
+                console.log("reset card")
+                this.stopFollow(obj);
+            })
         });
     }
 
@@ -290,7 +311,6 @@ export class Game extends Scene {
     refreshFill() {
         const [{ fills, size }, { update }] = store.getModel('game');
         fills.forEach((fill, i) => {
-            let item;
             if (fill.length > 0) {
                 const img = this.fillContainer.list[i] as GameObjects.Image;
                 img.setTexture(`${size}_${fill[fill.length - 1].suit}`);

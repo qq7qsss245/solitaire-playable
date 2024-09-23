@@ -14,6 +14,7 @@ export default class Card extends GameObjects.Sprite {
   deckY: number = 0;
   fillObjId: string = '';
   deck: GameObjects.Container;
+  next: Card;
   constructor(scene: Scene, x: number, y: number, id: string, back: boolean, width: number, height: number) {
     super(scene, x + width/2, y + height/2, 'cardBack');
     this.store = store;
@@ -44,9 +45,6 @@ export default class Card extends GameObjects.Sprite {
       this.setInteractive();
       this.scene.input.setDraggable(this);
     }
-    this.on('pointerup', () => {
-      EventBus.emit('auto', this);
-    })
   }
 
 
@@ -121,11 +119,14 @@ export default class Card extends GameObjects.Sprite {
         }
       } else {
         const snapped = this.checkSnap();
+        console.log('snap', snapped);
         if (!snapped) {
           if (this.scene) {
             this.setPosition(this.deckX, this.deckY);
             if (this.deck) {
               this.deck.add(this);
+              this.deckX = this.x;
+              this.deckY = this.y;
             }
           }
           EventBus.emit('reset_card');

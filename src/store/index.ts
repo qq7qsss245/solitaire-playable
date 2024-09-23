@@ -109,7 +109,7 @@ const game = createModel({
     },
     snap: (state, payload) => {
       let cards: Card[] = [];
-      const {target_card, card} = payload;
+      const {target_card, card, target_column} = payload;
       for (let i = 0; i < state.decks.length; i++) {
         for (let j = 0; j < state.decks[i].length; j++) {
           if (state.decks[i][j].suit === card.suit) {
@@ -120,20 +120,25 @@ const game = createModel({
           } 
         }
       }
-      for (let i = 0; i < state.decks.length; i++) {
-        for (let j = 0; j < state.decks[i].length; j++) {
-          if (state.decks[i][j].suit === target_card.suit) {
-            if (j === state.decks[i].length - 1) {
-              state.decks[i].push({
-                suit: card.suit,
-                back: false
-              });
-              state.stacks_current = '';
-              cards.forEach(card => {
-                state.decks[i].push(card);
-              })
-            }
-          } 
+      if (typeof target_column === 'number') {
+        state.decks[target_column].push({suit: card, back: false});
+        cards.forEach(card => state.decks[target_column].push(card))
+      } else {
+        for (let i = 0; i < state.decks.length; i++) {
+          for (let j = 0; j < state.decks[i].length; j++) {
+            if (state.decks[i][j].suit === target_card.suit) {
+              if (j === state.decks[i].length - 1) {
+                state.decks[i].push({
+                  suit: card.suit,
+                  back: false
+                });
+                state.stacks_current = '';
+                cards.forEach(card => {
+                  state.decks[i].push(card);
+                })
+              }
+            } 
+          }
         }
       }
       return state;
