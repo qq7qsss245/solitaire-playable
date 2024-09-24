@@ -18,7 +18,6 @@ const config: Phaser.Types.Core.GameConfig = {
         Preloader,
         MainGame,
         GameOver,
-        // MainGameLand
     ]
 };
 

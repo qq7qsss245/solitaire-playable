@@ -16,15 +16,15 @@ export default class Card extends GameObjects.Sprite {
   deck: GameObjects.Container;
   next: Card;
   constructor(scene: Scene, x: number, y: number, id: string, back: boolean, width: number, height: number) {
-    super(scene, x + width/2, y + height/2, 'cardBack');
+    super(scene, x + width / 2, y + height / 2, 'cardBack');
     this.store = store;
     this.suit = id;
     this.back = back;
     this.displayWidth = width;
     this.displayHeight = height;
     this.depth = 1;
-    this.deckX = x + width/2;
-    this.deckY = y + height/2;
+    this.deckX = x + width / 2;
+    this.deckY = y + height / 2;
     this.render();
     EventBus.on('card_drop', (obj: GameObjects.Sprite) => {
       const [{ size }] = store.getModel("game");
@@ -74,8 +74,9 @@ export default class Card extends GameObjects.Sprite {
                   suit: card.suit,
                 },
                 card: { suit: this.suit }
-              });-
-              EventBus.emit('card_snapped', this.suit, [index, cardIndex]);
+              }); -
+                EventBus.emit('card_snapped', this.suit, [index, cardIndex]);
+                EventBus.emit('snapped_sound');
               result = true;
             }
           }
@@ -97,43 +98,50 @@ export default class Card extends GameObjects.Sprite {
   checkFill(id: string) {
     if (this.fillObjId === id) return;
     this.fillObjId = id;
+    let filled = false;
     const [{ fillContainer, size, fills }, { fill }] = this.store.getModel('game');
     fillContainer?.list.forEach((i, index) => {
+      console.log('fill', index);
       const item = i as GameObjects.Image;
       const itemBounds = (item as GameObjects.Image).getBounds();
       const cardBounds = this.getBounds();
       // 检查是否相交
       if (Phaser.Geom.Intersects.RectangleToRectangle(itemBounds, cardBounds)) {
-        if (this.canFill(index)) {
-          // this.img.setPosition(item.x, item.y);
-          fill({
-            index,
-            card: {
-              suit: this.suit,
-              back: this.back
-            }
-          });
-          EventBus.emit('card_fill', this.suit);
-          this.removeInteractive();
-          this.destroy();
-        }
-      } else {
-        const snapped = this.checkSnap();
-        console.log('snap', snapped);
-        if (!snapped) {
-          if (this.scene) {
-            this.setPosition(this.deckX, this.deckY);
-            if (this.deck) {
-              this.deck.add(this);
-              this.deckX = this.x;
-              this.deckY = this.y;
-            }
+        console.log('bound');
+        fillContainer.list.forEach((item, i) => {
+          if (this.canFill(i)) {
+            // this.img.setPosition(item.x, item.y);
+            fill({
+              index: i,
+              card: {
+                suit: this.suit,
+                back: this.back
+              }
+            });
+            EventBus.emit('card_fill', this.suit);
+            this.removeInteractive();
+            this.destroy();
+            filled = true;
           }
-          EventBus.emit('reset_card');
-        }
+        })
       }
     }
     )
+    if (!filled) {
+      const snapped = this.checkSnap();
+      console.log('snap', snapped);
+      if (!snapped) {
+        if (this.scene) {
+          this.setPosition(this.deckX, this.deckY);
+          if (this.deck) {
+            this.deck.add(this);
+            this.deckX = this.x;
+            this.deckY = this.y;
+          }
+        }
+        EventBus.emit('reset_card');
+      }
+    }
     setTimeout(() => this.fillObjId = '', 100)
   }
 

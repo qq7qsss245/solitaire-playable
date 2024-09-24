@@ -12,11 +12,7 @@ const Sound: React.FC = () => {
     useEffect(() => {
         const bgmEffect = new Audio(bgm);
         const popupEffect = new Audio(popup);
-        const moveEffect = new Audio(move);
-        const fillEffect = new Audio(fill);
-        const dealEffect = new Audio(deal);
         const clickEffect = new Audio(click);
-        const bigEffect = new Audio(big);
         bgmEffect.loop = true;
         window.addEventListener('touchstart', () => {
             setTimeout(() => {
@@ -40,22 +36,27 @@ const Sound: React.FC = () => {
         EventBus.on('popup_show', () => {
             popupEffect.play();
         });
-        EventBus.on('card_snapped', () => {
+        EventBus.on('snapped_sound', () => {
+            const moveEffect = new Audio(move);
             moveEffect.play();
         });
         EventBus.on('rotate', () => {
+            const moveEffect = new Audio(move);
             moveEffect.play();
         });
         EventBus.on('card_fill', () => {
+            const fillEffect = new Audio(fill);
             fillEffect.play();
         });
         EventBus.on('deal', () => {
+            const dealEffect = new Audio(deal);
             dealEffect.play();
         });
         EventBus.on('click', () => {
             clickEffect.play();
         });
         EventBus.on('change_big', () => {
+            const bigEffect = new Audio(big);
             bigEffect.play();
         });
     }, []);

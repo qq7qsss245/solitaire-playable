@@ -121,7 +121,7 @@ const game = createModel({
         }
       }
       if (typeof target_column === 'number') {
-        state.decks[target_column].push({suit: card, back: false});
+        state.decks[target_column].push({suit: card.suit, back: false});
         cards.forEach(card => state.decks[target_column].push(card))
       } else {
         for (let i = 0; i < state.decks.length; i++) {

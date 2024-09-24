@@ -39,6 +39,7 @@ const PopUp: React.FC  = () => {
       if (size === 'big') {
         EventBus.emit('change_big')
       }
+      EventBus.emit('popup_hide');
     }, 600)
     
   }

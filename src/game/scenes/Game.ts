@@ -26,31 +26,53 @@ export class Game extends Scene {
     cardMoveID: string;
     followingCards: Card[] = [];
     decksMap: Map<string, Card> = new Map();
-    maxStep: number = 12;
+    maxStep: number = 20;
     step: number = 0;
     moving: boolean = false;
     dragStart: number = 0;
-    dragInterval: number = 120;
+    dragInterval: number = 200;
     dragInterId: any;
     deckColumns: GameObjects.Graphics[];
+    hand: GameObjects.Sprite;
+    GameStarted:boolean = false;
     constructor() {
         super('Game');
     }
 
     checkStep() {
         this.step++;
-        console.log(this.step)
+        console.log(this.step);
         if (this.step > this.maxStep) {
             download();
         }
+        if (this.step < 2) {
+            this.showTip();
+        } else {
+            this.hand.destroy();
+            this.GameStarted = true;
+        }
+    }
+
+    checkMove (card: Card) {
+        return this.GameStarted || this.step === 0 && card.suit === 'f_A' || this.step === 1 && card.suit === 'f_3';
     }
 
     create() {
         this.handleDrag();
         this.generateFill();
+        this.generateEmpty();
         this.generateDecks();
         this.generateStack();
         this.checkBack();
+        this.tweens.add({
+            targets: this.hand,
+            scaleY: .55,
+            scaleX: .55,
+            duration: 500,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        })
         EventBus.on('card_fill', (id: string) => {
             this.refreshFill();
             this.refreshDecks([id]);
@@ -66,13 +88,99 @@ export class Game extends Scene {
         setTimeout(() => {
             EventBus.emit('popup_show');
         }, 1000);
+
+        EventBus.once('popup_hide', () => {
+            this.hand = this.add.sprite(0, 0, 'hand').setScale(.5, .5).setAlpha(0);
+            this.showTip();
+        });
         EventBus.once('change_big', () => {
             this.changeToBig();
         });
         window.addEventListener('resize', () => {
             this.onResize();
         })
+    }
 
+    showTip() {
+        if (this.step === 0) {
+            const step1Target = (this.decksContainer.list[6] as GameObjects.Container).list[6] as Card;
+            this.hand.setPosition(
+                step1Target.x + step1Target.deck.getWorldTransformMatrix().tx + step1Target.displayWidth * .8,
+                step1Target.y + step1Target.deck.getWorldTransformMatrix().ty + step1Target.displayHeight * .8
+            );
+            this.hand.setAlpha(1);
+            this.add.tween({
+                targets: this.hand,
+                x: this.hand.x + 30,
+                y: this.hand.y + 30,
+                duration: 500,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+        } else if (this.step === 1) {
+            console.log('step 2')
+            const step2Target = (this.decksContainer.list[0] as GameObjects.Container).list[0] as Card;
+            this.hand.setAlpha(1)
+            this.add.tween({
+                targets: this.hand,
+                x: step2Target.x + step2Target.deck.getWorldTransformMatrix().tx + step2Target.displayWidth * .8,
+                y: step2Target.y + step2Target.deck.getWorldTransformMatrix().ty + step2Target.displayHeight * .8,
+                duration: 500,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    this.add.tween({
+                        targets: this.hand,
+                        x: this.hand.x + 30,
+                        y: this.hand.y + 30,
+                        duration: 500,
+                        ease: 'Sine.easeInOut',
+                        yoyo: true,
+                        repeat: -1
+                    });
+                }
+            })
+
+        }
+        
+    }
+
+    generateEmpty() {
+        const [{ decks }, { snap }] = this.store.getModel('game');
+        decks.forEach((deck, index) => {
+            const deckX = (this.columnWidth + this.gap) * index;
+            const placeHolder = this.add.image(this.padding + deckX, (this.fillContainer?.list[0] as GameObjects.Image).displayHeight * 2.5, 'fill').setDisplaySize(this.columnWidth, this.columnWidth * this.cardRatio).setOrigin(0, 0);
+            placeHolder.setAlpha(0);
+            EventBus.on('card_drop', (card: Card) => {
+                if (card.suit.endsWith('K')) {
+                    const emptyBounds = placeHolder.getBounds();
+                    const cardBounds = card.getBounds();
+                    const following = this.getAfterCards(card.suit);
+                    if (Phaser.Geom.Intersects.RectangleToRectangle(emptyBounds, cardBounds)) {
+                        const deck = this.decksContainer.list[index] as GameObjects.Container
+                        if (deck.list.length === 0) {
+                            deck.add(card);
+                            card.setPosition(card.displayWidth / 2, card.displayHeight / 2);
+                            card.deckX = card.x;
+                            card.deckY = card.y;
+                            card.deck = deck;
+                            snap({
+                                target_column: index,
+                                card: { suit: card.suit, back: false }
+                            });
+                            this.checkBack(false);
+                            following.forEach((fc, index) => {
+                                deck.add(fc);
+                                fc.setPosition(card.x, card.y + this.stashPadding * (index + 1));
+                                fc.deckX = fc.x;
+                                fc.deckY = fc.y;
+                                fc.deck = deck;
+                            });
+                        }
+                    }
+                }
+            })
+        });
     }
 
 
@@ -104,7 +212,6 @@ export class Game extends Scene {
                         });
                         EventBus.emit('card_fill', card.suit);
                         card.destroy();
-                        this.checkStep();
                     }
                 });
                 return result;
@@ -129,7 +236,9 @@ export class Game extends Scene {
                     onComplete: () => {
                         this.moving = false;
                         deck.add(card);
-                        card.setPosition(lastCard.x, lastCard.y + this.stashPadding)
+                        card.setPosition(lastCard.x, lastCard.y + this.stashPadding);
+                        card.deckX = card.x;
+                        card.deckY = card.y;
                         card.deck = deck;
                         this.decksMap.set(card.suit, card);
                         snap({
@@ -141,6 +250,7 @@ export class Game extends Scene {
                         });
                         this.checkBack(false);
                         this.checkStep();
+                        EventBus.emit('snapped_sound');
                     }
                 });
                 following.forEach((fc, index) => {
@@ -153,6 +263,8 @@ export class Game extends Scene {
                         onComplete: () => {
                             deck.add(fc);
                             fc.setPosition(lastCard.x, lastCard.y + this.stashPadding * (index + 2));
+                            fc.deckX = fc.x;
+                            fc.deckY = fc.y;
                             fc.deck = deck;
                         }
                     });
@@ -164,18 +276,19 @@ export class Game extends Scene {
         if (card.suit.endsWith('K')) {
             for (let i = 0; i < this.decksContainer.list.length; i++) {
                 const deck = this.decksContainer.list[i] as GameObjects.Container;
+                const following = this.getAfterCards(card.suit);
                 if (deck.list.length === 0) {
                     result = true;
                     card.deck.remove(card);
                     this.tweens.add({
                         targets: card,
-                        x:  (this.columnWidth + this.gap) * i + card.displayWidth/2 + deck.getWorldTransformMatrix().tx,
-                        y:  deck.y  + card.displayHeight/2 + deck.getWorldTransformMatrix().ty, 
+                        x: (this.columnWidth + this.gap) * i + card.displayWidth / 2 + deck.getWorldTransformMatrix().tx,
+                        y: deck.y + card.displayHeight / 2 + deck.getWorldTransformMatrix().ty,
                         duration: 200,
                         onComplete: () => {
                             this.moving = false;
                             deck.add(card);
-                            card.setPosition(card.displayWidth/2,  card.displayHeight/2);
+                            card.setPosition(card.displayWidth / 2, card.displayHeight / 2);
                             card.deckX = card.x;
                             card.deckY = card.y;
                             card.deck = deck;
@@ -185,7 +298,22 @@ export class Game extends Scene {
                                 card: { suit: card.suit, back: false }
                             });
                         }
-                    })
+                    });
+                    following.forEach((fc, index) => {
+                        fc.deck.remove(fc);
+                        this.tweens.add({
+                            targets: fc,
+                            x: (this.columnWidth + this.gap) * i + card.displayWidth / 2 + deck.parentContainer.getWorldTransformMatrix().tx,
+                            y: deck.y + card.displayHeight / 2 + deck.parentContainer.getWorldTransformMatrix().ty + (index + 1) * this.stashPadding,
+                            duration: 200,
+                            ease: 'Sine.easeInOut',
+                            onComplete: () => {
+                                deck.add(fc);
+                                fc.setPosition(fc.displayWidth / 2, fc.displayHeight / 2 + this.stashPadding * (index + 1));
+                                fc.deck = deck;
+                            }
+                        });
+                    });
                     break;
                 }
             }
@@ -205,7 +333,7 @@ export class Game extends Scene {
 
 
     getCardFromDeck(id: string): Card | undefined {
-        return this.decksMap.get(id);;
+        return this.decksMap.get(id);
     }
 
     getAfterCards(id: string): Card[] {
@@ -229,6 +357,7 @@ export class Game extends Scene {
         const [{ decks, size }, { update }] = store.getModel('game');
         const id = obj.texture.key.replace(`${size}_`, '');
         const afterCards = this.getAfterCards(id);
+        console.log('afterCards:', afterCards);
         afterCards.forEach((card, index) => {
             card.x = this.draggingSprite.x;
             card.y = this.draggingSprite.y + this.stashPadding * (index + 1);
@@ -247,14 +376,16 @@ export class Game extends Scene {
     }
 
     handleDrag() {
-        if (this.moving) return;
         this.input.on('drag', (pointer: any, obj: Card, dragX: number, dragY: number) => {
+            if (!this.checkMove(obj)) return;
+            if (this.moving) return;
             obj.x = dragX + obj.deck.getWorldTransformMatrix()?.tx || 0;
             obj.y = dragY + obj.deck.getWorldTransformMatrix()?.ty || 0;
             this.followCard(obj, dragX, dragY);
 
         });
         this.input.on('dragstart', (pointer, gameObject: Card) => {
+            if (!this.checkMove(gameObject)) return;
             this.dragStart = Date.now();
             if (gameObject.parentContainer) {
                 gameObject.parentContainer.remove(gameObject);
@@ -270,9 +401,11 @@ export class Game extends Scene {
                     card.y = this.draggingSprite.y + this.stashPadding * (index + 1);
                 });
                 this.followingCards = cards;
+                console.log("following:", this.followingCards)
             }
         });
         this.input.on('dragend', (pointer, obj: Card, dropZone) => {
+            if (!this.checkMove(obj)) return;
             if (Date.now() - this.dragStart > this.dragInterval) {
                 EventBus.emit('card_drop', obj);
             } else {
@@ -283,9 +416,8 @@ export class Game extends Scene {
                 }
             }
             EventBus.once('reset_card', () => {
-                console.log("reset card")
                 this.stopFollow(obj);
-            })
+            });
         });
     }
 
@@ -386,6 +518,7 @@ export class Game extends Scene {
                     .setDisplaySize(this.columnWidth, this.columnWidth * this.cardRatio)
                     .setInteractive();
                 this.stack.on('pointerdown', () => {
+                    if (!this.GameStarted) return;
                     this.deal();
                     this.checkStep();
                 });
