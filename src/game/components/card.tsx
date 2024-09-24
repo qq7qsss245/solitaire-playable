@@ -74,9 +74,9 @@ export default class Card extends GameObjects.Sprite {
                   suit: card.suit,
                 },
                 card: { suit: this.suit }
-              }); -
-                EventBus.emit('card_snapped', this.suit, [index, cardIndex]);
-                EventBus.emit('snapped_sound');
+              });
+              EventBus.emit('card_snapped', this.suit, [index, cardIndex]);
+              EventBus.emit('snapped_sound');
               result = true;
             }
           }
@@ -152,7 +152,6 @@ export default class Card extends GameObjects.Sprite {
     // 绘制容器1的边界矩形
     this.graphics.lineStyle(10, 0xff0000, 10);  // 红色线条
     this.graphics.strokeRect(bounds1.x, bounds1.y, bounds1.width, bounds1.height);
-
     // 绘制容器2的边界矩形
     this.graphics.lineStyle(10, 0x00ff00, 10);  // 绿色线条
     this.graphics.strokeRect(bounds2.x, bounds2.y, bounds2.width, bounds2.height);
@@ -198,7 +197,6 @@ export default class Card extends GameObjects.Sprite {
   }
 
   changeToBig() {
-    const [{ size }] = this.store.getModel('game');
     this.setTexture(`big_${this.suit}`);
     //TODO: 翻转动画
     const scaleY = this.scaleY;
@@ -223,6 +221,4 @@ export default class Card extends GameObjects.Sprite {
       }
     });
   }
-
-
 }
