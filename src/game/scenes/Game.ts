@@ -6,8 +6,8 @@ import download from './constants/download';
 
 export class Game extends Scene {
 
-    screenWidth = 1080;
-    padding = 60;
+    screenWidth = 1180;
+    padding = 100;
     containerWidth = this.screenWidth - 2 * this.padding;
     gap = 20;
     columnsCount = 7;
@@ -77,7 +77,7 @@ export class Game extends Scene {
             this.refreshFill();
             this.refreshDecks([id]);
         }, this);
-        const downBtn = this.add.image(540, 1700, 'download').setDisplaySize(380, 120).setOrigin(.5, .5);
+        const downBtn = this.add.image(this.screenWidth/2, 1700, 'download').setDisplaySize(780, 240).setOrigin(.5, .5);
         downBtn.setInteractive();
         downBtn.on('pointerdown', download);
         EventBus.on('card_snapped', (target: string, to: [number, number]) => {
@@ -90,7 +90,7 @@ export class Game extends Scene {
         }, 1000);
 
         EventBus.once('popup_hide', () => {
-            this.hand = this.add.sprite(0, 0, 'hand').setScale(.5, .5).setAlpha(0);
+            this.hand = this.add.sprite(0, 0, 'hand').setScale(.4, .4).setAlpha(0);
             this.showTip();
         });
         EventBus.once('change_big', () => {
@@ -105,14 +105,14 @@ export class Game extends Scene {
         if (this.step === 0) {
             const step1Target = (this.decksContainer.list[6] as GameObjects.Container).list[6] as Card;
             this.hand.setPosition(
-                step1Target.x + step1Target.deck.getWorldTransformMatrix().tx + step1Target.displayWidth * .8,
-                step1Target.y + step1Target.deck.getWorldTransformMatrix().ty + step1Target.displayHeight * .8
+                step1Target.x + step1Target.deck.getWorldTransformMatrix().tx + step1Target.displayWidth * .5,
+                step1Target.y + step1Target.deck.getWorldTransformMatrix().ty + step1Target.displayHeight * .5
             );
             this.hand.setAlpha(1);
             this.add.tween({
                 targets: this.hand,
-                x: this.hand.x + 30,
-                y: this.hand.y + 30,
+                x: this.hand.x + 20,
+                y: this.hand.y + 20,
                 duration: 500,
                 ease: 'Sine.easeInOut',
                 yoyo: true,
@@ -124,8 +124,8 @@ export class Game extends Scene {
             this.hand.setAlpha(1)
             this.add.tween({
                 targets: this.hand,
-                x: step2Target.x + step2Target.deck.getWorldTransformMatrix().tx + step2Target.displayWidth * .8,
-                y: step2Target.y + step2Target.deck.getWorldTransformMatrix().ty + step2Target.displayHeight * .8,
+                x: step2Target.x + step2Target.deck.getWorldTransformMatrix().tx + step2Target.displayWidth * .5,
+                y: step2Target.y + step2Target.deck.getWorldTransformMatrix().ty + step2Target.displayHeight * .5,
                 duration: 500,
                 ease: 'Sine.easeInOut',
                 onComplete: () => {
