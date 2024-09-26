@@ -1,5 +1,4 @@
-import { Boot } from './scenes/Boot';
-import { GameOver } from './scenes/GameOver';
+
 import { Game as MainGame } from './scenes/Game';
 // import { Game as MainGameLand } from './scenes/Game-LandScape';
 import { AUTO, Game } from 'phaser';
@@ -14,10 +13,10 @@ const config: Phaser.Types.Core.GameConfig = {
     transparent: true,
     parent: 'game-container',
     scene: [
-        Boot,
+        // Boot,
         Preloader,
         MainGame,
-        GameOver,
+        // GameOver,
     ]
 };
 
