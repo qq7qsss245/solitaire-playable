@@ -1,23 +1,23 @@
-interface GlobalType {
-  started: boolean,
-  orientation: 0|1,
-  current?: Phaser.GameObjects.Image,
-  puzzle: string[][]
-  currentIndex: number;
-}
-
-export const Global: GlobalType = {
+export const Global = {
+  containers: [0, 0, 0],
+  score: 0,
   started: false,
   orientation: 0,
-  current: undefined,
-  currentIndex: 0,
+  y: 300,
+  clearCount: 0,
+  maxClearCount: 8,
+  guideBlockId: ['0-0', '0-1', '0-2'],
+  currentGuideId: '0-0',
+  current: 0,
   puzzle: [
-    ['darkBlue','yellow','yellow','darkBlue', 'red', 'darkBlue', 'darkBlue','red'],
-    ['darkBlue', 'orange', 'red','red', 'orange', 'orange', 'yellow', 'yellow'],
-    ['darkBlue',  'yellow', 'yellow', 'orange', 'red', 'orange', 'red' , 'orange'],
-    ['darkBlue', 'yellow', 'red', 'yellow', 'red', 'darkBlue', 'orange', 'orange'],
-    ['green', 'green', 'green', 'green', 'green', 'green', 'green'],
-    ['green'],
-    []
+    [2, 2, 2, 4, 4],
+    [16, 4, 8, 8, 8],
+    [16, 32, 32, 64, 64],
+    [16, 128, 256, 1024, 128],
+    [32, 256, 128, 256, 1024],
+    [64, 1024, 1024, 256, 256],
+    [64, 128, 128, 512, 256],
+    [2048, 128, 64, 1024, 256],
+    [512, 1024, 128, 128, 256],
   ]
 };

@@ -1,13 +1,10 @@
 import { useRef, useState, useEffect } from 'react';
 import { IRefPhaserGame, PhaserGame } from './game/PhaserGame';
-import Bg from '@/assets/bg.png';
 import './index.css';
-import { Start } from './game/scenes/constants/viewable-handler';
-import store from '@/store';
+import { EventBus } from './game/EventBus';
 import Sound from './sound';
-import PopUp from './game/components/popup';
+import { Start } from './viewable-handler';
 
-const { Provider } = store;
 
 function App() {
     // The sprite can only be moved in the MainMenu Scene
@@ -16,18 +13,25 @@ function App() {
     const phaserRef = useRef<IRefPhaserGame | null>(null);
 
     useEffect(() => {
+        EventBus.once('game-over', () => {
+            setGameOver(true);
+        });
         Start();
     }, []);
 
-    return (
-        <Provider>
-            <div id="app" style={{ backgroundImage: `url('${Bg}')` }}>
-                <PhaserGame ref={phaserRef} />
-            </div>
-            <Sound/>
-            <PopUp/>
-        </Provider>
 
+
+    // Event emitted from the PhaserGame component
+    const currentScene = (scene: Phaser.Scene) => {
+
+
+    }
+
+    return (
+        <div id="app">
+            <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
+            <Sound />
+        </div>
     )
 }
 

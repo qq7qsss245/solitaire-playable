@@ -3,7 +3,6 @@ body {
   height: 100vh;
   margin: 0;
   padding: 0;
-  overflow: hidden;
 }
 
 canvas {
@@ -15,7 +14,7 @@ canvas {
 #app {
   width: 100vw;
   height: 100vh;
-  background-size:cover;
+  background-size:contain;
   display: flex;
   justify-content: center;
 }
