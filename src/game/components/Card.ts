@@ -15,6 +15,8 @@ export class Card extends GameObjects.Sprite {
     private attachedCards: Card[] = []; // 存储拖拽时附带的卡牌
     private actionQueue: (() => Promise<void>)[] = []; // 动作队列
     private isProcessingQueue: boolean = false; // 是否正在处理队列
+    private isPlayingErrorAnimation: boolean = false; // 是否正在播放错误动画
+    private isFlipping: boolean = false; // 是否正在翻转
     
     // 添加动作到队列
     private async addToQueue(action: () => Promise<void>) {
@@ -88,7 +90,14 @@ export class Card extends GameObjects.Sprite {
 
     // 翻转卡牌
     flip(): Promise<void> {
+        // 如果正在翻转,返回一个rejected promise
+        if (this.isFlipping) {
+            return Promise.reject('Card is already flipping');
+        }
+
         return new Promise<void>((resolve) => {
+            this.isFlipping = true;
+            
             // 保存原始缩放值
             const originalScaleX = this.scaleX;
             
@@ -119,9 +128,13 @@ export class Card extends GameObjects.Sprite {
                             // 如果是正面朝上,启用交互和拖拽
                             if (this._faceUp) {
                                 this.setInteractive();
-                                (this.scene as Game).input.setDraggable(this);
+                                const gameScene = this.scene as Game;
+                                gameScene.input.setDraggable(this);
+                                // 通知Game类卡牌翻转成功
+                                gameScene.onCardFlipped();
                             }
                             
+                            this.isFlipping = false;
                             resolve();
                         }
                     });
@@ -425,14 +438,20 @@ export class Card extends GameObjects.Sprite {
 
     // 错误动画(左右晃动)
     private playErrorAnimation(): void {
-        const originalX = this.x;
+        // 保存真实的原始位置
+        const realStartX = this.startX;
+        const realStartY = this.startY;
+        const realDepth = this.normalDepth;
+        
+        this.isPlayingErrorAnimation = true;
+        
         const amplitude = 10; // 晃动幅度
         const duration = 50; // 每次移动的持续时间
 
         // 创建晃动序列
         this.scene.tweens.add({
             targets: this,
-            x: originalX - amplitude,
+            x: realStartX - amplitude,
             duration: duration,
             yoyo: true,
             repeat: 1,
@@ -440,14 +459,19 @@ export class Card extends GameObjects.Sprite {
             onComplete: () => {
                 this.scene.tweens.add({
                     targets: this,
-                    x: originalX + amplitude,
+                    x: realStartX + amplitude,
                     duration: duration,
                     yoyo: true,
                     repeat: 1,
                     ease: 'Power1',
                     onComplete: () => {
-                        // 确保最后回到原位
-                        this.x = originalX;
+                        this.isPlayingErrorAnimation = false;
+                        // 只在非拖拽状态时重置位置
+                        if (!this.isDragging) {
+                            this.x = realStartX;
+                            this.y = realStartY;
+                            this.setDepth(realDepth);
+                        }
                     }
                 });
             }

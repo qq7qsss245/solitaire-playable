@@ -22,6 +22,10 @@ export class Game extends Scene {
     public playNowButton: Phaser.GameObjects.Image; // 添加按钮属性
     private columns: CardColumn[] = []; // 存储每列的卡牌
     private foundations: FoundationPile[] = []; // 存储收牌区状态
+    private score: number = 0; // 游戏得分
+    private moves: number = 0; // 移动次数
+    private scoreText: Phaser.GameObjects.Text; // 分数显示
+    private movesText: Phaser.GameObjects.Text; // 移动次数显示
 
     // 定义横竖屏尺寸
     public readonly LANDSCAPE_WIDTH = 1920;
@@ -54,6 +58,25 @@ export class Game extends Scene {
 
         // 创建Play Now按钮
         this.createPlayNowButton();
+
+        // 创建分数和移动次数显示
+        const textStyle = {
+            fontSize: '32px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        };
+
+        // 创建移动次数显示
+        this.movesText = this.add.text(20, 20, 'Moves: 0', textStyle);
+        this.movesText.setScrollFactor(0);
+        this.movesText.setDepth(1000);
+
+        // 创建分数显示
+        this.scoreText = this.add.text(20, 60, 'Score: 0', textStyle);
+        this.scoreText.setScrollFactor(0);
+        this.scoreText.setDepth(1000);
 
         // 监听窗口大小变化
         window.addEventListener('resize', this.onResize);
@@ -155,6 +178,18 @@ export class Game extends Scene {
         this.updatePlayNowButtonPosition();
     }
 
+    // 更新分数
+    private updateScore(points: number) {
+        this.score += points;
+        this.scoreText.setText(`Score: ${this.score}`);
+    }
+
+    // 增加移动次数
+    private incrementMoves() {
+        this.moves++;
+        this.movesText.setText(`Moves: ${this.moves}`);
+    }
+
     private updatePlayNowButtonPosition(): void {
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -185,10 +220,16 @@ export class Game extends Scene {
             // 横屏模式
             this.currentOffsetX = 1920 - this.CARD_WIDTH * 5;
             this.currentOffsetY = this.CARD_HEIGHT;
+            // 更新UI位置
+            this.movesText.setPosition(20, 20);
+            this.scoreText.setPosition(20, 60);
         } else {
             // 竖屏模式
             this.currentOffsetX = this.scale.width / 2;
             this.currentOffsetY = this.scale.height / 2 - this.LAYOUT_OFFSET_X;
+            // 更新UI位置
+            this.movesText.setPosition(20, this.scale.height - 100);
+            this.scoreText.setPosition(20, this.scale.height - 60);
         }
 
         // 更新所有卡牌的位置
@@ -333,11 +374,15 @@ export class Game extends Scene {
         return attachedCards;
     }
 
+    // 卡牌翻转成功时调用
+    public onCardFlipped() {
+        this.updateScore(5); // 翻开新卡牌得5分
+    }
+
     // 移动卡牌到新列
     public moveCardToColumn(card: CardComponent, columnIndex: number) {
         // 获取要移动的所有卡牌
         const attachedCards = this.getAttachedCards(card);
-        
         
         // 从原列中移除所有卡牌
         this.removeCardFromColumn(card);
@@ -350,6 +395,9 @@ export class Game extends Scene {
         attachedCards.forEach(attachedCard => {
             this.addCardToColumn(columnIndex, attachedCard);
         });
+
+        // 增加移动次数
+        this.incrementMoves();
     }
 
     // 检查收牌区是否可以接收卡牌
@@ -393,6 +441,10 @@ export class Game extends Scene {
         
         // 播放收牌音效
         EventBus.emit('play-sound', 'fill');
+        
+        // 增加分数和移动次数
+        this.updateScore(10); // 移动到收牌区得10分
+        this.incrementMoves(); // 增加移动次数
         
         // 检查是否胜利
         this.checkWinCondition();
