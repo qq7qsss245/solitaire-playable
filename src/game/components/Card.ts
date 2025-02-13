@@ -1,3 +1,4 @@
+
 import { GameObjects, Scene } from 'phaser';
 import { CardSuit, CardValue } from '../../config/layout';
 import { Game } from '../scenes/Game';
@@ -124,8 +125,6 @@ export class Card extends GameObjects.Sprite {
         this.attachedCards.forEach((card, index) => {
             card.setDepth(Card.DRAG_DEPTH + index + 1);
         });
-
-        console.log(`[DragStart] Card: ${this._suit}${this._value}, Position: (${this.x}, ${this.y}), Attached: ${this.attachedCards.map(c => `${c.suit}${c.value}`).join(', ')}`);
     }
 
     // 拖拽中
@@ -189,14 +188,10 @@ export class Card extends GameObjects.Sprite {
             this.x = dropResult.x!;
             this.y = dropResult.y!;
             
-            // 设置深度以确保显示在目标卡牌上方
-            this.setDepth(this.y);
-            
             // 移动附属卡牌到新位置
             this.attachedCards.forEach((card, index) => {
                 card.x = dropResult.x!;
                 card.y = dropResult.y! + (index + 1) * Card.CARD_GAP_Y;
-                card.setDepth(card.y);
             });
             
             // 播放成功音效
@@ -251,7 +246,151 @@ export class Card extends GameObjects.Sprite {
 
     // 点击事件
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
+        if (!this._faceUp) return;
+
         // 播放点击音效
+        EventBus.emit('play-sound', 'click');
+
+        // 检查并自动移动卡牌
+        this.tryAutoMove();
+    }
+
+    // 尝试自动移动卡牌
+    private tryAutoMove(): void {
+        const gameScene = this.scene as Game;
+        
+        // 获取附属卡牌
+        const attachedCards = gameScene.getAttachedCards(this);
+        
+        // 首先尝试移动到收牌区
+        for (let i = 0; i < gameScene.foundationZones.length; i++) {
+            if (gameScene.canAddToFoundation(this, i) && attachedCards.length === 0) {
+                // 获取并保存当前卡牌的上一张牌
+                const nextCard = gameScene.getNextCard(this);
+                console.log(`[Foundation] Found next card: ${nextCard ? `${nextCard.suit}${nextCard.value} (${nextCard.faceUp ? 'face up' : 'face down'})` : 'none'}`);
+                
+                // 可以移动到收牌区
+                this.animateMove(
+                    gameScene.foundationZones[i].x,
+                    gameScene.foundationZones[i].y,
+                    () => {
+                        // 先执行收牌
+                        gameScene.addToFoundation(this, i);
+                        
+                        // 确保在收牌完成后再翻转
+                        setTimeout(() => {
+                            if (nextCard && !nextCard.faceUp) {
+                                console.log(`[Foundation] Flipping next card: ${nextCard.suit}${nextCard.value}`);
+                                nextCard.flip();
+                            }
+                        }, 100);
+                    }
+                );
+                return;
+            }
+        }
+
+        // 如果不能移动到收牌区,尝试移动到其他卡牌上
+        const targets = gameScene.getColumnBottomCards()
+            .filter(card => !([this, ...attachedCards].includes(card)) && card.faceUp);
+
+        for (const target of targets) {
+            if (target.isRed !== this.isRed && target.numericValue === this.numericValue + 1) {
+                // 可以移动到这张卡上
+                this.animateMove(
+                    target.x,
+                    target.y + Card.CARD_GAP_Y,
+                    () => {
+                        const newColumnIndex = gameScene.getColumnIndex(target);
+                        if (newColumnIndex !== -1) {
+                            gameScene.moveCardToColumn(this, newColumnIndex);
+                        }
+                    },
+                    attachedCards
+                );
+                return;
+            }
+        }
+
+        // 如果没有可移动位置,播放错误动画
+        this.playErrorAnimation();
+    }
+
+    // 移动动画
+    private animateMove(targetX: number, targetY: number, onComplete: () => void, attachedCards: Card[] = []): void {
+        // 计算移动距离
+        const dx = targetX - this.x;
+        const dy = targetY - this.y;
+        
+        // 创建主卡牌移动动画
+        this.scene.tweens.add({
+            targets: this,
+            x: targetX,
+            y: targetY,
+            duration: 200,
+            ease: 'Power2',
+            onComplete: () => {
+                // 设置主卡牌深度
+                this.setDepth(targetY);
+                
+                // 设置附属卡牌深度和位置
+                attachedCards.forEach((card, index) => {
+                    const cardY = targetY + (index + 1) * Card.CARD_GAP_Y;
+                    card.setDepth(cardY);
+                });
+                
+                // 执行原来的完成回调
+                onComplete();
+            }
+        });
+
+        // 创建附属卡牌移动动画
+        attachedCards.forEach((card, index) => {
+            const cardY = targetY + (index + 1) * Card.CARD_GAP_Y;
+            this.scene.tweens.add({
+                targets: card,
+                x: targetX,
+                y: cardY,
+                duration: 200,
+                ease: 'Power2'
+            });
+        });
+
+        // 播放移动音效
+        EventBus.emit('play-sound', 'move');
+    }
+
+    // 错误动画(左右晃动)
+    private playErrorAnimation(): void {
+        const originalX = this.x;
+        const amplitude = 10; // 晃动幅度
+        const duration = 50; // 每次移动的持续时间
+
+        // 创建晃动序列
+        this.scene.tweens.add({
+            targets: this,
+            x: originalX - amplitude,
+            duration: duration,
+            yoyo: true,
+            repeat: 1,
+            ease: 'Power1',
+            onComplete: () => {
+                this.scene.tweens.add({
+                    targets: this,
+                    x: originalX + amplitude,
+                    duration: duration,
+                    yoyo: true,
+                    repeat: 1,
+                    ease: 'Power1',
+                    onComplete: () => {
+                        // 确保最后回到原位
+                        this.x = originalX;
+                    }
+                });
+            }
+        });
+
+        // 播放错误音效
         EventBus.emit('play-sound', 'click');
     }
 
@@ -263,9 +402,6 @@ export class Card extends GameObjects.Sprite {
         // 获取每列最底部的卡牌作为可能的目标
         const targets = gameScene.getColumnBottomCards()
             .filter(card => !([this, ...this.attachedCards].includes(card)) && card.faceUp);
-
-        console.log(`[CheckDropTarget] Card: ${this._suit}${this._value}, Position: (${this.x}, ${this.y})`);
-        console.log(`[Targets] Count: ${targets.length}, Cards: ${targets.map(c => `${c.suit}${c.value}`).join(', ')}`);
 
         // 获取收牌区
         const foundationZones = (this.scene as Game).foundationZones;
@@ -280,13 +416,11 @@ export class Card extends GameObjects.Sprite {
                 this.y >= bounds.top && this.y <= bounds.bottom) {
                 // 收牌区不允许放置多张卡牌
                 if (this.attachedCards.length > 0) {
-                    console.log(`[Foundation] Rejected: Has attached cards`);
                     return { canDrop: false };
                 }
                 
                 // 使用Game类的收牌区验证方法
                 if (gameScene.canAddToFoundation(this, i)) {
-                    console.log(`[Foundation] Accepted: Zone ${i}`);
                     return {
                         canDrop: true,
                         x: bounds.centerX,
@@ -296,7 +430,6 @@ export class Card extends GameObjects.Sprite {
                         }
                     };
                 }
-                console.log(`[Foundation] Rejected: Invalid card for zone ${i}`);
                 return { canDrop: false };
             }
         }
@@ -307,29 +440,21 @@ export class Card extends GameObjects.Sprite {
             const dx = Math.abs(this.x - target.x);
             const dy = this.y - target.y;
             
-            console.log(`[CheckTarget] Target: ${target.suit}${target.value}, Distance: dx=${dx}, dy=${dy}`);
-            
             // 如果卡牌在目标卡牌的上方且水平距离合适
             // 放宽检测条件:水平距离小于卡牌宽度,垂直距离在一定范围内
             if (dx < Card.CARD_WIDTH &&
                 dy > -Card.CARD_HEIGHT / 2 &&
                 dy < Card.CARD_HEIGHT * 2) {
                 
-                console.log(`[PositionValid] Checking rules for ${target.suit}${target.value}`);
-                
                 // 基本移动规则验证
                 // 1. 红黑交替
                 if (target.isRed === this.isRed) {
-                    console.log(`[RuleCheck] Failed: Same color`);
                     return { canDrop: false };
                 }
                 // 2. 数字必须按降序排列
                 if (target.numericValue !== this.numericValue + 1) {
-                    console.log(`[RuleCheck] Failed: Invalid number sequence (${target.numericValue} vs ${this.numericValue})`);
                     return { canDrop: false };
                 }
-                
-                console.log(`[RuleCheck] Passed: Can drop on ${target.suit}${target.value}`);
                 return {
                     canDrop: true,
                     x: target.x,
@@ -346,18 +471,15 @@ export class Card extends GameObjects.Sprite {
             if (this.x >= bounds.left && this.x <= bounds.right &&
                 this.y >= bounds.top && this.y <= bounds.bottom) {
                 if (this.numericValue === 13) { // 只允许K放在空列
-                    console.log(`[EmptyColumn] Accepted: King`);
                     return {
                         canDrop: true,
                         x: bounds.centerX,
                         y: bounds.top + Card.CARD_GAP_Y
                     };
                 }
-                console.log(`[EmptyColumn] Rejected: Not a King`);
             }
         }
 
-        console.log(`[NoTarget] Cannot drop here`);
         return { canDrop: false };
     }
 
