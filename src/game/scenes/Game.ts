@@ -275,7 +275,6 @@ export class Game extends Scene {
         }
         this.columns[columnIndex].cards.push(card);
         
-        console.log(`[AddToColumn] Card: ${card.suit}${card.value}, Column: ${columnIndex}, Total Cards: ${this.columns[columnIndex].cards.length}`);
     }
 
     // 从列中移除卡牌
@@ -285,7 +284,6 @@ export class Game extends Scene {
             const index = column.cards.indexOf(card);
             if (index !== -1) {
                 column.cards.splice(index, 1);
-                console.log(`[RemoveFromColumn] Card: ${card.suit}${card.value}, Column: ${i}, Remaining Cards: ${column.cards.length}`);
                 return i;
             }
         }
@@ -318,10 +316,8 @@ export class Game extends Scene {
     // 获取卡牌下面的所有卡牌
     public getAttachedCards(card: CardComponent): CardComponent[] {
         const columnIndex = this.getColumnIndex(card);
-        console.log(`[GetAttachedCards] Checking card: ${card.suit}${card.value}, Column: ${columnIndex}`);
         
         if (columnIndex === -1) {
-            console.log(`[GetAttachedCards] Card not found in any column`);
             return [];
         }
 
@@ -329,13 +325,11 @@ export class Game extends Scene {
         const cardIndex = column.cards.indexOf(card);
         
         if (cardIndex === -1) {
-            console.log(`[GetAttachedCards] Card not found in column ${columnIndex}`);
             return [];
         }
 
         // 返回从当前卡牌到列尾的所有卡牌
         const attachedCards = column.cards.slice(cardIndex + 1);
-        console.log(`[GetAttachedCards] Found ${attachedCards.length} attached cards:`, attachedCards.map(c => `${c.suit}${c.value}`));
         return attachedCards;
     }
 
@@ -343,16 +337,7 @@ export class Game extends Scene {
     public moveCardToColumn(card: CardComponent, columnIndex: number) {
         // 获取要移动的所有卡牌
         const attachedCards = this.getAttachedCards(card);
-        console.log(`[MoveCardToColumn] Moving ${card.suit}${card.value} with ${attachedCards.length} attached cards to column ${columnIndex}`);
         
-        // 打印移动前的列状态
-        const sourceColumnIndex = this.getColumnIndex(card);
-        console.log(`[ColumnState] Before move:`, {
-            sourceColumn: sourceColumnIndex,
-            targetColumn: columnIndex,
-            sourceCards: this.columns[sourceColumnIndex].cards.map(c => `${c.suit}${c.value}`),
-            targetCards: this.columns[columnIndex].cards.map(c => `${c.suit}${c.value}`)
-        });
         
         // 从原列中移除所有卡牌
         this.removeCardFromColumn(card);
@@ -364,12 +349,6 @@ export class Game extends Scene {
         this.addCardToColumn(columnIndex, card);
         attachedCards.forEach(attachedCard => {
             this.addCardToColumn(columnIndex, attachedCard);
-        });
-
-        // 打印移动后的列状态
-        console.log(`[ColumnState] After move:`, {
-            column: columnIndex,
-            cards: this.columns[columnIndex].cards.map(c => `${c.suit}${c.value}`)
         });
     }
 
