@@ -16,7 +16,8 @@ interface FoundationPile {
 
 export class Game extends Scene {
     public cards: CardComponent[] = [];
-    public cardContainer: Phaser.GameObjects.Container;
+    private currentOffsetX: number = 0;
+    private currentOffsetY: number = 0;
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 收牌区位置
     public playNowButton: Phaser.GameObjects.Image; // 添加按钮属性
     private columns: CardColumn[] = []; // 存储每列的卡牌
@@ -82,7 +83,7 @@ export class Game extends Scene {
     }
 
     private createFoundationZones(): void {
-        // 计算最左侧牌组的x坐标（与createInitialLayout中的计算保持一致）
+        // 计算最左侧牌组的x坐标(与createInitialLayout中的计算保持一致)
         const middleStartX = -this.CARD_GAP_X;
         const leftmostPileX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap));
         
@@ -93,14 +94,13 @@ export class Game extends Scene {
         // 存储所有cardFill的x坐标
         const cardFillXPositions = [];
         
-        // 创建前两个收牌区（左侧）
+        // 创建前两个收牌区(左侧)
         for (let i = 0; i < 2; i++) {
-            const x = leftmostPileX + (i * (this.CARD_WIDTH + this.ColumGap));
+            const x = leftmostPileX + (i * (this.CARD_WIDTH + this.ColumGap)) + this.currentOffsetX;
             cardFillXPositions.push(x);
-            const zone = this.add.sprite(x, this.MARGIN_TOP, 'card-fill');
+            const zone = this.add.sprite(x, this.MARGIN_TOP + this.currentOffsetY, 'card-fill');
             zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
             zone.setDepth(0); // 设置收牌区基础深度为0
-            this.cardContainer.add(zone);
             this.foundationZones.push(zone);
             this.fillZones.push(zone);
             
@@ -111,19 +111,18 @@ export class Game extends Scene {
             });
         }
 
-        // 创建后两个收牌区（右侧），但位置相反
+        // 创建后两个收牌区(右侧),但位置相反
         const rightPositions = [
-            rightLastX,      // 第四个位置（最右列）
-            rightSecondLastX // 第三个位置（倒数第二列）
+            rightLastX,      // 第四个位置(最右列)
+            rightSecondLastX // 第三个位置(倒数第二列)
         ];
         
         for (let i = 0; i < 2; i++) {
-            const x = rightPositions[i];
+            const x = rightPositions[i] + this.currentOffsetX;
             cardFillXPositions.push(x);
-            const zone = this.add.sprite(x, this.MARGIN_TOP, 'card-fill');
+            const zone = this.add.sprite(x, this.MARGIN_TOP + this.currentOffsetY, 'card-fill');
             zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
             zone.setDepth(0); // 设置收牌区基础深度为0
-            this.cardContainer.add(zone);
             this.foundationZones.push(zone);
             this.fillZones.push(zone);
             
@@ -143,7 +142,7 @@ export class Game extends Scene {
 
         });
         
-        // 添加缩放动画，持续时间改为750ms
+        // 添加缩放动画,持续时间改为750ms
         this.tweens.add({
             targets: this.playNowButton,
             scale: 1.15,
@@ -177,36 +176,41 @@ export class Game extends Scene {
     }
 
     private updateComponents(): void {
-        if (!this.cardContainer) return;
-
         const width = window.innerWidth;
         const height = window.innerHeight;
         const aspectRatio = width / height;
 
+        // 计算新的偏移值
         if (aspectRatio > 1) {
-            // 横屏模式 - 使用正值来向右偏移
-            this.cardContainer.setPosition(
-                1920 - this.CARD_WIDTH * 5,
-                this.CARD_HEIGHT
-            );
+            // 横屏模式
+            this.currentOffsetX = 1920 - this.CARD_WIDTH * 5;
+            this.currentOffsetY = this.CARD_HEIGHT;
         } else {
             // 竖屏模式
-            this.cardContainer.setPosition(
-                this.scale.width / 2,
-                this.scale.height / 2 - this.LAYOUT_OFFSET_X
-            );
+            this.currentOffsetX = this.scale.width / 2;
+            this.currentOffsetY = this.scale.height / 2 - this.LAYOUT_OFFSET_X;
         }
+
+        // 更新所有卡牌的位置
+        this.cards.forEach(card => {
+            const originalX = card.x - (card.parentContainer?.x || 0);
+            const originalY = card.y - (card.parentContainer?.y || 0);
+            card.setPosition(originalX + this.currentOffsetX, originalY + this.currentOffsetY);
+        });
+
+        // 更新所有foundation zones的位置
+        this.foundationZones.forEach(zone => {
+            const originalX = zone.x - (zone.parentContainer?.x || 0);
+            const originalY = zone.y - (zone.parentContainer?.y || 0);
+            zone.setPosition(originalX + this.currentOffsetX, originalY + this.currentOffsetY);
+        });
 
         // 更新Play Now按钮位置
         this.updatePlayNowButtonPosition();
     }
 
     private createInitialLayout(): void {
-        // 创建容器并添加到场景（初始位置将由updateComponents更新）
-        this.cardContainer = this.add.container(0, 0);
-        this.cardContainer.setDepth(1); // 确保容器本身有正确的深度值
-
-        // 计算中间三列的起始位置（相对于容器的0,0点）
+        // 计算中间三列的起始位置
         const middleStartX = -this.CARD_GAP_X;
 
         // 计算左右两侧牌堆的起始Y位置(从中间列第六张牌的位置开始)
@@ -216,11 +220,12 @@ export class Game extends Scene {
         initialLayout.leftPiles.forEach((pile, pileIndex) => {
             const pileX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap)) + (pileIndex * (this.CARD_WIDTH + this.ColumGap));
             pile.cards.forEach((cardData, cardIndex) => {
-                const x = pileX;
-                const y = sideStartY + cardIndex * this.CARD_GAP_Y;
+                const x = pileX + this.currentOffsetX;
+                const y = sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
                 const typedCardData = cardData as CardType;
                 const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
-                this.cardContainer.add(card);
+                this.add.existing(card);
+                card.setDepth(y); // 设置深度与y坐标相关
                 this.cards.push(card);
                 this.addCardToColumn(pileIndex, card);
             });
@@ -231,11 +236,12 @@ export class Game extends Scene {
             const columnIndex = pileIndex + 2; // 中间列从索引2开始
             const pileX = middleStartX + (pileIndex * this.CARD_GAP_X);
             pile.cards.forEach((cardData, cardIndex) => {
-                const x = pileX;
-                const y = this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y;
+                const x = pileX + this.currentOffsetX;
+                const y = this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
                 const typedCardData = cardData as CardType;
                 const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
-                this.cardContainer.add(card);
+                this.add.existing(card);
+                card.setDepth(y); // 设置深度与y坐标相关
                 this.cards.push(card);
                 this.addCardToColumn(columnIndex, card);
             });
@@ -246,11 +252,12 @@ export class Game extends Scene {
             const columnIndex = pileIndex + 5; // 右侧列从索引5开始
             const pileX = middleStartX + (3 * this.CARD_GAP_X) + (pileIndex * this.CARD_GAP_X);
             pile.cards.forEach((cardData, cardIndex) => {
-                const x = pileX;
-                const y = sideStartY + cardIndex * this.CARD_GAP_Y;
+                const x = pileX + this.currentOffsetX;
+                const y = sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
                 const typedCardData = cardData as CardType;
                 const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
-                this.cardContainer.add(card);
+                this.add.existing(card);
+                card.setDepth(y); // 设置深度与y坐标相关
                 this.cards.push(card);
                 this.addCardToColumn(columnIndex, card);
             });

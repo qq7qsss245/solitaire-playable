@@ -3,8 +3,7 @@ import { CardSuit, CardValue } from '../../config/layout';
 import { Game } from '../scenes/Game';
 import { EventBus } from '../EventBus';
 
-export class Card extends GameObjects.Container {
-    private sprite: GameObjects.Sprite;
+export class Card extends GameObjects.Sprite {
     private _suit: CardSuit;
     private _value: CardValue;
     private _faceUp: boolean;
@@ -18,74 +17,63 @@ export class Card extends GameObjects.Container {
     private static readonly CARD_GAP_Y = Card.CARD_HEIGHT / 4; // 垂直间距为卡牌高度的1/4
 
     constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
-        super(scene, x, y);
+        super(scene, x, y, faceUp ? `${Card.getSuitName(suit)}${value}` : 'card-back');
         
         this._suit = suit;
         this._value = value;
         this._faceUp = faceUp;
-
-        // 创建卡牌精灵
-        this.sprite = scene.add.sprite(0, 0, this.getTextureKey());
         
         // 设置卡牌尺寸
-        this.sprite.setDisplaySize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
-        this.add(this.sprite);
-
+        this.setDisplaySize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
+        
         // 设置交互区域
-        this.setSize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
         this.setInteractive();
-
+        
         // 设置初始深度
         this.setDepth(y);
-
+        
         // 注册拖拽事件
         scene.input.setDraggable(this);
-
+        
         this.on('dragstart', this.onDragStart, this);
         this.on('drag', this.onDrag, this);
         this.on('dragend', this.onDragEnd, this);
         this.on('pointerdown', this.onPointerDown, this);
     }
 
-    // 获取卡牌纹理key
-    private getTextureKey(): string {
-        if (!this._faceUp) {
-            return 'card-back';
-        }
-
-        // 将花色映射到对应的中文名称
+    // 获取花色的中文名称
+    private static getSuitName(suit: CardSuit): string {
         const suitName = {
             'h': '红桃',
             'd': '方块',
             's': '黑桃',
             'c': '梅花'
         };
-
-        return `${suitName[this._suit]}${this._value}`;
+        return suitName[suit];
     }
 
     // 翻转卡牌
     flip(): void {
         // 保存原始缩放值
-        const originalScaleX = this.sprite.scaleX;
+        const originalScaleX = this.scaleX;
         
         // 在动画期间禁用交互
         this.disableInteractive();
         
         // 创建翻转动画
         this.scene.tweens.add({
-            targets: this.sprite,
+            targets: this,
             scaleX: 0,
             duration: 150,
             ease: 'Power1',
             onComplete: () => {
                 // 在缩放到0时切换纹理
                 this._faceUp = !this._faceUp;
-                this.sprite.setTexture(this.getTextureKey());
+                this.setTexture(this._faceUp ? `${Card.getSuitName(this._suit)}${this._value}` : 'card-back');
                 
                 // 创建展开动画,恢复到原始缩放值
                 this.scene.tweens.add({
-                    targets: this.sprite,
+                    targets: this,
                     scaleX: originalScaleX,
                     duration: 150,
                     ease: 'Power1',
@@ -117,7 +105,6 @@ export class Card extends GameObjects.Container {
         
         // 设置一个很大的深度值确保显示在最上层
         this.setDepth(1000);
-        
     }
 
     // 拖拽中
@@ -214,8 +201,7 @@ export class Card extends GameObjects.Container {
             const zone = foundationZones[i];
             const bounds = zone.getBounds();
             // 获取卡牌在全局坐标系中的位置
-            const globalPoint = this.parentContainer.getWorldTransformMatrix()
-                .transformPoint(this.x, this.y);
+            const globalPoint = this.getWorldTransformMatrix().transformPoint(this.x, this.y);
 
             if (globalPoint.x >= bounds.left && globalPoint.x <= bounds.right &&
                 globalPoint.y >= bounds.top && globalPoint.y <= bounds.bottom) {
