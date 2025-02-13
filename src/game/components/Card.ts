@@ -65,11 +65,33 @@ export class Card extends GameObjects.Container {
 
     // 翻转卡牌
     flip(): void {
-        this._faceUp = !this._faceUp;
-        this.sprite.setTexture(this.getTextureKey());
+        // 保存原始缩放值
+        const originalScaleX = this.sprite.scaleX;
         
-        // 播放翻牌音效
-        this.scene.sound.play('flip');
+        // 创建翻转动画
+        this.scene.tweens.add({
+            targets: this.sprite,
+            scaleX: 0,
+            duration: 150,
+            ease: 'Power1',
+            onComplete: () => {
+                // 在缩放到0时切换纹理
+                this._faceUp = !this._faceUp;
+                this.sprite.setTexture(this.getTextureKey());
+                
+                // 创建展开动画,恢复到原始缩放值
+                this.scene.tweens.add({
+                    targets: this.sprite,
+                    scaleX: originalScaleX,
+                    duration: 150,
+                    ease: 'Power1',
+                    onComplete: () => {
+                        // 播放翻牌音效
+                        this.scene.sound.play('flip');
+                    }
+                });
+            }
+        });
     }
 
     // 拖拽开始
@@ -86,7 +108,6 @@ export class Card extends GameObjects.Container {
         // 设置一个很大的深度值确保显示在最上层
         this.setDepth(1000);
         
-        console.log('Drag started from:', this.startX, this.startY);
     }
 
     // 拖拽中
@@ -106,19 +127,19 @@ export class Card extends GameObjects.Container {
         
         this.isDragging = false;
         
-        console.log('Drag ended at:', this.x, this.y);
-        
         // 检查是否可以放置到目标位置
         const dropResult = this.checkDropTarget();
-        console.log('Drop result:', dropResult);
         
         if (!dropResult.canDrop) {
-            console.log('Cannot drop, returning to:', this.startX, this.startY);
             // 如果不能放置,返回原位
             this.x = this.startX;
             this.y = this.startY;
         } else {
-            console.log('Can drop, moving to:', dropResult.x, dropResult.y);
+            const gameScene = this.scene as Game;
+            
+            // 在移动前先找到原来的列和下一张卡牌
+            const nextCard = gameScene.getNextCard(this);
+            
             // 移动到目标位置
             this.x = dropResult.x!;
             this.y = dropResult.y!;
@@ -128,6 +149,29 @@ export class Card extends GameObjects.Container {
             
             // 播放成功音效
             this.scene.sound.play('move');
+
+            // 计算新的列索引
+            const middleStartX = -gameScene.CARD_GAP_X;
+            let newColumnIndex = 0;
+            
+            if (this.x < middleStartX - gameScene.CARD_WIDTH) {
+                // 左侧两列
+                newColumnIndex = Math.floor((this.x - (middleStartX - 2 * (gameScene.CARD_WIDTH + gameScene.ColumGap))) / (gameScene.CARD_WIDTH + gameScene.ColumGap));
+            } else if (this.x < middleStartX + 3 * gameScene.CARD_GAP_X) {
+                // 中间三列
+                newColumnIndex = Math.floor((this.x - middleStartX) / gameScene.CARD_GAP_X) + 2;
+            } else {
+                // 右侧两列
+                newColumnIndex = Math.floor((this.x - (middleStartX + 3 * gameScene.CARD_GAP_X)) / gameScene.CARD_GAP_X) + 5;
+            }
+
+            // 更新卡牌所在的列
+            gameScene.moveCardToColumn(this, newColumnIndex);
+
+            // 翻转原列中的下一张卡牌
+            if (nextCard && !nextCard.faceUp) {
+                nextCard.flip();
+            }
         }
     }
 
@@ -141,18 +185,10 @@ export class Card extends GameObjects.Container {
     private checkDropTarget(): { canDrop: boolean; x?: number; y?: number } {
         // 获取所有可能的目标卡牌
         const gameScene = this.scene as Game;
-        console.log('Card container position:', gameScene.cardContainer.x, gameScene.cardContainer.y);
         
         // 从Game场景的cards数组中获取所有卡牌
         const targets = gameScene.cards
             .filter(card => card !== this && card.faceUp);
-        
-        console.log('Found potential target cards:', targets.length);
-        targets.forEach(card => {
-            console.log('Target card:', card.suit, card.value,
-                'at position:', card.x, card.y,
-                'face up:', card.faceUp);
-        });
 
         // 获取收牌区
         const foundationZones = (this.scene as Game).foundationZones;
@@ -186,29 +222,9 @@ export class Card extends GameObjects.Container {
 
         // 检查是否可以放在其他卡牌上
         for (const target of targets) {
-            // 获取相对于容器的坐标
-            const gameScene = this.scene as Game;
-            const containerX = gameScene.cardContainer.x;
-            const containerY = gameScene.cardContainer.y;
-            
             // 计算相对位置
             const dx = Math.abs(this.x - target.x);
             const dy = this.y - target.y;
-            
-            console.log('Container position:', containerX, containerY);
-            console.log('Found potential target:', target.suit, target.value);
-            console.log('Target position (local):', target.x, target.y);
-            console.log('Target position (global):', target.x + containerX, target.y + containerY);
-            console.log('Current position (local):', this.x, this.y);
-            console.log('Current position (global):', this.x + containerX, this.y + containerY);
-            console.log('Distance (dx, dy):', dx, dy);
-            
-            // 打印详细的位置信息
-            console.log('Checking card:', this._suit, this._value, 'against target:', target.suit, target.value);
-            console.log('Current card container position:', (this.scene as Game).cardContainer.x, (this.scene as Game).cardContainer.y);
-            console.log('Current card local position:', this.x, this.y);
-            console.log('Target card local position:', target.x, target.y);
-            console.log('Distance - dx:', dx, 'dy:', dy);
             
             // 如果卡牌在目标卡牌的上方且水平距离合适
             // 放宽检测条件:水平距离小于卡牌宽度,垂直距离在一定范围内
@@ -216,26 +232,20 @@ export class Card extends GameObjects.Container {
                 dy > -Card.CARD_HEIGHT / 2 &&
                 dy < Card.CARD_HEIGHT * 2) {
                 
-                console.log('Position check passed');
-                
                 // 基本移动规则验证
                 // 1. 红黑交替
                 if (target.isRed === this.isRed) {
-                    console.log('Color rule failed');
                     return { canDrop: false };
                 }
                 // 2. 数字必须按降序排列
                 if (target.numericValue !== this.numericValue + 1) {
-                    console.log('Number rule failed');
                     return { canDrop: false };
                 }
-                const dropPosition = {
+                return {
                     canDrop: true,
                     x: target.x,
-                    y: target.y + Card.CARD_HEIGHT + Card.CARD_GAP_Y
+                    y: target.y + Card.CARD_GAP_Y
                 };
-                console.log('Drop position:', dropPosition);
-                return dropPosition;
             }
         }
 

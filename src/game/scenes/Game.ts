@@ -3,11 +3,17 @@ import { GameObjects, Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
 import { initialLayout, Card as CardType, CardSuit, CardValue } from '../../config/layout';
 
+interface CardColumn {
+    cards: CardComponent[];
+    x: number;
+}
+
 export class Game extends Scene {
     public cards: CardComponent[] = [];
     public cardContainer: Phaser.GameObjects.Container;
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 收牌区位置
     public playNowButton: Phaser.GameObjects.Image; // 添加按钮属性
+    private columns: CardColumn[] = []; // 存储每列的卡牌
 
     // 定义横竖屏尺寸
     public readonly LANDSCAPE_WIDTH = 1920;
@@ -113,7 +119,7 @@ export class Game extends Scene {
         this.playNowButton.setInteractive();
         this.playNowButton.on('pointerdown', () => {
             // 在这里添加点击按钮后的逻辑
-            console.log('Play Now button clicked!');
+
         });
         
         // 添加缩放动画，持续时间改为750ms
@@ -157,7 +163,6 @@ export class Game extends Scene {
         const aspectRatio = width / height;
 
         if (aspectRatio > 1) {
-            console.log('横屏模式');
             // 横屏模式 - 使用正值来向右偏移
             this.cardContainer.setPosition(
                 1920 - this.CARD_WIDTH * 5,
@@ -195,11 +200,13 @@ export class Game extends Scene {
                 const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
                 this.cardContainer.add(card);
                 this.cards.push(card);
+                this.addCardToColumn(pileIndex, card);
             });
         });
 
         // 创建中间三列牌
         initialLayout.centerPiles.forEach((pile, pileIndex) => {
+            const columnIndex = pileIndex + 2; // 中间列从索引2开始
             const pileX = middleStartX + (pileIndex * this.CARD_GAP_X);
             pile.cards.forEach((cardData, cardIndex) => {
                 const x = pileX;
@@ -208,11 +215,13 @@ export class Game extends Scene {
                 const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
                 this.cardContainer.add(card);
                 this.cards.push(card);
+                this.addCardToColumn(columnIndex, card);
             });
         });
 
         // 创建右侧两组牌
         initialLayout.rightPiles.forEach((pile, pileIndex) => {
+            const columnIndex = pileIndex + 5; // 右侧列从索引5开始
             const pileX = middleStartX + (3 * this.CARD_GAP_X) + (pileIndex * this.CARD_GAP_X);
             pile.cards.forEach((cardData, cardIndex) => {
                 const x = pileX;
@@ -221,11 +230,62 @@ export class Game extends Scene {
                 const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
                 this.cardContainer.add(card);
                 this.cards.push(card);
+                this.addCardToColumn(columnIndex, card);
             });
         });
     }
 
     onResize(): void {
         this.updateGameSize();
+    }
+
+    // 添加卡牌到列
+    private addCardToColumn(columnIndex: number, card: CardComponent) {
+        if (!this.columns[columnIndex]) {
+            this.columns[columnIndex] = { cards: [], x: card.x };
+        }
+        this.columns[columnIndex].cards.push(card);
+    }
+
+    // 从列中移除卡牌
+    private removeCardFromColumn(card: CardComponent): number {
+        for (let i = 0; i < this.columns.length; i++) {
+            const column = this.columns[i];
+            const index = column.cards.indexOf(card);
+            if (index !== -1) {
+                column.cards.splice(index, 1);
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // 获取卡牌所在列中上一张牌(视觉上的"下一张"要翻开的牌)
+    public getNextCard(card: CardComponent): CardComponent | null {
+        // 找到卡牌所在的列和位置
+        for (let i = 0; i < this.columns.length; i++) {
+            const column = this.columns[i];
+            const index = column.cards.indexOf(card);
+            if (index !== -1 && index > 0) {
+                return column.cards[index - 1];
+            }
+        }
+        return null;
+    }
+
+    // 获取卡牌所在的列索引
+    public getColumnIndex(card: CardComponent): number {
+        for (let i = 0; i < this.columns.length; i++) {
+            if (this.columns[i].cards.indexOf(card) !== -1) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // 移动卡牌到新列
+    public moveCardToColumn(card: CardComponent, columnIndex: number) {
+        const oldColumnIndex = this.removeCardFromColumn(card);
+        this.addCardToColumn(columnIndex, card);
     }
 }
