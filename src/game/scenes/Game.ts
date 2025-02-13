@@ -483,8 +483,18 @@ export class Game extends Scene {
 
     // 查找可点击的卡牌
     private findClickableCard(): CardComponent | null {
-        // 获取所有可见的卡牌
-        const visibleCards = this.cards.filter(card => card.faceUp);
+        // 获取所有可见且不在收牌区的卡牌
+        const visibleCards = this.cards.filter(card => {
+            if (!card.faceUp) return false;
+            
+            // 检查卡牌是否在任何收牌区中
+            for (const foundation of this.foundations) {
+                if (foundation.cards.includes(card)) {
+                    return false;
+                }
+            }
+            return true;
+        });
         
         // 检查每张卡是否可以移动到收牌区
         for (let i = 0; i < this.foundationZones.length; i++) {
