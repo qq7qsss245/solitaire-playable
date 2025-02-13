@@ -18,7 +18,6 @@ export class Card extends GameObjects.Sprite {
     
     // 添加动作到队列
     private async addToQueue(action: () => Promise<void>) {
-        console.log(`[Queue] Adding action, current queue length: ${this.actionQueue.length}`);
         this.actionQueue.push(action);
         if (!this.isProcessingQueue) {
             await this.processQueue();
@@ -27,28 +26,20 @@ export class Card extends GameObjects.Sprite {
     
     // 处理队列
     private async processQueue() {
-        if (this.isProcessingQueue) {
-            console.log(`[Queue] Already processing queue, length: ${this.actionQueue.length}`);
-            return;
-        }
+        if (this.isProcessingQueue) return;
         
-        console.log(`[Queue] Start processing queue, length: ${this.actionQueue.length}`);
         this.isProcessingQueue = true;
-        
         try {
             while (this.actionQueue.length > 0) {
                 const action = this.actionQueue.shift();
                 if (action) {
-                    console.log(`[Queue] Executing action, remaining: ${this.actionQueue.length}`);
                     await action();
-                    console.log(`[Queue] Action completed, remaining: ${this.actionQueue.length}`);
                 }
             }
         } catch (error) {
-            console.error(`[Queue] Error processing queue:`, error);
+            console.error(`Error processing queue:`, error);
         } finally {
             this.isProcessingQueue = false;
-            console.log(`[Queue] Queue processing completed`);
         }
     }
 
@@ -98,7 +89,6 @@ export class Card extends GameObjects.Sprite {
     // 翻转卡牌
     flip(): Promise<void> {
         return new Promise<void>((resolve) => {
-            console.log(`[Flip] Starting flip animation for ${this._suit}${this._value}`);
             // 保存原始缩放值
             const originalScaleX = this.scaleX;
             
@@ -115,7 +105,6 @@ export class Card extends GameObjects.Sprite {
                     // 在缩放到0时切换纹理
                     this._faceUp = !this._faceUp;
                     this.setTexture(this._faceUp ? `${Card.getSuitName(this._suit)}${this._value}` : 'card-back');
-                    console.log(`[Flip] Changed texture for ${this._suit}${this._value}, face ${this._faceUp ? 'up' : 'down'}`);
                     
                     // 创建展开动画,恢复到原始缩放值
                     this.scene.tweens.add({
@@ -133,7 +122,6 @@ export class Card extends GameObjects.Sprite {
                                 (this.scene as Game).input.setDraggable(this);
                             }
                             
-                            console.log(`[Flip] Completed flip animation for ${this._suit}${this._value}`);
                             resolve();
                         }
                     });
@@ -206,8 +194,6 @@ export class Card extends GameObjects.Sprite {
         // 检查是否可以放置到目标位置
         const dropResult = this.checkDropTarget();
 
-        console.log(`[DropResult] Card: ${this._suit}${this._value}, CanDrop: ${dropResult.canDrop}, Position: ${dropResult.x}, ${dropResult.y}`);
-
         if (!dropResult.canDrop) {
             // 如果不能放置,返回原位
             this.x = this.startX;
@@ -221,8 +207,6 @@ export class Card extends GameObjects.Sprite {
                 card.y = card.startY;
                 card.setDepth(card.y);
             });
-
-            console.log(`[ReturnToStart] Card: ${this._suit}${this._value}, Position: (${this.startX}, ${this.startY})`);
         } else {
             const gameScene = this.scene as Game;
             
@@ -261,36 +245,29 @@ export class Card extends GameObjects.Sprite {
                                 // 左侧两列
                                 const relativeX = cardX - (middleStartX - 2 * (gameScene.CARD_WIDTH + gameScene.ColumGap));
                                 newColumnIndex = Math.floor(relativeX / (gameScene.CARD_WIDTH + gameScene.ColumGap));
-                                console.log(`[ColumnCalc] Left: RelativeX=${relativeX}, Index=${newColumnIndex}`);
                             } else if (cardX < middleStartX + 3 * gameScene.CARD_GAP_X) {
                                 // 中间三列
                                 const relativeX = cardX - middleStartX;
                                 newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 2;
-                                console.log(`[ColumnCalc] Middle: RelativeX=${relativeX}, Index=${newColumnIndex}`);
                             } else {
                                 // 右侧两列
                                 const relativeX = cardX - (middleStartX + 3 * gameScene.CARD_GAP_X);
                                 newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 5;
-                                console.log(`[ColumnCalc] Right: RelativeX=${relativeX}, Index=${newColumnIndex}`);
                             }
-
+    
                             // 确保列索引在有效范围内
                             newColumnIndex = Math.max(0, Math.min(6, newColumnIndex));
-                            
-                            console.log(`[MoveToColumn] Card: ${this._suit}${this._value}, Column: ${newColumnIndex}`);
                             
                             // 更新卡牌所在的列
                             gameScene.moveCardToColumn(this, newColumnIndex);
                         }
-
+    
                         // 翻转原列中的下一张卡牌
                         if (nextCard && !nextCard.faceUp) {
-                            console.log(`[DragEnd] Starting to flip next card ${nextCard.suit}${nextCard.value}`);
                             await nextCard.flip();
-                            console.log(`[DragEnd] Completed flipping next card ${nextCard.suit}${nextCard.value}`);
                         }
                     } catch (error) {
-                        console.error(`[DragEnd] Error updating state:`, error);
+                        console.error('Error updating state:', error);
                         // 出错时恢复到原始状态
                         this.x = this.startX;
                         this.y = this.startY;
@@ -323,46 +300,30 @@ export class Card extends GameObjects.Sprite {
         this.addToQueue(async () => {
             try {
                 const gameScene = this.scene as Game;
-                console.log(`[Move] Starting move for card ${this._suit}${this._value} at position (${this.x}, ${this.y})`);
-                
-                // 获取附属卡牌
                 const attachedCards = gameScene.getAttachedCards(this);
-                console.log(`[Move] Attached cards: ${attachedCards.map(c => `${c.suit}${c.value}`).join(', ')}`);
                 
                 // 首先尝试移动到收牌区
                 for (let i = 0; i < gameScene.foundationZones.length; i++) {
                     if (gameScene.canAddToFoundation(this, i) && attachedCards.length === 0) {
                         // 获取并保存当前卡牌的上一张牌
                         const nextCard = gameScene.getNextCard(this);
-                        console.log(`[Move] Found foundation move to zone ${i}, next card: ${nextCard ? `${nextCard.suit}${nextCard.value}` : 'none'}`);
-                        
-                        console.log(`[Move] Moving to foundation zone ${i}`);
                         
                         // 可以移动到收牌区
                         await this.animateMove(
                             gameScene.foundationZones[i].x,
                             gameScene.foundationZones[i].y,
                             () => new Promise<void>((resolveMove) => {
-                                console.log(`[Move] Foundation animation complete, adding to foundation ${i}`);
-                                
                                 // 先执行收牌
                                 gameScene.addToFoundation(this, i);
-                                console.log(`[Move] Card added to foundation ${i}`);
                                 
                                 // 如果有下一张牌需要翻转
                                 if (nextCard && !nextCard.faceUp) {
-                                    console.log(`[Move] Starting to flip next card ${nextCard.suit}${nextCard.value}`);
-                                    // 等待翻牌动画完成
                                     nextCard.flip().then(() => {
-                                        console.log(`[Move] Completed flipping next card ${nextCard.suit}${nextCard.value}`);
                                         resolveMove();
-                                    }).catch(error => {
-                                        console.error(`[Move] Error flipping card:`, error);
+                                    }).catch(() => {
                                         resolveMove();
                                     });
                                 } else {
-                                    // 没有需要翻转的卡牌,直接完成
-                                    console.log(`[Move] No card to flip, completing move`);
                                     resolveMove();
                                 }
                             }),
@@ -378,15 +339,12 @@ export class Card extends GameObjects.Sprite {
                 // 如果不能移动到收牌区,尝试移动到其他卡牌上
                 const targets = gameScene.getColumnBottomCards()
                     .filter(card => !([this, ...attachedCards].includes(card)) && card.faceUp);
-                console.log(`[Move] Found ${targets.length} possible targets: ${targets.map(c => `${c.suit}${c.value}`).join(', ')}`);
 
                 for (const target of targets) {
                     if (target.isRed !== this.isRed && target.numericValue === this.numericValue + 1) {
                         // 先检查是否可以移动到这个目标
                         const newColumnIndex = gameScene.getColumnIndex(target);
                         if (newColumnIndex !== -1) {
-                            console.log(`[Move] Moving to target ${target.suit}${target.value} in column ${newColumnIndex}`);
-                            
                             // 可以移动到这张卡上
                             await this.animateMove(
                                 target.x,
@@ -394,26 +352,19 @@ export class Card extends GameObjects.Sprite {
                                 () => new Promise<void>((resolveMove) => {
                                     // 执行移动
                                     gameScene.moveCardToColumn(this, newColumnIndex);
-                                    console.log(`[Move] Card moved to column ${newColumnIndex}`);
                                     resolveMove();
                                 }),
                                 attachedCards
                             );
-                            
-                            // 移动成功后返回
                             return;
-                        } else {
-                            console.log(`[Move] Invalid target column for ${target.suit}${target.value}`);
                         }
-                        return;
                     }
                 }
 
-                console.log(`[Move] No valid moves found, playing error animation`);
                 // 如果没有可移动位置,播放错误动画
                 this.playErrorAnimation();
             } catch (error) {
-                console.error(`[Move] Error during move:`, error);
+                console.error('Error during move:', error);
                 // 出错时恢复到原始状态
                 this.x = this.startX;
                 this.y = this.startY;
@@ -425,15 +376,12 @@ export class Card extends GameObjects.Sprite {
     // 移动动画
     private animateMove(targetX: number, targetY: number, onComplete: () => void, attachedCards: Card[] = [], canDrop: boolean = true): Promise<void> {
         return new Promise<void>((resolve) => {
-            console.log(`[Animate] Starting animation for ${this._suit}${this._value} and ${attachedCards.length} attached cards`);
-            
             let completedAnimations = 0;
             const totalAnimations = 1 + attachedCards.length;
             
             const checkAllComplete = () => {
                 completedAnimations++;
                 if (completedAnimations === totalAnimations) {
-                    console.log(`[Animate] All animations complete`);
                     if (canDrop) {
                         onComplete();
                     }
@@ -449,7 +397,6 @@ export class Card extends GameObjects.Sprite {
                 duration: 200,
                 ease: 'Power2',
                 onComplete: () => {
-                    console.log(`[Animate] Main card animation complete`);
                     this.setDepth(targetY);
                     checkAllComplete();
                 }
@@ -465,7 +412,6 @@ export class Card extends GameObjects.Sprite {
                     duration: 200,
                     ease: 'Power2',
                     onComplete: () => {
-                        console.log(`[Animate] Attached card ${card.suit}${card.value} animation complete`);
                         card.setDepth(cardY);
                         checkAllComplete();
                     }
