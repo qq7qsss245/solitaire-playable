@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from 'phaser';
 import { CardSuit, CardValue } from '../../config/layout';
 import { Game } from '../scenes/Game';
+import { EventBus } from '../EventBus';
 
 export class Card extends GameObjects.Container {
     private sprite: GameObjects.Sprite;
@@ -68,6 +69,9 @@ export class Card extends GameObjects.Container {
         // 保存原始缩放值
         const originalScaleX = this.sprite.scaleX;
         
+        // 在动画期间禁用交互
+        this.disableInteractive();
+        
         // 创建翻转动画
         this.scene.tweens.add({
             targets: this.sprite,
@@ -87,7 +91,13 @@ export class Card extends GameObjects.Container {
                     ease: 'Power1',
                     onComplete: () => {
                         // 播放翻牌音效
-                        this.scene.sound.play('flip');
+                        EventBus.emit('play-sound', 'flip');
+                        
+                        // 如果是正面朝上,启用交互和拖拽
+                        if (this._faceUp) {
+                            this.setInteractive();
+                            (this.scene as Game).input.setDraggable(this);
+                        }
                     }
                 });
             }
@@ -103,7 +113,7 @@ export class Card extends GameObjects.Container {
         this.startY = this.y;
         
         // 播放拾取音效
-        this.scene.sound.play('click');
+        EventBus.emit('play-sound', 'click');
         
         // 设置一个很大的深度值确保显示在最上层
         this.setDepth(1000);
@@ -148,7 +158,7 @@ export class Card extends GameObjects.Container {
             this.setDepth(this.y);
             
             // 播放成功音效
-            this.scene.sound.play('move');
+            EventBus.emit('play-sound', 'move');
 
             // 计算新的列索引
             const middleStartX = -gameScene.CARD_GAP_X;
@@ -178,7 +188,7 @@ export class Card extends GameObjects.Container {
     // 点击事件
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
         // 播放点击音效
-        this.scene.sound.play('click');
+        EventBus.emit('play-sound', 'click');
     }
 
     // 检查是否可以放置到目标位置,返回目标位置信息

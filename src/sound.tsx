@@ -4,13 +4,12 @@ import { EventBus } from "./game/EventBus";
 const Sound: React.FC = () => {
     useEffect(() => {
         
-        document.addEventListener('touchstart', () => {
-        })
-        document.addEventListener('click', () => {
-        })
-        EventBus.on('showAd', () => {
-        });
-        EventBus.on('pauseAd', () => {
+        // 监听游戏声音事件
+        EventBus.on('play-sound', (soundKey: string) => {
+            const game = (window as any).game;
+            if (game && game.sound) {
+                game.sound.play(soundKey);
+            }
         });
     }, []);
 
