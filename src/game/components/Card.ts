@@ -198,10 +198,12 @@ export class Card extends GameObjects.Sprite {
     }
 
     // 拖拽结束
-    private onDragEnd(pointer: Phaser.Input.Pointer): void {
+    private async onDragEnd(pointer: Phaser.Input.Pointer): Promise<void> {
         if (!this.isDragging) return;
         
         this.isDragging = false;
+        console.log('=== onDragEnd ===');
+        console.log('Card:', this._suit + this._value);
         
         // 检查是否可以放置到目标位置
         const dropResult = this.checkDropTarget();
@@ -226,69 +228,67 @@ export class Card extends GameObjects.Sprite {
             const nextCard = gameScene.getNextCard(this);
             
             if (dropResult.canDrop) {
-                // 移动到目标位置
-                this.x = dropResult.x!;
-                this.y = dropResult.y!;
-                
-                // 移动附属卡牌到新位置
-                this.attachedCards.forEach((card, index) => {
-                    card.x = dropResult.x!;
-                    card.y = dropResult.y! + (index + 1) * Card.CARD_GAP_Y;
-                });
-                
                 // 播放成功音效
                 EventBus.emit('play-sound', 'move');
 
-                // 使用Promise处理所有状态更新
-                const updateState = async () => {
-                    try {
-                        if (dropResult.onDrop) {
-                            // 如果有onDrop回调(收牌区),执行它
-                            await dropResult.onDrop();
-                        } else {
-                            // 否则是普通列的移动
-                            // 计算新的列索引
-                            const gameScene = this.scene as Game;
-                            const middleStartX = -gameScene.CARD_GAP_X;
-                            const cardX = this.x - gameScene.currentOffsetX; // 减去偏移量得到相对位置
-                            
-                            let newColumnIndex;
-                            if (cardX < middleStartX - gameScene.CARD_WIDTH) {
-                                // 左侧两列
-                                const relativeX = cardX - (middleStartX - 2 * (gameScene.CARD_WIDTH + gameScene.ColumGap));
-                                newColumnIndex = Math.floor(relativeX / (gameScene.CARD_WIDTH + gameScene.ColumGap));
-                            } else if (cardX < middleStartX + 3 * gameScene.CARD_GAP_X) {
-                                // 中间三列
-                                const relativeX = cardX - middleStartX;
-                                newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 2;
-                            } else {
-                                // 右侧两列
-                                const relativeX = cardX - (middleStartX + 3 * gameScene.CARD_GAP_X);
-                                newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 5;
-                            }
-    
-                            // 确保列索引在有效范围内
-                            newColumnIndex = Math.max(0, Math.min(6, newColumnIndex));
-                            
-                            // 更新卡牌所在的列
-                            gameScene.moveCardToColumn(this, newColumnIndex);
-                        }
-    
-                        // 翻转原列中的下一张卡牌
-                        if (nextCard && !nextCard.faceUp) {
-                            await nextCard.flip();
-                        }
-                    } catch (error) {
-                        console.error('Error updating state:', error);
-                        // 出错时恢复到原始状态
-                        this.x = this.startX;
-                        this.y = this.startY;
-                        this.setDepth(this.normalDepth);
-                    }
-                };
+                // 开始动画移动
+                await this.animateMove(
+                    dropResult.x!,
+                    dropResult.y!,
+                    () => {
+                        // 动画完成后更新状态
+                        const updateState = async () => {
+                            try {
+                                if (dropResult.onDrop) {
+                                    // 如果有onDrop回调(收牌区),执行它
+                                    await dropResult.onDrop();
+                                } else {
+                                    // 否则是普通列的移动
+                                    // 计算新的列索引
+                                    const gameScene = this.scene as Game;
+                                    const middleStartX = -gameScene.CARD_GAP_X;
+                                    const cardX = this.x - gameScene.currentOffsetX; // 减去偏移量得到相对位置
+                                    
+                                    let newColumnIndex;
+                                    if (cardX < middleStartX - gameScene.CARD_WIDTH) {
+                                        // 左侧两列
+                                        const relativeX = cardX - (middleStartX - 2 * (gameScene.CARD_WIDTH + gameScene.ColumGap));
+                                        newColumnIndex = Math.floor(relativeX / (gameScene.CARD_WIDTH + gameScene.ColumGap));
+                                    } else if (cardX < middleStartX + 3 * gameScene.CARD_GAP_X) {
+                                        // 中间三列
+                                        const relativeX = cardX - middleStartX;
+                                        newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 2;
+                                    } else {
+                                        // 右侧两列
+                                        const relativeX = cardX - (middleStartX + 3 * gameScene.CARD_GAP_X);
+                                        newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 5;
+                                    }
+            
+                                    // 确保列索引在有效范围内
+                                    newColumnIndex = Math.max(0, Math.min(6, newColumnIndex));
+                                    
+                                    // 更新卡牌所在的列,并计数
+                                    gameScene.moveCardToColumn(this, newColumnIndex, true);
+                                }
 
-                // 执行状态更新
-                updateState();
+                                // 翻转原列中的下一张卡牌
+                                if (nextCard && !nextCard.faceUp) {
+                                    await nextCard.flip();
+                                }
+                            } catch (error) {
+                                console.error('Error updating state:', error);
+                                // 出错时恢复到原始状态
+                                this.x = this.startX;
+                                this.y = this.startY;
+                                this.setDepth(this.normalDepth);
+                            }
+                        };
+
+                        // 执行状态更新
+                        updateState();
+                    },
+                    this.attachedCards
+                );
             }
         }
         
@@ -311,6 +311,9 @@ export class Card extends GameObjects.Sprite {
     private tryAutoMove(): void {
         this.addToQueue(async () => {
             try {
+                console.log('=== tryAutoMove ===');
+                console.log('Card:', this._suit + this._value);
+                
                 const gameScene = this.scene as Game;
                 const attachedCards = gameScene.getAttachedCards(this);
                 
@@ -326,7 +329,7 @@ export class Card extends GameObjects.Sprite {
                             gameScene.foundationZones[i].y,
                             () => new Promise<void>((resolveMove) => {
                                 // 先执行收牌
-                                gameScene.addToFoundation(this, i);
+                                gameScene.addToFoundation(this, i, true); // 在这里计数,因为是直接的移动操作
                                 
                                 // 如果有下一张牌需要翻转
                                 if (nextCard && !nextCard.faceUp) {
@@ -362,8 +365,8 @@ export class Card extends GameObjects.Sprite {
                                 target.x,
                                 target.y + Card.CARD_GAP_Y,
                                 () => new Promise<void>((resolveMove) => {
-                                    // 执行移动
-                                    gameScene.moveCardToColumn(this, newColumnIndex);
+                                    // 只更新列的数据,不执行移动计数(因为移动已经在外部完成)
+                                    gameScene.moveCardToColumn(this, newColumnIndex, false);
                                     resolveMove();
                                 }),
                                 attachedCards
@@ -467,7 +470,7 @@ export class Card extends GameObjects.Sprite {
                         x: bounds.centerX,
                         y: bounds.centerY,
                         onDrop: () => {
-                            gameScene.addToFoundation(this, i);
+                            gameScene.addToFoundation(this, i, false); // 不在这里计数,因为moveCardToColumn会计数
                         }
                     };
                 }

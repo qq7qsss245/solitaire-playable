@@ -44,7 +44,7 @@ export class Game extends Scene {
     // 定义卡牌布局参数(全部基于卡牌尺寸计算)
     public get CARD_GAP_X() { return this.CARD_WIDTH + this.ColumGap; }
     public get CARD_GAP_Y() { return this.CARD_HEIGHT / 4; }       // 垂直间距为卡牌高度的1/4
-    public get MARGIN_TOP() { return this.CARD_HEIGHT * 0.4; }      // 顶部边距为卡牌高度的0.4倍
+    public get MARGIN_TOP() { return this.CARD_HEIGHT * 0.4 - 100; }      // 顶部边距为卡牌高度的0.4倍减去100单位
     public get LAYOUT_OFFSET_X() { return this.CARD_HEIGHT * 4.5; } // 整体右偏移为卡牌高度的4.5倍
     public fillZones: GameObjects.Image[] = [];
 
@@ -199,6 +199,10 @@ export class Game extends Scene {
     private incrementMoves() {
         this.moves++;
         this.movesText.setText(`Moves: ${this.moves}`);
+        console.log('=== Increment Moves ===');
+        console.log('Current moves:', this.moves);
+        console.trace(); // 打印调用栈
+        console.log('=====================');
     }
 
     private updatePlayNowButtonPosition(): void {
@@ -396,7 +400,12 @@ export class Game extends Scene {
     }
 
     // 移动卡牌到新列
-    public moveCardToColumn(card: CardComponent, columnIndex: number) {
+    public moveCardToColumn(card: CardComponent, columnIndex: number, countMove: boolean = false) {
+        console.log('=== moveCardToColumn ===');
+        console.log('Card:', card.suit + card.value);
+        console.log('Column:', columnIndex);
+        console.log('Count Move:', countMove);
+        
         // 获取要移动的所有卡牌
         const attachedCards = this.getAttachedCards(card);
         
@@ -412,8 +421,12 @@ export class Game extends Scene {
             this.addCardToColumn(columnIndex, attachedCard);
         });
 
-        // 增加移动次数
-        this.incrementMoves();
+        // 只有在指定时才增加移动次数
+        if (countMove) {
+            console.log('Incrementing moves from moveCardToColumn');
+            this.incrementMoves();
+        }
+        console.log('=====================');
     }
 
     // 检查收牌区是否可以接收卡牌
@@ -435,7 +448,12 @@ export class Game extends Scene {
     }
 
     // 添加卡牌到收牌区
-    public addToFoundation(card: CardComponent, foundationIndex: number) {
+    public addToFoundation(card: CardComponent, foundationIndex: number, countMove: boolean = true) {
+        console.log('=== addToFoundation ===');
+        console.log('Card:', card.suit + card.value);
+        console.log('Foundation:', foundationIndex);
+        console.log('Count Move:', countMove);
+        
         const foundation = this.foundations[foundationIndex];
         // 从原列中移除
         this.removeCardFromColumn(card);
@@ -460,10 +478,14 @@ export class Game extends Scene {
         
         // 增加分数和移动次数
         this.updateScore(10); // 移动到收牌区得10分
-        this.incrementMoves(); // 增加移动次数
+        if (countMove) {
+            console.log('Incrementing moves from addToFoundation');
+            this.incrementMoves(); // 增加移动次数
+        }
         
         // 检查是否胜利
         this.checkWinCondition();
+        console.log('=====================');
     }
 
     // 检查胜利条件
