@@ -8,12 +8,19 @@ interface CardColumn {
     x: number;
 }
 
+interface FoundationPile {
+    zone: Phaser.GameObjects.Sprite;
+    cards: CardComponent[];
+    suit?: CardSuit;  // 一旦放入第一张牌(A)就确定花色
+}
+
 export class Game extends Scene {
     public cards: CardComponent[] = [];
     public cardContainer: Phaser.GameObjects.Container;
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 收牌区位置
     public playNowButton: Phaser.GameObjects.Image; // 添加按钮属性
     private columns: CardColumn[] = []; // 存储每列的卡牌
+    private foundations: FoundationPile[] = []; // 存储收牌区状态
 
     // 定义横竖屏尺寸
     public readonly LANDSCAPE_WIDTH = 1920;
@@ -92,9 +99,16 @@ export class Game extends Scene {
             cardFillXPositions.push(x);
             const zone = this.add.sprite(x, this.MARGIN_TOP, 'card-fill');
             zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
+            zone.setDepth(-1000); // 设置收牌区在最底层
             this.cardContainer.add(zone);
             this.foundationZones.push(zone);
             this.fillZones.push(zone);
+            
+            // 初始化收牌区状态
+            this.foundations.push({
+                zone: zone,
+                cards: []
+            });
         }
 
         // 创建后两个收牌区（右侧），但位置相反
@@ -108,9 +122,16 @@ export class Game extends Scene {
             cardFillXPositions.push(x);
             const zone = this.add.sprite(x, this.MARGIN_TOP, 'card-fill');
             zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
+            zone.setDepth(-1000); // 设置收牌区在最底层
             this.cardContainer.add(zone);
             this.foundationZones.push(zone);
             this.fillZones.push(zone);
+            
+            // 初始化收牌区状态
+            this.foundations.push({
+                zone: zone,
+                cards: []
+            });
         }
     }
 
@@ -285,7 +306,113 @@ export class Game extends Scene {
 
     // 移动卡牌到新列
     public moveCardToColumn(card: CardComponent, columnIndex: number) {
-        const oldColumnIndex = this.removeCardFromColumn(card);
         this.addCardToColumn(columnIndex, card);
+    }
+
+    // 检查收牌区是否可以接收卡牌
+    public canAddToFoundation(card: CardComponent, foundationIndex: number): boolean {
+        const foundation = this.foundations[foundationIndex];
+        const debug = {
+            type: 'canAddToFoundation',
+            card: `${card.suit}${card.value}`,
+            foundationIndex,
+            foundation: {
+                cardsCount: foundation.cards.length,
+                suit: foundation.suit,
+                cards: foundation.cards.map(c => `${c.suit}${c.value}`)
+            }
+        };
+        
+        // 如果是空的收牌区
+        if (foundation.cards.length === 0) {
+            const canAdd = card.numericValue === 1;
+            console.log(JSON.stringify({
+                ...debug,
+                isEmpty: true,
+                isAce: canAdd,
+                result: canAdd
+            }, null, 2));
+            return canAdd;
+        }
+        
+        // 如果已经有牌
+        if (!foundation.suit) {
+            foundation.suit = card.suit;
+        }
+        
+        // 检查花色和顺序
+        const topCard = foundation.cards[foundation.cards.length - 1];
+        const sameSuit = card.suit === foundation.suit;
+        const correctValue = card.numericValue === topCard.numericValue + 1;
+        
+        console.log(JSON.stringify({
+            ...debug,
+            check: {
+                sameSuit,
+                correctValue,
+                topCard: `${topCard.suit}${topCard.value}`,
+                topCardValue: topCard.numericValue,
+                cardValue: card.numericValue
+            },
+            result: sameSuit && correctValue
+        }, null, 2));
+        
+        return sameSuit && correctValue;
+    }
+
+    // 添加卡牌到收牌区
+    public addToFoundation(card: CardComponent, foundationIndex: number) {
+        const foundation = this.foundations[foundationIndex];
+        const debug = {
+            type: 'addToFoundation',
+            card: `${card.suit}${card.value}`,
+            foundationIndex
+        };
+        
+        // 从原列中移除
+        const oldColumnIndex = this.removeCardFromColumn(card);
+        
+        // 添加到收牌区
+        foundation.cards.push(card);
+        if (!foundation.suit) {
+            foundation.suit = card.suit;
+        }
+
+        // 设置卡牌位置到收牌区中心
+        card.x = foundation.zone.x;
+        card.y = foundation.zone.y;
+        card.setDepth(1000 + foundation.cards.length); // 确保卡牌在收牌区上方,且新卡牌在顶部
+        
+        console.log(JSON.stringify({
+            ...debug,
+            result: {
+                oldColumnIndex,
+                newPosition: { x: card.x, y: card.y },
+                newState: {
+                    cardsCount: foundation.cards.length,
+                    suit: foundation.suit,
+                    cards: foundation.cards.map(c => `${c.suit}${c.value}`)
+                }
+            }
+        }, null, 2));
+        
+        // 播放收牌音效
+        EventBus.emit('play-sound', 'fill');
+        
+        // 检查是否胜利
+        this.checkWinCondition();
+    }
+
+    // 检查胜利条件
+    private checkWinCondition() {
+        // 检查每个收牌区是否都收集了13张牌(A到K)
+        const isComplete = this.foundations.every(foundation =>
+            foundation.cards.length === 13
+        );
+        
+        if (isComplete) {
+            // 发送胜利事件
+            EventBus.emit('game-win');
+        }
     }
 }
