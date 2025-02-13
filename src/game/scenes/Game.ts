@@ -65,6 +65,11 @@ export class Game extends Scene {
         // 创建引导手势
         this.createHandGuide();
 
+        // 添加全局点击事件监听
+        this.input.on('pointerdown', () => {
+            this.resetGuideState();
+        });
+
         // 创建分数和移动次数显示
         const textStyle = {
             fontSize: '32px',
@@ -534,13 +539,18 @@ export class Game extends Scene {
         this.handGuide.setVisible(false);
     }
 
+    // 重置引导状态
+    private resetGuideState(): void {
+        this.guideTimer = 0;
+        this.hideGuideHand();
+    }
+
     // 更新手势状态
     private updateHandGuide(): void {
         // 检查移动次数是否变化
         if (this.moves !== this.lastMoves) {
             this.lastMoves = this.moves;
-            this.guideTimer = 0;
-            this.hideGuideHand();
+            this.resetGuideState();
             return;
         }
 
