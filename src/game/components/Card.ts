@@ -15,7 +15,6 @@ export class Card extends GameObjects.Sprite {
     private attachedCards: Card[] = []; // 存储拖拽时附带的卡牌
     private actionQueue: (() => Promise<void>)[] = []; // 动作队列
     private isProcessingQueue: boolean = false; // 是否正在处理队列
-    private isPlayingErrorAnimation: boolean = false; // 是否正在播放错误动画
     private isFlipping: boolean = false; // 是否正在翻转
     
     // 添加动作到队列
@@ -374,8 +373,8 @@ export class Card extends GameObjects.Sprite {
                     }
                 }
 
-                // 如果没有可移动位置,播放错误动画
-                this.playErrorAnimation();
+                // 如果没有可移动位置,播放错误音效
+                EventBus.emit('play-sound', 'click');
             } catch (error) {
                 console.error('Error during move:', error);
                 // 出错时恢复到原始状态
@@ -434,51 +433,6 @@ export class Card extends GameObjects.Sprite {
             // 播放移动音效
             EventBus.emit('play-sound', 'move');
         });
-    }
-
-    // 错误动画(左右晃动)
-    private playErrorAnimation(): void {
-        // 保存真实的原始位置
-        const realStartX = this.startX;
-        const realStartY = this.startY;
-        const realDepth = this.normalDepth;
-        
-        this.isPlayingErrorAnimation = true;
-        
-        const amplitude = 10; // 晃动幅度
-        const duration = 50; // 每次移动的持续时间
-
-        // 创建晃动序列
-        this.scene.tweens.add({
-            targets: this,
-            x: realStartX - amplitude,
-            duration: duration,
-            yoyo: true,
-            repeat: 1,
-            ease: 'Power1',
-            onComplete: () => {
-                this.scene.tweens.add({
-                    targets: this,
-                    x: realStartX + amplitude,
-                    duration: duration,
-                    yoyo: true,
-                    repeat: 1,
-                    ease: 'Power1',
-                    onComplete: () => {
-                        this.isPlayingErrorAnimation = false;
-                        // 只在非拖拽状态时重置位置
-                        if (!this.isDragging) {
-                            this.x = realStartX;
-                            this.y = realStartY;
-                            this.setDepth(realDepth);
-                        }
-                    }
-                });
-            }
-        });
-
-        // 播放错误音效
-        EventBus.emit('play-sound', 'click');
     }
 
     // 检查是否可以放置到目标位置,返回目标位置信息

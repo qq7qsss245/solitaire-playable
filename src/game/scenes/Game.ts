@@ -26,6 +26,9 @@ export class Game extends Scene {
     private moves: number = 0; // 移动次数
     private scoreText: Phaser.GameObjects.Text; // 分数显示
     private movesText: Phaser.GameObjects.Text; // 移动次数显示
+    private handGuide: Phaser.GameObjects.Image; // 引导手势图片
+    private guideTimer: number = 0; // 无操作计时器
+    private lastMoves: number = 0; // 上次的移动次数
 
     // 定义横竖屏尺寸
     public readonly LANDSCAPE_WIDTH = 1920;
@@ -58,6 +61,9 @@ export class Game extends Scene {
 
         // 创建Play Now按钮
         this.createPlayNowButton();
+
+        // 创建引导手势
+        this.createHandGuide();
 
         // 创建分数和移动次数显示
         const textStyle = {
@@ -305,6 +311,11 @@ export class Game extends Scene {
         });
     }
 
+    update(time: number, delta: number): void {
+        super.update(time, delta);
+        this.updateHandGuide();
+    }
+
     onResize(): void {
         this.updateGameSize();
     }
@@ -451,6 +462,92 @@ export class Game extends Scene {
     }
 
     // 检查胜利条件
+    private createHandGuide(): void {
+        // 创建手势图片
+        this.handGuide = this.add.image(0, 0, 'hand');
+        this.handGuide.setOrigin(0, 0); // 设置origin为左上角
+        this.handGuide.setScale(0.5);
+        this.handGuide.setDepth(2000);
+        this.handGuide.setVisible(false);
+
+        // 添加缩放动画
+        this.tweens.add({
+            targets: this.handGuide,
+            scale: 0.4,
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    // 查找可点击的卡牌
+    private findClickableCard(): CardComponent | null {
+        // 获取所有可见的卡牌
+        const visibleCards = this.cards.filter(card => card.faceUp);
+        
+        // 检查每张卡是否可以移动到收牌区
+        for (let i = 0; i < this.foundationZones.length; i++) {
+            for (const card of visibleCards) {
+                if (this.canAddToFoundation(card, i)) {
+                    return card;
+                }
+            }
+        }
+
+        // 如果没有可以移动到收牌区的卡牌,查找可以移动到其他列的卡牌
+        const bottomCards = this.getColumnBottomCards();
+        for (const card of visibleCards) {
+            for (const target of bottomCards) {
+                if (target !== card &&
+                    target.isRed !== card.isRed &&
+                    target.numericValue === card.numericValue + 1) {
+                    return card;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // 显示引导手势
+    private showGuideHand(card: CardComponent): void {
+        if (!this.handGuide) return;
+
+        this.handGuide.setPosition(card.x, card.y);
+        this.handGuide.setVisible(true);
+    }
+
+    // 隐藏引导手势
+    private hideGuideHand(): void {
+        if (!this.handGuide) return;
+        this.handGuide.setVisible(false);
+    }
+
+    // 更新手势状态
+    private updateHandGuide(): void {
+        // 检查移动次数是否变化
+        if (this.moves !== this.lastMoves) {
+            this.lastMoves = this.moves;
+            this.guideTimer = 0;
+            this.hideGuideHand();
+            return;
+        }
+
+        // 更新计时器
+        this.guideTimer += this.game.loop.delta;
+        
+        // 2秒无操作显示引导
+        if (this.guideTimer >= 2000) {
+            const targetCard = this.findClickableCard();
+            if (targetCard) {
+                this.showGuideHand(targetCard);
+            } else {
+                this.hideGuideHand();
+            }
+        }
+    }
+
     private checkWinCondition() {
         // 检查每个收牌区是否都收集了13张牌(A到K)
         const isComplete = this.foundations.every(foundation =>
