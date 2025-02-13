@@ -161,21 +161,9 @@ export class Card extends GameObjects.Container {
             EventBus.emit('play-sound', 'move');
 
             if (dropResult.onDrop) {
-                console.log(JSON.stringify({
-                    type: 'cardDrop',
-                    card: `${this._suit}${this._value}`,
-                    action: 'foundation',
-                    position: { x: this.x, y: this.y }
-                }, null, 2));
                 // 如果有onDrop回调(收牌区),执行它
                 dropResult.onDrop();
             } else {
-                console.log(JSON.stringify({
-                    type: 'cardDrop',
-                    card: `${this._suit}${this._value}`,
-                    action: 'column',
-                    position: { x: this.x, y: this.y }
-                }, null, 2));
                 // 否则是普通列的移动
                 // 计算新的列索引
                 const middleStartX = -gameScene.CARD_GAP_X;
@@ -229,55 +217,19 @@ export class Card extends GameObjects.Container {
             const globalPoint = this.parentContainer.getWorldTransformMatrix()
                 .transformPoint(this.x, this.y);
 
-            console.log(JSON.stringify({
-                type: 'checkFoundationZone',
-                zoneIndex: i,
-                card: `${this._suit}${this._value}`,
-                position: {
-                    cardLocal: { x: this.x, y: this.y },
-                    cardGlobal: { x: globalPoint.x, y: globalPoint.y },
-                    zone: { x: bounds.centerX, y: bounds.centerY },
-                    bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom }
-                }
-            }, null, 2));
-
             if (globalPoint.x >= bounds.left && globalPoint.x <= bounds.right &&
                 globalPoint.y >= bounds.top && globalPoint.y <= bounds.bottom) {
-                console.log(JSON.stringify({
-                    type: 'foundationCheck',
-                    card: `${this._suit}${this._value}`,
-                    zoneIndex: i,
-                    status: 'inBounds'
-                }, null, 2));
-                
                 // 使用Game类的收牌区验证方法
                 if (gameScene.canAddToFoundation(this, i)) {
-                    console.log(JSON.stringify({
-                        type: 'foundationCheck',
-                        card: `${this._suit}${this._value}`,
-                        zoneIndex: i,
-                        status: 'canDrop'
-                    }, null, 2));
                     return {
                         canDrop: true,
                         x: bounds.centerX,
                         y: bounds.centerY,
                         onDrop: () => {
-                            console.log(JSON.stringify({
-                                type: 'foundationDrop',
-                                card: `${this._suit}${this._value}`,
-                                zoneIndex: i
-                            }, null, 2));
                             gameScene.addToFoundation(this, i);
                         }
                     };
                 }
-                console.log(JSON.stringify({
-                    type: 'foundationCheck',
-                    card: `${this._suit}${this._value}`,
-                    zoneIndex: i,
-                    status: 'invalidDrop'
-                }, null, 2));
                 return { canDrop: false };
             }
         }

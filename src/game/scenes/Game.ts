@@ -99,7 +99,7 @@ export class Game extends Scene {
             cardFillXPositions.push(x);
             const zone = this.add.sprite(x, this.MARGIN_TOP, 'card-fill');
             zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
-            zone.setDepth(-1000); // 设置收牌区在最底层
+            zone.setDepth(0); // 设置收牌区基础深度为0
             this.cardContainer.add(zone);
             this.foundationZones.push(zone);
             this.fillZones.push(zone);
@@ -122,7 +122,7 @@ export class Game extends Scene {
             cardFillXPositions.push(x);
             const zone = this.add.sprite(x, this.MARGIN_TOP, 'card-fill');
             zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
-            zone.setDepth(-1000); // 设置收牌区在最底层
+            zone.setDepth(0); // 设置收牌区基础深度为0
             this.cardContainer.add(zone);
             this.foundationZones.push(zone);
             this.fillZones.push(zone);
@@ -204,6 +204,7 @@ export class Game extends Scene {
     private createInitialLayout(): void {
         // 创建容器并添加到场景（初始位置将由updateComponents更新）
         this.cardContainer = this.add.container(0, 0);
+        this.cardContainer.setDepth(1); // 确保容器本身有正确的深度值
 
         // 计算中间三列的起始位置（相对于容器的0,0点）
         const middleStartX = -this.CARD_GAP_X;
@@ -312,65 +313,26 @@ export class Game extends Scene {
     // 检查收牌区是否可以接收卡牌
     public canAddToFoundation(card: CardComponent, foundationIndex: number): boolean {
         const foundation = this.foundations[foundationIndex];
-        const debug = {
-            type: 'canAddToFoundation',
-            card: `${card.suit}${card.value}`,
-            foundationIndex,
-            foundation: {
-                cardsCount: foundation.cards.length,
-                suit: foundation.suit,
-                cards: foundation.cards.map(c => `${c.suit}${c.value}`)
-            }
-        };
-        
-        // 如果是空的收牌区
+        // 如果是空的收牌区,只接受A
         if (foundation.cards.length === 0) {
-            const canAdd = card.numericValue === 1;
-            console.log(JSON.stringify({
-                ...debug,
-                isEmpty: true,
-                isAce: canAdd,
-                result: canAdd
-            }, null, 2));
-            return canAdd;
+            return card.numericValue === 1;
         }
         
-        // 如果已经有牌
+        // 如果已经有牌,检查花色和顺序
         if (!foundation.suit) {
             foundation.suit = card.suit;
         }
         
-        // 检查花色和顺序
         const topCard = foundation.cards[foundation.cards.length - 1];
-        const sameSuit = card.suit === foundation.suit;
-        const correctValue = card.numericValue === topCard.numericValue + 1;
-        
-        console.log(JSON.stringify({
-            ...debug,
-            check: {
-                sameSuit,
-                correctValue,
-                topCard: `${topCard.suit}${topCard.value}`,
-                topCardValue: topCard.numericValue,
-                cardValue: card.numericValue
-            },
-            result: sameSuit && correctValue
-        }, null, 2));
-        
-        return sameSuit && correctValue;
+        return card.suit === foundation.suit &&
+               card.numericValue === topCard.numericValue + 1;
     }
 
     // 添加卡牌到收牌区
     public addToFoundation(card: CardComponent, foundationIndex: number) {
         const foundation = this.foundations[foundationIndex];
-        const debug = {
-            type: 'addToFoundation',
-            card: `${card.suit}${card.value}`,
-            foundationIndex
-        };
-        
         // 从原列中移除
-        const oldColumnIndex = this.removeCardFromColumn(card);
+        this.removeCardFromColumn(card);
         
         // 添加到收牌区
         foundation.cards.push(card);
@@ -381,20 +343,7 @@ export class Game extends Scene {
         // 设置卡牌位置到收牌区中心
         card.x = foundation.zone.x;
         card.y = foundation.zone.y;
-        card.setDepth(1000 + foundation.cards.length); // 确保卡牌在收牌区上方,且新卡牌在顶部
-        
-        console.log(JSON.stringify({
-            ...debug,
-            result: {
-                oldColumnIndex,
-                newPosition: { x: card.x, y: card.y },
-                newState: {
-                    cardsCount: foundation.cards.length,
-                    suit: foundation.suit,
-                    cards: foundation.cards.map(c => `${c.suit}${c.value}`)
-                }
-            }
-        }, null, 2));
+        card.setDepth(10 + foundation.cards.length); // 确保卡牌在收牌区上方,且新卡牌在顶部
         
         // 播放收牌音效
         EventBus.emit('play-sound', 'fill');
