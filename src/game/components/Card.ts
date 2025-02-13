@@ -10,11 +10,13 @@ export class Card extends GameObjects.Sprite {
     private isDragging: boolean = false;
     private startX: number = 0;
     private startY: number = 0;
+    private normalDepth: number = 0;
 
     // 定义卡牌尺寸
     private static readonly CARD_WIDTH = 120;  // 180 * (2/3)
     private static readonly CARD_HEIGHT = 164; // 246 * (2/3)
     private static readonly CARD_GAP_Y = Card.CARD_HEIGHT / 4; // 垂直间距为卡牌高度的1/4
+    private static readonly DRAG_DEPTH = 10000; // 拖拽时的基础深度值
 
     constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
         super(scene, x, y, faceUp ? `${Card.getSuitName(suit)}${value}` : 'card-back');
@@ -30,7 +32,8 @@ export class Card extends GameObjects.Sprite {
         this.setInteractive();
         
         // 设置初始深度
-        this.setDepth(y);
+        this.normalDepth = y;
+        this.setDepth(this.normalDepth);
         
         // 注册拖拽事件
         scene.input.setDraggable(this);
@@ -99,12 +102,15 @@ export class Card extends GameObjects.Sprite {
         this.isDragging = true;
         this.startX = this.x;
         this.startY = this.y;
+        this.normalDepth = this.depth;
         
         // 播放拾取音效
         EventBus.emit('play-sound', 'click');
         
         // 设置一个很大的深度值确保显示在最上层
-        this.setDepth(1000);
+        this.setDepth(Card.DRAG_DEPTH);
+
+        console.log(`[Drag Start] Card: ${this._suit}${this._value} at (${this.x}, ${this.y})`);
     }
 
     // 拖拽中
@@ -115,7 +121,7 @@ export class Card extends GameObjects.Sprite {
         this.y = dragY;
         
         // 保持在最上层
-        this.setDepth(1000);
+        this.setDepth(Card.DRAG_DEPTH);
     }
 
     // 拖拽结束
@@ -127,10 +133,15 @@ export class Card extends GameObjects.Sprite {
         // 检查是否可以放置到目标位置
         const dropResult = this.checkDropTarget();
         
+        console.log(`[Drop Result] Card: ${this._suit}${this._value}`, dropResult);
+
         if (!dropResult.canDrop) {
             // 如果不能放置,返回原位
             this.x = this.startX;
             this.y = this.startY;
+            // 恢复原来的深度
+            this.setDepth(this.normalDepth);
+            console.log(`[Drop Failed] Returning to (${this.startX}, ${this.startY})`);
         } else {
             const gameScene = this.scene as Game;
             
@@ -144,10 +155,13 @@ export class Card extends GameObjects.Sprite {
             // 设置深度以确保显示在目标卡牌上方
             this.setDepth(this.y);
             
+            console.log(`[Drop Success] Moving to (${dropResult.x}, ${dropResult.y})`);
+            
             // 播放成功音效
             EventBus.emit('play-sound', 'move');
 
             if (dropResult.onDrop) {
+                console.log(`[Foundation Drop] Executing foundation drop callback`);
                 // 如果有onDrop回调(收牌区),执行它
                 dropResult.onDrop();
             } else {
@@ -167,6 +181,7 @@ export class Card extends GameObjects.Sprite {
                     newColumnIndex = Math.floor((this.x - (middleStartX + 3 * gameScene.CARD_GAP_X)) / gameScene.CARD_GAP_X) + 5;
                 }
 
+                console.log(`[Column Move] Moving to column ${newColumnIndex}`);
                 // 更新卡牌所在的列
                 gameScene.moveCardToColumn(this, newColumnIndex);
             }
@@ -200,13 +215,28 @@ export class Card extends GameObjects.Sprite {
         for (let i = 0; i < foundationZones.length; i++) {
             const zone = foundationZones[i];
             const bounds = zone.getBounds();
-            // 获取卡牌在全局坐标系中的位置
-            const globalPoint = this.getWorldTransformMatrix().transformPoint(this.x, this.y);
+            
+            console.log(`[Foundation Check] Zone ${i}:`, {
+                bounds: {
+                    left: bounds.left,
+                    right: bounds.right,
+                    top: bounds.top,
+                    bottom: bounds.bottom,
+                    centerX: bounds.centerX,
+                    centerY: bounds.centerY
+                },
+                cardPosition: {
+                    x: this.x,
+                    y: this.y
+                }
+            });
 
-            if (globalPoint.x >= bounds.left && globalPoint.x <= bounds.right &&
-                globalPoint.y >= bounds.top && globalPoint.y <= bounds.bottom) {
+            // 使用当前位置直接判断
+            if (this.x >= bounds.left && this.x <= bounds.right &&
+                this.y >= bounds.top && this.y <= bounds.bottom) {
                 // 使用Game类的收牌区验证方法
                 if (gameScene.canAddToFoundation(this, i)) {
+                    console.log(`[Foundation Valid] Can add to foundation ${i}`);
                     return {
                         canDrop: true,
                         x: bounds.centerX,
@@ -216,6 +246,7 @@ export class Card extends GameObjects.Sprite {
                         }
                     };
                 }
+                console.log(`[Foundation Invalid] Cannot add to foundation ${i}`);
                 return { canDrop: false };
             }
         }

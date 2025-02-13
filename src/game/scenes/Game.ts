@@ -352,6 +352,10 @@ export class Game extends Scene {
         card.y = foundation.zone.y;
         card.setDepth(10 + foundation.cards.length); // 确保卡牌在收牌区上方,且新卡牌在顶部
         
+        // 禁用卡牌交互
+        card.disableInteractive();
+        card.removeAllListeners(); // 移除所有事件监听器
+        
         // 播放收牌音效
         EventBus.emit('play-sound', 'fill');
         
