@@ -57,9 +57,7 @@ export default defineConfig({
     plugins: [
         react(),
         phasermsg(),
-        viteSingleFile(),
-        base122Plugin
-    ],
+        viteSingleFile()    ],
     resolve: {
         alias: [
             {find: '@', replacement: fileURLToPath(new URL('../src', import.meta.url))}

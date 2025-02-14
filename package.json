@@ -22,7 +22,7 @@
     ],
     "scripts": {
         "dev": "vite --config vite/config.dev.mjs",
-        "build": "vite build --config vite/config.prod.mjs && bun run ./scripts/build.ts"
+        "build": "vite build --config vite/config.prod.mjs && bun run ./scripts/remove-script.ts"
     },
     "dependencies": {
         "@ice/store": "^2.0.4",
