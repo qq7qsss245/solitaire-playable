@@ -13,15 +13,6 @@ import yesImg from '../../assets/yes.png';
 import cardFillImg from '../../assets/cards/fill.png';
 import cardBackImg from '../../assets/cards/卡背.png';
 
-// 音频资源
-import bgmAudio from '../../assets/audios/bgm.mp3';
-import bigAudio from '../../assets/audios/big.mp3';
-import clickAudio from '../../assets/audios/click.mp3';
-import dealAudio from '../../assets/audios/deal.mp3';
-import fillAudio from '../../assets/audios/fill.mp3';
-import moveAudio from '../../assets/audios/move.mp3';
-import popupAudio from '../../assets/audios/popup.mp3';
-
 // 方块牌
 import dA from '../../assets/cards/方块A.png';
 import d2 from '../../assets/cards/方块2.png';
@@ -163,14 +154,6 @@ export class Preloader extends Scene {
         this.load.image('黑桃Q', sQ);
         this.load.image('黑桃K', sK);
 
-        // 加载音频资源
-        this.load.audio('bgm', bgmAudio);
-        this.load.audio('big', bigAudio);
-        this.load.audio('click', clickAudio);
-        this.load.audio('deal', dealAudio);
-        this.load.audio('fill', fillAudio);
-        this.load.audio('move', moveAudio);
-        this.load.audio('popup', popupAudio);
     }
 
     loadFont(name: string, url: string) {

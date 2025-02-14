@@ -585,8 +585,8 @@ export class Card extends GameObjects.Sprite {
                                 target.x,
                                 target.y + Card.CARD_GAP_Y,
                                 () => new Promise<void>((resolveMove) => {
-                                    // 只更新列的数据,不执行移动计数(因为移动已经在外部完成)
-                                    gameScene.moveCardToColumn(this, newColumnIndex, false);
+                                    // 更新列的数据并计数
+                                    gameScene.moveCardToColumn(this, newColumnIndex, true);
                                     resolveMove();
                                 }),
                                 attachedCards
