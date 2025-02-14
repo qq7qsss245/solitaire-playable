@@ -176,7 +176,7 @@ export class Card extends GameObjects.Sprite {
                                 flipState.secondAnimationComplete = true;
                                 
                                 // 更新最终状态
-                                EventBus.emit('play-sound', 'flip');
+                                EventBus.emit('play-deal');
                                 this.isFlipping = false;  // 立即重置翻转状态
                                 
                                 if (this._faceUp) {
@@ -321,7 +321,7 @@ export class Card extends GameObjects.Sprite {
         });
         
         // 播放拾取音效
-        EventBus.emit('play-sound', 'click');
+        EventBus.emit('play-click');
         
         // 设置一个很大的深度值确保显示在最上层
         this.setDepth(Card.DRAG_DEPTH);
@@ -393,7 +393,7 @@ export class Card extends GameObjects.Sprite {
             
             if (dropResult.canDrop) {
                 // 播放成功音效
-                EventBus.emit('play-sound', 'move');
+                EventBus.emit('play-move');
 
                 // 开始动画移动
                 await this.animateMove(
@@ -492,7 +492,7 @@ export class Card extends GameObjects.Sprite {
         if (!this.canInteract()) return;
 
         // 播放点击音效
-        EventBus.emit('play-sound', 'click');
+        EventBus.emit('play-click');
 
         // 检查并自动移动卡牌
         this.tryAutoMove();
@@ -585,7 +585,7 @@ export class Card extends GameObjects.Sprite {
                 }
 
                 // 如果没有可移动位置,播放错误音效
-                EventBus.emit('play-sound', 'click');
+                EventBus.emit('play-click');
             } catch (error) {
                 console.error('Error during move:', error);
                 // 出错时恢复到原始状态
@@ -755,7 +755,7 @@ export class Card extends GameObjects.Sprite {
             });
             
             // 播放移动音效
-            EventBus.emit('play-sound', 'move');
+            EventBus.emit('play-move');
         });
     }
 

@@ -123,6 +123,9 @@ export class Game extends Scene {
     }
 
     create() {
+        // 播放背景音乐
+        EventBus.emit('play-bgm');
+
         // 创建初始牌局
         this.createInitialLayout();
         
@@ -278,7 +281,7 @@ export class Game extends Scene {
         this.playNowButton.setInteractive();
         this.playNowButton.on('pointerdown', () => {
             // 播放点击音效
-            EventBus.emit('play-sound', 'click');
+            EventBus.emit('play-click');
             // 调用下载函数
             download();
         });
@@ -310,7 +313,7 @@ export class Game extends Scene {
         // 当移动次数超过10次时自动下载
         if (this.moves > 10) {
             // 播放点击音效
-            EventBus.emit('play-sound', 'click');
+            EventBus.emit('play-click');
             // 调用下载函数
             download();
         }
@@ -682,7 +685,7 @@ export class Game extends Scene {
         card.removeAllListeners(); // 移除所有事件监听器
         
         // 播放收牌音效
-        EventBus.emit('play-sound', 'fill');
+        EventBus.emit('play-fill');
         
         // 增加分数和移动次数
         this.updateScore(10); // 移动到收牌区得10分
@@ -803,6 +806,8 @@ export class Game extends Scene {
         );
         
         if (isComplete) {
+            // 播放胜利音效
+            EventBus.emit('play-big');
             // 发送胜利事件
             EventBus.emit('game-win');
         }
