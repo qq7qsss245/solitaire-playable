@@ -14,6 +14,29 @@ interface FoundationPile {
     suit?: CardSuit;  // 一旦放入第一张牌(A)就确定花色
 }
 
+// 布局配置接口
+interface LayoutConfig {
+    cardColumns: {
+        startX: number;
+        startY: number;
+        gapX: number;
+        gapY: number;
+    };
+    foundation: {
+        startX: number;
+        startY: number;
+        gap: number;
+    };
+    score: {
+        x: number;
+        y: number;
+    };
+    downloadButton: {
+        x: number;
+        y: number;
+    };
+}
+
 export class Game extends Scene {
     public cards: CardComponent[] = [];
     public currentOffsetX: number = 0;
@@ -29,6 +52,52 @@ export class Game extends Scene {
     private handGuide: Phaser.GameObjects.Image; // 引导手势图片
     private guideTimer: number = 0; // 无操作计时器
     private lastMoves: number = 0; // 上次的移动次数
+
+    // 布局配置
+    private landscapeLayout: LayoutConfig = {
+        cardColumns: {
+            startX: 0,     // 使用0作为基准点
+            startY: 164,   // CARD_HEIGHT
+            gapX: 130,     // CARD_WIDTH + 10
+            gapY: 41       // CARD_HEIGHT / 4
+        },
+        foundation: {
+            startX: -240,  // -2 * CARD_WIDTH
+            startY: 65.6,  // MARGIN_TOP
+            gap: 130       // CARD_WIDTH + 10
+        },
+        score: {
+            x: 40,
+            y: 360        // height / 3
+        },
+        downloadButton: {
+            x: 240,       // CARD_WIDTH * 2
+            y: 880        // height - 200
+        }
+    };
+
+    // 竖屏布局配置
+    private portraitLayout: LayoutConfig = {
+        cardColumns: {
+            startX: 0,     // 使用0作为基准点
+            startY: 164,   // CARD_HEIGHT
+            gapX: 130,     // CARD_WIDTH + 10
+            gapY: 41       // CARD_HEIGHT / 4
+        },
+        foundation: {
+            startX: -240,  // -2 * CARD_WIDTH
+            startY: 164,   // 与cardColumns.startY相同，确保在同一水平线上
+            gap: 130       // CARD_WIDTH + 10
+        },
+        score: {
+            x: 40,
+            y: 50         // 顶部50单位处
+        },
+        downloadButton: {
+            x: 240,       // CARD_WIDTH * 2
+            y: 880        // height - 200
+        }
+    };
 
     // 定义横竖屏尺寸
     public readonly LANDSCAPE_WIDTH = 1920;
@@ -72,48 +141,133 @@ export class Game extends Scene {
 
         // 创建分数和移动次数显示
         const textStyle = {
-            fontSize: '32px',
+            fontSize: '64px',
             fontFamily: 'Arial',
             color: '#ffffff',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 6
         };
 
         // 创建移动次数显示
-        this.movesText = this.add.text(20, 20, 'Moves: 0', textStyle);
+        this.movesText = this.add.text(40, 0, 'Moves: 0', textStyle);
         this.movesText.setScrollFactor(0);
         this.movesText.setDepth(1000);
 
         // 创建分数显示
-        this.scoreText = this.add.text(20, 60, 'Score: 0', textStyle);
+        this.scoreText = this.add.text(40, 0, 'Score: 0', textStyle);
         this.scoreText.setScrollFactor(0);
         this.scoreText.setDepth(1000);
 
+        // 设置文本位置
+        this.updateScorePosition();
+
         // 监听窗口大小变化
-        window.addEventListener('resize', this.onResize);
+        const boundOnResize = this.onResize.bind(this);
+        window.addEventListener('resize', boundOnResize);
 
         // 通知场景准备完成
         EventBus.emit('current-scene-ready', this);
 
+        console.log('=== Scene Create Start ===');
+        console.log('Initial Screen:', {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            aspectRatio: window.innerWidth / window.innerHeight
+        });
+
+        // 记录初始组件状态
+        this.logComponentsState('Initial State');
+
         // 设置初始游戏尺寸
         this.updateGameSize();
+
+        // 记录初始化完成后的状态
+        this.logComponentsState('After Initialization');
+        console.log('=== Scene Create Complete ===');
+
+        // 添加场景销毁时的清理
+        this.events.on('destroy', () => {
+            window.removeEventListener('resize', boundOnResize);
+        });
+    }
+
+    private calculateOffsets(isLandscape: boolean): { offsetX: number; offsetY: number } {
+        const layout = this.getCurrentLayout();
+        if (isLandscape) {
+            return {
+                offsetX: layout.cardColumns.startX + this.LANDSCAPE_WIDTH - (this.CARD_WIDTH * 5),
+                offsetY: layout.cardColumns.startY
+            };
+        } else {
+            // 计算计分板的高度和位置
+            const scoreboardTop = 50; // 计分板顶部位置
+            const scoreboardHeight = 64; // 文本高度（根据fontSize: '64px'）
+            const scoreboardGap = 50; // 计分板与牌组之间的间距
+            const startY = scoreboardTop + scoreboardHeight + scoreboardGap;
+
+            console.log('Portrait offsets calculation:', {
+                scoreboardTop,
+                scoreboardHeight,
+                scoreboardGap,
+                startY,
+                scale: this.scale.height
+            });
+
+            return {
+                offsetX: layout.cardColumns.startX + this.PORTRAIT_WIDTH / 2,
+                offsetY: startY
+            };
+        }
     }
 
     private updateGameSize(): void {
         const width = window.innerWidth;
         const height = window.innerHeight;
         const aspectRatio = width / height;
+        const isLandscape = aspectRatio > 1;
+        const layout = this.getCurrentLayout();
 
-        // 如果宽度大于高度,使用横屏模式
-        if (aspectRatio > 1) {
+        console.log('=== updateGameSize ===');
+        console.log('Screen:', { width, height, aspectRatio });
+        console.log('Current Layout:', layout);
+        console.log('Current Offsets:', {
+            x: this.currentOffsetX,
+            y: this.currentOffsetY
+        });
+
+        // 设置游戏尺寸
+        if (isLandscape) {
             this.scale.setGameSize(this.LANDSCAPE_WIDTH, this.LANDSCAPE_HEIGHT);
+            console.log('Switching to Landscape:', {
+                width: this.LANDSCAPE_WIDTH,
+                height: this.LANDSCAPE_HEIGHT
+            });
         } else {
-            // 否则使用竖屏模式
             this.scale.setGameSize(this.PORTRAIT_WIDTH, this.PORTRAIT_HEIGHT);
+            console.log('Switching to Portrait:', {
+                width: this.PORTRAIT_WIDTH,
+                height: this.PORTRAIT_HEIGHT
+            });
         }
+
+        // 计算新的偏移量
+        const offsets = this.calculateOffsets(isLandscape);
+        this.currentOffsetX = offsets.offsetX;
+        this.currentOffsetY = offsets.offsetY;
+
+        console.log('New Offsets:', {
+            x: this.currentOffsetX,
+            y: this.currentOffsetY
+        });
+
+        // 记录组件位置更新前的状态
+        this.logComponentsState('Before Update');
 
         // 更新组件位置
         this.updateComponents();
+
+        // 记录组件位置更新后的状态
+        this.logComponentsState('After Update');
     }
 
     private createFoundationZones(): void {
@@ -214,55 +368,179 @@ export class Game extends Scene {
             // 横屏模式
             this.playNowButton.setPosition(
                 this.CARD_WIDTH * 2,
-                this.scale.height / 2
+                this.scale.height - 200
             );
         } else {
             // 竖屏模式
             this.playNowButton.setPosition(
                 this.CARD_WIDTH,
-                this.scale.height / 4
+                this.scale.height - 200
             );
         }
     }
 
-    private updateComponents(): void {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const aspectRatio = width / height;
+    private getCurrentLayout(): LayoutConfig {
+        const aspectRatio = window.innerWidth / window.innerHeight;
+        return aspectRatio > 1 ? this.landscapeLayout : this.portraitLayout;
+    }
 
-        // 计算新的偏移值
-        if (aspectRatio > 1) {
-            // 横屏模式
-            this.currentOffsetX = 1920 - this.CARD_WIDTH * 5;
-            this.currentOffsetY = this.CARD_HEIGHT;
-            // 更新UI位置
-            this.movesText.setPosition(20, 20);
-            this.scoreText.setPosition(20, 60);
-        } else {
-            // 竖屏模式
-            this.currentOffsetX = this.scale.width / 2;
-            this.currentOffsetY = this.scale.height / 2 - this.LAYOUT_OFFSET_X;
-            // 更新UI位置
-            this.movesText.setPosition(20, this.scale.height - 100);
-            this.scoreText.setPosition(20, this.scale.height - 60);
+    private updateCardPositions(): void {
+        const layout = this.getCurrentLayout();
+        const middleStartX = -this.CARD_GAP_X;
+        const sideStartY = this.MARGIN_TOP + 5 * this.CARD_GAP_Y;
+
+        console.log('=== updateCardPositions ===');
+        console.log('Layout:', layout);
+        console.log('Base positions:', {
+            middleStartX,
+            sideStartY,
+            currentOffsetX: this.currentOffsetX,
+            currentOffsetY: this.currentOffsetY
+        });
+
+        // 更新每列中卡牌的位置
+        this.columns.forEach((column, columnIndex) => {
+            let baseX;
+            if (columnIndex < 2) {
+                // 左侧两列
+                baseX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap)) + (columnIndex * (this.CARD_WIDTH + this.ColumGap));
+            } else if (columnIndex < 5) {
+                // 中间三列
+                baseX = middleStartX + ((columnIndex - 2) * this.CARD_GAP_X);
+            } else {
+                // 右侧两列
+                baseX = middleStartX + (3 * this.CARD_GAP_X) + ((columnIndex - 5) * this.CARD_GAP_X);
+            }
+
+            column.cards.forEach((card, cardIndex) => {
+                const x = baseX + this.currentOffsetX;
+                const y = (columnIndex < 2 || columnIndex > 4)
+                    ? sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY
+                    : this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
+
+                console.log('Setting card position:', {
+                    card: card.suit + card.value,
+                    column: columnIndex,
+                    index: cardIndex,
+                    baseX,
+                    x,
+                    y
+                });
+
+                card.setPosition(x, y);
+                card.setDepth(y);
+            });
+        });
+    }
+
+    private updateFoundationPositions(): void {
+        const layout = this.getCurrentLayout();
+        const middleStartX = -this.CARD_GAP_X;
+        const leftmostPileX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap));
+        const rightSecondLastX = middleStartX + (3 * this.CARD_GAP_X);
+        const rightLastX = middleStartX + (4 * this.CARD_GAP_X);
+
+        console.log('=== updateFoundationPositions ===');
+        console.log('Base positions:', {
+            middleStartX,
+            leftmostPileX,
+            rightSecondLastX,
+            rightLastX,
+            currentOffsetX: this.currentOffsetX,
+            currentOffsetY: this.currentOffsetY
+        });
+
+        // 更新左侧两个收牌区
+        for (let i = 0; i < 2; i++) {
+            const x = leftmostPileX + (i * (this.CARD_WIDTH + this.ColumGap)) + this.currentOffsetX;
+            const y = this.MARGIN_TOP + this.currentOffsetY;
+            const zone = this.foundationZones[i];
+            const foundation = this.foundations[i];
+
+            console.log('Setting left foundation position:', {
+                index: i,
+                x,
+                y
+            });
+
+            zone.setPosition(x, y);
+            zone.setDepth(0);
+
+            // 更新收牌区中的卡牌位置
+            foundation.cards.forEach((card, cardIndex) => {
+                card.setPosition(x, y);
+                card.setDepth(10 + cardIndex);
+            });
         }
 
-        // 更新所有卡牌的位置
-        this.cards.forEach(card => {
-            const originalX = card.x - (card.parentContainer?.x || 0);
-            const originalY = card.y - (card.parentContainer?.y || 0);
-            card.setPosition(originalX + this.currentOffsetX, originalY + this.currentOffsetY);
-        });
+        // 更新右侧两个收牌区
+        const rightPositions = [rightLastX, rightSecondLastX];
+        for (let i = 0; i < 2; i++) {
+            const x = rightPositions[i] + this.currentOffsetX;
+            const y = this.MARGIN_TOP + this.currentOffsetY;
+            const zone = this.foundationZones[i + 2];
+            const foundation = this.foundations[i + 2];
 
-        // 更新所有foundation zones的位置
-        this.foundationZones.forEach(zone => {
-            const originalX = zone.x - (zone.parentContainer?.x || 0);
-            const originalY = zone.y - (zone.parentContainer?.y || 0);
-            zone.setPosition(originalX + this.currentOffsetX, originalY + this.currentOffsetY);
-        });
+            console.log('Setting right foundation position:', {
+                index: i + 2,
+                x,
+                y
+            });
 
-        // 更新Play Now按钮位置
-        this.updatePlayNowButtonPosition();
+            zone.setPosition(x, y);
+            zone.setDepth(0);
+
+            // 更新收牌区中的卡牌位置
+            foundation.cards.forEach((card, cardIndex) => {
+                card.setPosition(x, y);
+                card.setDepth(10 + cardIndex);
+            });
+        }
+    }
+
+    private updateScorePosition(): void {
+        const layout = this.getCurrentLayout();
+        const aspectRatio = window.innerWidth / window.innerHeight;
+        const isLandscape = aspectRatio > 1;
+
+        console.log('=== updateScorePosition ===');
+        console.log('Mode:', isLandscape ? 'Landscape' : 'Portrait');
+
+        if (isLandscape) {
+            // 横屏模式：使用原有布局
+            this.movesText.setPosition(layout.score.x, layout.score.y - 50);
+            this.scoreText.setPosition(layout.score.x, layout.score.y + 50);
+        } else {
+            // 竖屏模式：横向平铺
+            const screenWidth = this.scale.width;
+            const scoreboardWidth = screenWidth * 0.8; // 计分板宽度为屏幕宽度的80%
+            const margin = (screenWidth - scoreboardWidth) / 2; // 两侧边距
+
+            // 设置移动次数文本位置（左端）
+            this.movesText.setPosition(margin, layout.score.y);
+
+            // 设置分数文本位置（右端）
+            const scoreTextWidth = this.scoreText.width;
+            this.scoreText.setPosition(screenWidth - margin - scoreTextWidth, layout.score.y);
+        }
+
+        console.log('Score positions:', {
+            moves: { x: this.movesText.x, y: this.movesText.y },
+            score: { x: this.scoreText.x, y: this.scoreText.y }
+        });
+    }
+
+    private updateButtonPosition(): void {
+        const layout = this.getCurrentLayout();
+        this.playNowButton.setPosition(layout.downloadButton.x, layout.downloadButton.y);
+    }
+
+    private updateComponents(): void {
+        // 更新所有组件位置
+        this.updateCardPositions();
+        this.updateFoundationPositions();
+        this.updateScorePosition();
+        this.updateButtonPosition();
     }
 
     private createInitialLayout(): void {
@@ -617,6 +895,39 @@ export class Game extends Scene {
             // 发送胜利事件
             EventBus.emit('game-win');
         }
+    }
+
+    private logComponentsState(phase: string) {
+        console.log(`=== Components State (${phase}) ===`);
+        
+        // 记录卡牌位置
+        console.log('Cards Sample:', this.cards.slice(0, 3).map(card => ({
+            card: card.suit + card.value,
+            position: { x: card.x, y: card.y }
+        })));
+
+        // 记录收牌区位置
+        console.log('Foundation Zones:', this.foundationZones.map((zone, index) => ({
+            index,
+            position: { x: zone.x, y: zone.y }
+        })));
+
+        // 记录分数和移动次数文本位置
+        console.log('UI Elements:', {
+            movesText: { x: this.movesText.x, y: this.movesText.y },
+            scoreText: { x: this.scoreText.x, y: this.scoreText.y },
+            playNowButton: { x: this.playNowButton.x, y: this.playNowButton.y }
+        });
+
+        // 记录当前布局信息
+        console.log('Layout Info:', {
+            currentOffsetX: this.currentOffsetX,
+            currentOffsetY: this.currentOffsetY,
+            scaleWidth: this.scale.width,
+            scaleHeight: this.scale.height
+        });
+
+        console.log('=====================');
     }
 
     // 获取每列最底部的卡牌
