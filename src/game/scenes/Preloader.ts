@@ -45,7 +45,7 @@ import c4 from '../../assets/cards/梅花4.png';
 import c5 from '../../assets/cards/梅花5.png';
 import c6 from '../../assets/cards/梅花6.png';
 import c7 from '../../assets/cards/梅花7.png';
-mimport c8 from '../../assets/cards/梅花8.png';
+import c8 from '../../assets/cards/梅花8.png';
 import c9 from '../../assets/cards/梅花9.png';
 import c10 from '../../assets/cards/梅花10.png';
 import cJ from '../../assets/cards/梅花J.png';
