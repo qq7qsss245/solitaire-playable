@@ -9,6 +9,7 @@ export class Card extends GameObjects.Sprite {
     private _value: CardValue;
     private _faceUp: boolean;
     private isDragging: boolean = false;
+    private isMoving: boolean = false;  // 是否正在移动
     private startX: number = 0;
     private startY: number = 0;
     private normalDepth: number = 0;
@@ -118,6 +119,8 @@ export class Card extends GameObjects.Sprite {
 
     // 翻转卡牌
     flip(): Promise<void> {
+        if (!this.canInteract(true)) return Promise.resolve();
+
         console.log('=== flip start ===');
         console.log('Card:', this._suit + this._value);
         console.log('Current state:', {
@@ -352,9 +355,29 @@ export class Card extends GameObjects.Sprite {
     }
 
 
+    // 检查卡牌是否可以操作
+    private canInteract(allowFaceDown: boolean = false): boolean {
+        const canInteract = (allowFaceDown || this._faceUp) && !this.isFlipping && !this.isProcessingQueue && !this.isMoving;
+        if (!canInteract) {
+            console.log('Card operation blocked:', {
+                card: this._suit + this._value,
+                faceUp: this._faceUp,
+                isFlipping: this.isFlipping,
+                isProcessingQueue: this.isProcessingQueue,
+                isMoving: this.isMoving,
+                allowFaceDown,
+                reason: (!allowFaceDown && !this._faceUp) ? 'Card face down' :
+                       this.isFlipping ? 'Card is flipping' :
+                       this.isMoving ? 'Card is moving' :
+                       'Queue is processing'
+            });
+        }
+        return canInteract;
+    }
+
     // 拖拽开始
     private onDragStart(pointer: Phaser.Input.Pointer): void {
-        if (!this._faceUp) return;
+        if (!this.canInteract()) return;
         
         this.isDragging = true;
         this.startX = this.x;
@@ -384,7 +407,7 @@ export class Card extends GameObjects.Sprite {
 
     // 拖拽中
     private onDrag(pointer: Phaser.Input.Pointer, dragX: number, dragY: number): void {
-        if (!this.isDragging) return;
+        if (!this.isDragging || !this.canInteract()) return;
         
         // 计算位移
         const dx = dragX - this.x;
@@ -412,8 +435,13 @@ export class Card extends GameObjects.Sprite {
         if (!this.isDragging) return;
         
         this.isDragging = false;
+        this.isMoving = false;  // 确保重置移动状态
         console.log('=== onDragEnd ===');
         console.log('Card:', this._suit + this._value);
+        console.log('State reset:', {
+            isDragging: this.isDragging,
+            isMoving: this.isMoving
+        });
         
         // 检查是否可以放置到目标位置
         const dropResult = this.checkDropTarget();
@@ -482,13 +510,30 @@ export class Card extends GameObjects.Sprite {
                                 }
 
                                 // 翻转原列中的下一张卡牌
-                                if (nextCard && !nextCard.faceUp) {
+                                if (nextCard && !nextCard.faceUp && !nextCard.isFlipping) {
                                     try {
+                                        console.log('Flipping next card:', {
+                                            card: nextCard._suit + nextCard._value,
+                                            state: {
+                                                isFlipping: nextCard.isFlipping,
+                                                faceUp: nextCard._faceUp,
+                                                isProcessingQueue: nextCard.isProcessingQueue
+                                            }
+                                        });
                                         await nextCard.flip();
                                     } catch (error) {
                                         console.warn('Failed to flip next card:', error);
                                         // 继续执行，不影响主要流程
                                     }
+                                } else if (nextCard) {
+                                    console.log('Skipping next card flip:', {
+                                        card: nextCard._suit + nextCard._value,
+                                        state: {
+                                            isFlipping: nextCard.isFlipping,
+                                            faceUp: nextCard._faceUp,
+                                            isProcessingQueue: nextCard.isProcessingQueue
+                                        }
+                                    });
                                 }
                             } catch (error) {
                                 console.error('Error updating state:', error);
@@ -496,6 +541,11 @@ export class Card extends GameObjects.Sprite {
                                 this.x = this.startX;
                                 this.y = this.startY;
                                 this.setDepth(this.normalDepth);
+                                this.isMoving = false;  // 确保重置移动状态
+                                console.log('Error recovery:', {
+                                    position: { x: this.x, y: this.y },
+                                    isMoving: this.isMoving
+                                });
                             }
                         };
 
@@ -513,7 +563,7 @@ export class Card extends GameObjects.Sprite {
 
     // 点击事件
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
-        if (!this._faceUp) return;
+        if (!this.canInteract()) return;
 
         // 播放点击音效
         EventBus.emit('play-sound', 'click');
@@ -543,30 +593,35 @@ export class Card extends GameObjects.Sprite {
                             gameScene.foundationZones[i].x,
                             gameScene.foundationZones[i].y,
                             () => new Promise<void>(async (resolveMove) => {
-                                // 先执行收牌
-                                gameScene.addToFoundation(this, i, true); // 在这里计数,因为是直接的移动操作
-                                
-                                // 如果有下一张牌需要翻转
-                                if (nextCard && !nextCard.faceUp) {
-                                    try {
-                                        console.log('Flipping next card in foundation move');
-                                        await nextCard.flip();
-                                        console.log('Next card flip complete');
-                                        resolveMove();
-                                    } catch (error) {
-                                        console.warn('Failed to flip next card in foundation move:', {
-                                            error,
+                                try {
+                                    // 先执行收牌
+                                    gameScene.addToFoundation(this, i, true); // 在这里计数,因为是直接的移动操作
+
+                                    // 检查下一张卡牌
+                                    if (nextCard && !nextCard.faceUp && !nextCard.isFlipping) {
+                                        console.log('Flipping next card in foundation move:', {
                                             card: nextCard._suit + nextCard._value,
                                             state: {
                                                 isFlipping: nextCard.isFlipping,
-                                                faceUp: nextCard._faceUp
+                                                faceUp: nextCard._faceUp,
+                                                isProcessingQueue: nextCard.isProcessingQueue
                                             }
                                         });
-                                        // 即使翻牌失败也继续执行
-                                        resolveMove();
+                                        await nextCard.flip();
+                                        console.log('Next card flip complete in foundation move');
+                                    } else if (nextCard) {
+                                        console.log('Skipping next card flip in foundation move:', {
+                                            card: nextCard._suit + nextCard._value,
+                                            state: {
+                                                isFlipping: nextCard.isFlipping,
+                                                faceUp: nextCard._faceUp,
+                                                isProcessingQueue: nextCard.isProcessingQueue
+                                            }
+                                        });
                                     }
-                                } else {
-                                    console.log('No next card to flip or card is already face up');
+                                    resolveMove();
+                                } catch (error) {
+                                    console.error('Error in foundation move:', error);
                                     resolveMove();
                                 }
                             }),
@@ -617,6 +672,16 @@ export class Card extends GameObjects.Sprite {
 
     // 移动动画
     private animateMove(targetX: number, targetY: number, onComplete: () => void, attachedCards: Card[] = [], canDrop: boolean = true): Promise<void> {
+        if (this.isMoving) {
+            console.log('Card is already moving:', {
+                card: this._suit + this._value,
+                from: { x: this.x, y: this.y },
+                to: { x: targetX, y: targetY }
+            });
+            return Promise.resolve();
+        }
+
+        this.isMoving = true;
         console.log('=== animateMove start ===');
         console.log('Card:', this._suit + this._value);
         console.log('Animation params:', {
@@ -627,6 +692,7 @@ export class Card extends GameObjects.Sprite {
             attachedCardsCount: attachedCards.length,
             canDrop,
             isFlipping: this.isFlipping,
+            isMoving: this.isMoving,
             faceUp: this._faceUp
         });
 
@@ -688,14 +754,17 @@ export class Card extends GameObjects.Sprite {
                                 Promise.resolve(onComplete()).then(() => {
                                     console.log('onComplete callback finished');
                                     console.log('Animation sequence finished');
+                                    this.isMoving = false;
                                     resolve();
                                 }).catch(error => {
                                     console.error('Error in onComplete callback:', error);
                                     console.log('Animation sequence finished with error');
+                                    this.isMoving = false;
                                     resolve();
                                 });
                             } else {
                                 console.log('Animation sequence finished (no callback)');
+                                this.isMoving = false;
                                 resolve();
                             }
                         }, 16);

@@ -426,6 +426,23 @@ export class Game extends Scene {
             console.log('Incrementing moves from moveCardToColumn');
             this.incrementMoves();
         }
+
+        // 检查所有列是否有可以翻转的卡牌
+        this.columns.forEach((column, index) => {
+            if (column.cards.length > 0) {
+                const topCard = column.cards[column.cards.length - 1];
+                if (!topCard.faceUp) {
+                    console.log('Found face down card to flip:', {
+                        column: index,
+                        card: topCard.suit + topCard.value
+                    });
+                    topCard.flip().catch(error => {
+                        console.warn('Failed to flip card:', error);
+                    });
+                }
+            }
+        });
+
         console.log('=====================');
     }
 
