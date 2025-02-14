@@ -28,49 +28,21 @@ export class Card extends GameObjects.Sprite {
     
     // 处理队列
     private async processQueue() {
-        console.log('=== processQueue start ===');
-        console.log('Card:', this._suit + this._value);
-        console.log('Queue state:', {
-            isProcessingQueue: this.isProcessingQueue,
-            queueLength: this.actionQueue.length,
-            isFlipping: this.isFlipping,
-            faceUp: this._faceUp
-        });
-
         if (this.isProcessingQueue) {
-            console.log('Queue is already processing, skipping');
             return;
         }
         
         this.isProcessingQueue = true;
         try {
             while (this.actionQueue.length > 0) {
-                console.log('Processing next action, remaining:', this.actionQueue.length);
                 const action = this.actionQueue.shift();
                 if (action) {
-                    console.log('Executing action...');
                     await action();
-                    console.log('Action completed');
                 }
             }
         } catch (error) {
-            console.error('=== Error in processQueue ===');
-            console.error('Error:', error);
-            console.error('Card state:', {
-                card: this._suit + this._value,
-                isProcessingQueue: this.isProcessingQueue,
-                queueLength: this.actionQueue.length,
-                isFlipping: this.isFlipping,
-                faceUp: this._faceUp
-            });
         } finally {
             this.isProcessingQueue = false;
-            console.log('Queue processing complete, final state:', {
-                isProcessingQueue: this.isProcessingQueue,
-                queueLength: this.actionQueue.length,
-                isFlipping: this.isFlipping,
-                faceUp: this._faceUp
-            });
         }
     }
 
@@ -121,15 +93,6 @@ export class Card extends GameObjects.Sprite {
     flip(): Promise<void> {
         if (!this.canInteract(true)) return Promise.resolve();
 
-        console.log('=== flip start ===');
-        console.log('Card:', this._suit + this._value);
-        console.log('Current state:', {
-            isFlipping: this.isFlipping,
-            faceUp: this._faceUp,
-            queueLength: this.actionQueue.length,
-            isProcessingQueue: this.isProcessingQueue
-        });
-
         // 将翻转操作添加到动作队列中
         return new Promise<void>((resolve, reject) => {
             this.addToQueue(async () => {
@@ -143,34 +106,19 @@ export class Card extends GameObjects.Sprite {
 
                 try {
                     const startTime = Date.now();
-                    console.log('Starting flip animation at:', startTime);
-
                     // 如果正在翻转，等待一小段时间后重试
                     if (this.isFlipping) {
-                        console.log('Card is flipping, waiting to retry...');
                         await new Promise(r => setTimeout(r, 50));
                         if (this.isFlipping) {
                             throw new Error('Card is still flipping');
                         }
-                        console.log('Retry successful');
                     }
 
                     this.isFlipping = true;
                     const originalScaleX = this.scaleX;
                     this.disableInteractive();
 
-                    // 记录初始状态
-                    console.log('=== Starting flip animation sequence ===');
-                    console.log('Initial state:', {
-                        card: this._suit + this._value,
-                        scaleX: this.scaleX,
-                        faceUp: this._faceUp,
-                        isFlipping: this.isFlipping,
-                        flipState
-                    });
-
                     // 第一阶段：缩放到0
-                    console.log('=== Phase 1: Scale to zero ===');
                     await new Promise<void>((resolveFirst) => {
                         this.scene.tweens.add({
                             targets: this,
@@ -178,7 +126,6 @@ export class Card extends GameObjects.Sprite {
                             duration: 150,
                             ease: 'Power1',
                             onComplete: () => {
-                                console.log('First animation phase complete');
                                 flipState.firstAnimationComplete = true;
                                 resolveFirst();
                             }
@@ -186,13 +133,6 @@ export class Card extends GameObjects.Sprite {
                     });
 
                     // 第二阶段：切换纹理
-                    console.log('=== Phase 2: Texture change ===');
-                    console.log('Pre-texture change state:', {
-                        card: this._suit + this._value,
-                        currentTexture: this.texture.key,
-                        faceUp: this._faceUp,
-                        flipState
-                    });
                     this._faceUp = !this._faceUp;
                     const newTexture = this._faceUp ?
                         `${Card.getSuitName(this._suit)}${this._value}` :
@@ -201,7 +141,6 @@ export class Card extends GameObjects.Sprite {
                     await new Promise<void>((resolveTexture) => {
                         const texture = this.scene.textures.get(newTexture);
                         if (texture) {
-                            console.log('Texture ready, applying change');
                             this.setTexture(newTexture);
                             flipState.textureLoaded = true;
                             resolveTexture();
@@ -358,20 +297,7 @@ export class Card extends GameObjects.Sprite {
     // 检查卡牌是否可以操作
     private canInteract(allowFaceDown: boolean = false): boolean {
         const canInteract = (allowFaceDown || this._faceUp) && !this.isFlipping && !this.isProcessingQueue && !this.isMoving;
-        if (!canInteract) {
-            console.log('Card operation blocked:', {
-                card: this._suit + this._value,
-                faceUp: this._faceUp,
-                isFlipping: this.isFlipping,
-                isProcessingQueue: this.isProcessingQueue,
-                isMoving: this.isMoving,
-                allowFaceDown,
-                reason: (!allowFaceDown && !this._faceUp) ? 'Card face down' :
-                       this.isFlipping ? 'Card is flipping' :
-                       this.isMoving ? 'Card is moving' :
-                       'Queue is processing'
-            });
-        }
+
         return canInteract;
     }
 

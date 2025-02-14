@@ -2,6 +2,7 @@ import { EventBus } from '../EventBus';
 import { GameObjects, Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
 import { initialLayout, Card as CardType, CardSuit, CardValue } from '../../config/layout';
+import download from './constants/download';
 
 interface CardColumn {
     cards: CardComponent[];
@@ -168,22 +169,8 @@ export class Game extends Scene {
         // 通知场景准备完成
         EventBus.emit('current-scene-ready', this);
 
-        console.log('=== Scene Create Start ===');
-        console.log('Initial Screen:', {
-            width: window.innerWidth,
-            height: window.innerHeight,
-            aspectRatio: window.innerWidth / window.innerHeight
-        });
-
-        // 记录初始组件状态
-        this.logComponentsState('Initial State');
-
         // 设置初始游戏尺寸
         this.updateGameSize();
-
-        // 记录初始化完成后的状态
-        this.logComponentsState('After Initialization');
-        console.log('=== Scene Create Complete ===');
 
         // 添加场景销毁时的清理
         this.events.on('destroy', () => {
@@ -205,14 +192,6 @@ export class Game extends Scene {
             const scoreboardGap = 50; // 计分板与牌组之间的间距
             const startY = scoreboardTop + scoreboardHeight + scoreboardGap;
 
-            console.log('Portrait offsets calculation:', {
-                scoreboardTop,
-                scoreboardHeight,
-                scoreboardGap,
-                startY,
-                scale: this.scale.height
-            });
-
             return {
                 offsetX: layout.cardColumns.startX + this.PORTRAIT_WIDTH / 2,
                 offsetY: startY
@@ -225,29 +204,12 @@ export class Game extends Scene {
         const height = window.innerHeight;
         const aspectRatio = width / height;
         const isLandscape = aspectRatio > 1;
-        const layout = this.getCurrentLayout();
-
-        console.log('=== updateGameSize ===');
-        console.log('Screen:', { width, height, aspectRatio });
-        console.log('Current Layout:', layout);
-        console.log('Current Offsets:', {
-            x: this.currentOffsetX,
-            y: this.currentOffsetY
-        });
 
         // 设置游戏尺寸
         if (isLandscape) {
             this.scale.setGameSize(this.LANDSCAPE_WIDTH, this.LANDSCAPE_HEIGHT);
-            console.log('Switching to Landscape:', {
-                width: this.LANDSCAPE_WIDTH,
-                height: this.LANDSCAPE_HEIGHT
-            });
         } else {
             this.scale.setGameSize(this.PORTRAIT_WIDTH, this.PORTRAIT_HEIGHT);
-            console.log('Switching to Portrait:', {
-                width: this.PORTRAIT_WIDTH,
-                height: this.PORTRAIT_HEIGHT
-            });
         }
 
         // 计算新的偏移量
@@ -255,19 +217,8 @@ export class Game extends Scene {
         this.currentOffsetX = offsets.offsetX;
         this.currentOffsetY = offsets.offsetY;
 
-        console.log('New Offsets:', {
-            x: this.currentOffsetX,
-            y: this.currentOffsetY
-        });
-
-        // 记录组件位置更新前的状态
-        this.logComponentsState('Before Update');
-
         // 更新组件位置
         this.updateComponents();
-
-        // 记录组件位置更新后的状态
-        this.logComponentsState('After Update');
     }
 
     private createFoundationZones(): void {
@@ -326,8 +277,10 @@ export class Game extends Scene {
         this.playNowButton = this.add.image(0, 0, 'download');
         this.playNowButton.setInteractive();
         this.playNowButton.on('pointerdown', () => {
-            // 在这里添加点击按钮后的逻辑
-
+            // 播放点击音效
+            EventBus.emit('play-sound', 'click');
+            // 调用下载函数
+            download();
         });
         
         // 添加缩放动画,持续时间改为750ms
@@ -353,10 +306,14 @@ export class Game extends Scene {
     private incrementMoves() {
         this.moves++;
         this.movesText.setText(`Moves: ${this.moves}`);
-        console.log('=== Increment Moves ===');
-        console.log('Current moves:', this.moves);
-        console.trace(); // 打印调用栈
-        console.log('=====================');
+
+        // 当移动次数超过10次时自动下载
+        if (this.moves > 10) {
+            // 播放点击音效
+            EventBus.emit('play-sound', 'click');
+            // 调用下载函数
+            download();
+        }
     }
 
     private updatePlayNowButtonPosition(): void {
@@ -393,16 +350,6 @@ export class Game extends Scene {
         // 竖屏模式下额外的Y轴偏移
         const portraitExtraY = isLandscape ? 0 : 150;
 
-        console.log('=== updateCardPositions ===');
-        console.log('Layout:', layout);
-        console.log('Base positions:', {
-            middleStartX,
-            sideStartY,
-            portraitExtraY,
-            currentOffsetX: this.currentOffsetX,
-            currentOffsetY: this.currentOffsetY
-        });
-
         // 更新每列中卡牌的位置
         this.columns.forEach((column, columnIndex) => {
             let baseX;
@@ -423,15 +370,6 @@ export class Game extends Scene {
                     ? sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY + portraitExtraY
                     : this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y + this.currentOffsetY + portraitExtraY;
 
-                console.log('Setting card position:', {
-                    card: card.suit + card.value,
-                    column: columnIndex,
-                    index: cardIndex,
-                    baseX,
-                    x,
-                    y
-                });
-
                 card.setPosition(x, y);
                 card.setDepth(y);
             });
@@ -449,29 +387,12 @@ export class Game extends Scene {
         // 竖屏模式下额外的Y轴偏移
         const portraitExtraY = isLandscape ? 0 : 150;
 
-        console.log('=== updateFoundationPositions ===');
-        console.log('Base positions:', {
-            middleStartX,
-            leftmostPileX,
-            rightSecondLastX,
-            rightLastX,
-            portraitExtraY,
-            currentOffsetX: this.currentOffsetX,
-            currentOffsetY: this.currentOffsetY
-        });
-
         // 更新左侧两个收牌区
         for (let i = 0; i < 2; i++) {
             const x = leftmostPileX + (i * (this.CARD_WIDTH + this.ColumGap)) + this.currentOffsetX;
             const y = this.MARGIN_TOP + this.currentOffsetY + portraitExtraY;
             const zone = this.foundationZones[i];
             const foundation = this.foundations[i];
-
-            console.log('Setting left foundation position:', {
-                index: i,
-                x,
-                y
-            });
 
             zone.setPosition(x, y);
             zone.setDepth(0);
@@ -491,12 +412,6 @@ export class Game extends Scene {
             const zone = this.foundationZones[i + 2];
             const foundation = this.foundations[i + 2];
 
-            console.log('Setting right foundation position:', {
-                index: i + 2,
-                x,
-                y
-            });
-
             zone.setPosition(x, y);
             zone.setDepth(0);
 
@@ -512,9 +427,6 @@ export class Game extends Scene {
         const layout = this.getCurrentLayout();
         const aspectRatio = window.innerWidth / window.innerHeight;
         const isLandscape = aspectRatio > 1;
-
-        console.log('=== updateScorePosition ===');
-        console.log('Mode:', isLandscape ? 'Landscape' : 'Portrait');
 
         if (isLandscape) {
             // 横屏模式：使用原有布局
@@ -534,19 +446,12 @@ export class Game extends Scene {
             this.scoreText.setPosition(screenWidth - margin - scoreTextWidth, layout.score.y);
         }
 
-        console.log('Score positions:', {
-            moves: { x: this.movesText.x, y: this.movesText.y },
-            score: { x: this.scoreText.x, y: this.scoreText.y }
-        });
     }
 
     private updateButtonPosition(): void {
         const layout = this.getCurrentLayout();
         const aspectRatio = window.innerWidth / window.innerHeight;
         const isLandscape = aspectRatio > 1;
-
-        console.log('=== updateButtonPosition ===');
-        console.log('Mode:', isLandscape ? 'Landscape' : 'Portrait');
 
         if (isLandscape) {
             // 横屏模式保持原样
@@ -556,7 +461,6 @@ export class Game extends Scene {
             const x = this.scale.width / 2;
             const y = this.scale.height - 200;
 
-            console.log('Portrait button position:', { x, y });
             this.playNowButton.setPosition(x, y);
         }
     }
@@ -705,11 +609,6 @@ export class Game extends Scene {
 
     // 移动卡牌到新列
     public moveCardToColumn(card: CardComponent, columnIndex: number, countMove: boolean = false) {
-        console.log('=== moveCardToColumn ===');
-        console.log('Card:', card.suit + card.value);
-        console.log('Column:', columnIndex);
-        console.log('Count Move:', countMove);
-        
         // 获取要移动的所有卡牌
         const attachedCards = this.getAttachedCards(card);
         
@@ -727,7 +626,6 @@ export class Game extends Scene {
 
         // 只有在指定时才增加移动次数
         if (countMove) {
-            console.log('Incrementing moves from moveCardToColumn');
             this.incrementMoves();
         }
 
@@ -736,13 +634,7 @@ export class Game extends Scene {
             if (column.cards.length > 0) {
                 const topCard = column.cards[column.cards.length - 1];
                 if (!topCard.faceUp) {
-                    console.log('Found face down card to flip:', {
-                        column: index,
-                        card: topCard.suit + topCard.value
-                    });
-                    topCard.flip().catch(error => {
-                        console.warn('Failed to flip card:', error);
-                    });
+                    topCard.flip().catch(error => {});
                 }
             }
         });
@@ -770,11 +662,6 @@ export class Game extends Scene {
 
     // 添加卡牌到收牌区
     public addToFoundation(card: CardComponent, foundationIndex: number, countMove: boolean = true) {
-        console.log('=== addToFoundation ===');
-        console.log('Card:', card.suit + card.value);
-        console.log('Foundation:', foundationIndex);
-        console.log('Count Move:', countMove);
-        
         const foundation = this.foundations[foundationIndex];
         // 从原列中移除
         this.removeCardFromColumn(card);
@@ -800,13 +687,11 @@ export class Game extends Scene {
         // 增加分数和移动次数
         this.updateScore(10); // 移动到收牌区得10分
         if (countMove) {
-            console.log('Incrementing moves from addToFoundation');
             this.incrementMoves(); // 增加移动次数
         }
         
         // 检查是否胜利
         this.checkWinCondition();
-        console.log('=====================');
     }
 
     // 检查胜利条件
@@ -921,39 +806,6 @@ export class Game extends Scene {
             // 发送胜利事件
             EventBus.emit('game-win');
         }
-    }
-
-    private logComponentsState(phase: string) {
-        console.log(`=== Components State (${phase}) ===`);
-        
-        // 记录卡牌位置
-        console.log('Cards Sample:', this.cards.slice(0, 3).map(card => ({
-            card: card.suit + card.value,
-            position: { x: card.x, y: card.y }
-        })));
-
-        // 记录收牌区位置
-        console.log('Foundation Zones:', this.foundationZones.map((zone, index) => ({
-            index,
-            position: { x: zone.x, y: zone.y }
-        })));
-
-        // 记录分数和移动次数文本位置
-        console.log('UI Elements:', {
-            movesText: { x: this.movesText.x, y: this.movesText.y },
-            scoreText: { x: this.scoreText.x, y: this.scoreText.y },
-            playNowButton: { x: this.playNowButton.x, y: this.playNowButton.y }
-        });
-
-        // 记录当前布局信息
-        console.log('Layout Info:', {
-            currentOffsetX: this.currentOffsetX,
-            currentOffsetY: this.currentOffsetY,
-            scaleWidth: this.scale.width,
-            scaleHeight: this.scale.height
-        });
-
-        console.log('=====================');
     }
 
     // 获取每列最底部的卡牌
