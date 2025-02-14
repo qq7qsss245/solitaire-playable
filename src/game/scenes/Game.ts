@@ -386,14 +386,19 @@ export class Game extends Scene {
 
     private updateCardPositions(): void {
         const layout = this.getCurrentLayout();
+        const aspectRatio = window.innerWidth / window.innerHeight;
+        const isLandscape = aspectRatio > 1;
         const middleStartX = -this.CARD_GAP_X;
         const sideStartY = this.MARGIN_TOP + 5 * this.CARD_GAP_Y;
+        // 竖屏模式下额外的Y轴偏移
+        const portraitExtraY = isLandscape ? 0 : 150;
 
         console.log('=== updateCardPositions ===');
         console.log('Layout:', layout);
         console.log('Base positions:', {
             middleStartX,
             sideStartY,
+            portraitExtraY,
             currentOffsetX: this.currentOffsetX,
             currentOffsetY: this.currentOffsetY
         });
@@ -415,8 +420,8 @@ export class Game extends Scene {
             column.cards.forEach((card, cardIndex) => {
                 const x = baseX + this.currentOffsetX;
                 const y = (columnIndex < 2 || columnIndex > 4)
-                    ? sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY
-                    : this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
+                    ? sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY + portraitExtraY
+                    : this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y + this.currentOffsetY + portraitExtraY;
 
                 console.log('Setting card position:', {
                     card: card.suit + card.value,
@@ -435,10 +440,14 @@ export class Game extends Scene {
 
     private updateFoundationPositions(): void {
         const layout = this.getCurrentLayout();
+        const aspectRatio = window.innerWidth / window.innerHeight;
+        const isLandscape = aspectRatio > 1;
         const middleStartX = -this.CARD_GAP_X;
         const leftmostPileX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap));
         const rightSecondLastX = middleStartX + (3 * this.CARD_GAP_X);
         const rightLastX = middleStartX + (4 * this.CARD_GAP_X);
+        // 竖屏模式下额外的Y轴偏移
+        const portraitExtraY = isLandscape ? 0 : 150;
 
         console.log('=== updateFoundationPositions ===');
         console.log('Base positions:', {
@@ -446,6 +455,7 @@ export class Game extends Scene {
             leftmostPileX,
             rightSecondLastX,
             rightLastX,
+            portraitExtraY,
             currentOffsetX: this.currentOffsetX,
             currentOffsetY: this.currentOffsetY
         });
@@ -453,7 +463,7 @@ export class Game extends Scene {
         // 更新左侧两个收牌区
         for (let i = 0; i < 2; i++) {
             const x = leftmostPileX + (i * (this.CARD_WIDTH + this.ColumGap)) + this.currentOffsetX;
-            const y = this.MARGIN_TOP + this.currentOffsetY;
+            const y = this.MARGIN_TOP + this.currentOffsetY + portraitExtraY;
             const zone = this.foundationZones[i];
             const foundation = this.foundations[i];
 
@@ -477,7 +487,7 @@ export class Game extends Scene {
         const rightPositions = [rightLastX, rightSecondLastX];
         for (let i = 0; i < 2; i++) {
             const x = rightPositions[i] + this.currentOffsetX;
-            const y = this.MARGIN_TOP + this.currentOffsetY;
+            const y = this.MARGIN_TOP + this.currentOffsetY + portraitExtraY;
             const zone = this.foundationZones[i + 2];
             const foundation = this.foundations[i + 2];
 
@@ -532,7 +542,23 @@ export class Game extends Scene {
 
     private updateButtonPosition(): void {
         const layout = this.getCurrentLayout();
-        this.playNowButton.setPosition(layout.downloadButton.x, layout.downloadButton.y);
+        const aspectRatio = window.innerWidth / window.innerHeight;
+        const isLandscape = aspectRatio > 1;
+
+        console.log('=== updateButtonPosition ===');
+        console.log('Mode:', isLandscape ? 'Landscape' : 'Portrait');
+
+        if (isLandscape) {
+            // 横屏模式保持原样
+            this.playNowButton.setPosition(layout.downloadButton.x, layout.downloadButton.y);
+        } else {
+            // 竖屏模式：底部200单位，水平居中
+            const x = this.scale.width / 2;
+            const y = this.scale.height - 200;
+
+            console.log('Portrait button position:', { x, y });
+            this.playNowButton.setPosition(x, y);
+        }
     }
 
     private updateComponents(): void {
