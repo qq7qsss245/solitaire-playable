@@ -17,6 +17,8 @@ export class Card extends GameObjects.Sprite {
     private actionQueue: (() => Promise<void>)[] = []; // 动作队列
     private isProcessingQueue: boolean = false; // 是否正在处理队列
     private isFlipping: boolean = false; // 是否正在翻转
+    private clickTimer: number = 0;
+    private static readonly DRAG_THRESHOLD = 200; // 200毫秒阈值
     
     // 添加动作到队列
     private async addToQueue(action: () => Promise<void>) {
@@ -76,6 +78,7 @@ export class Card extends GameObjects.Sprite {
         this.on('drag', this.onDrag, this);
         this.on('dragend', this.onDragEnd, this);
         this.on('pointerdown', this.onPointerDown, this);
+        this.on('pointerup', this.onPointerUp, this);
     }
 
     // 获取花色的中文名称
@@ -320,8 +323,11 @@ export class Card extends GameObjects.Sprite {
             card.startY = card.y;
         });
         
-        // 播放拾取音效
-        EventBus.emit('play-click');
+        const timeDiff = Date.now() - this.clickTimer;
+        if (timeDiff > Card.DRAG_THRESHOLD) {
+            // 如果超过阈值，说明是拖拽操作
+            EventBus.emit('play-click');
+        }
         
         // 设置一个很大的深度值确保显示在最上层
         this.setDepth(Card.DRAG_DEPTH);
@@ -490,12 +496,18 @@ export class Card extends GameObjects.Sprite {
     // 点击事件
     private onPointerDown(pointer: Phaser.Input.Pointer): void {
         if (!this.canInteract()) return;
+        this.clickTimer = Date.now();
+    }
 
-        // 播放点击音效
-        EventBus.emit('play-click');
-
-        // 检查并自动移动卡牌
-        this.tryAutoMove();
+    private onPointerUp(pointer: Phaser.Input.Pointer): void {
+        if (!this.canInteract()) return;
+        
+        const timeDiff = Date.now() - this.clickTimer;
+        if (timeDiff < Card.DRAG_THRESHOLD && !this.isDragging) {
+            // 如果时间小于阈值且没有拖拽，说明是点击操作
+            EventBus.emit('play-click');
+            this.tryAutoMove();
+        }
     }
 
     // 尝试自动移动卡牌
