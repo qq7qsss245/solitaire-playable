@@ -526,6 +526,12 @@ export class Card extends GameObjects.Sprite {
                         // 获取并保存当前卡牌的上一张牌
                         const nextCard = gameScene.getNextCard(this);
                         
+                        // 提升卡牌渲染优先级
+                        this.setDepth(Card.DRAG_DEPTH);
+                        attachedCards.forEach((card, index) => {
+                            card.setDepth(Card.DRAG_DEPTH + index + 1);
+                        });
+
                         // 可以移动到收牌区
                         await this.animateMove(
                             gameScene.foundationZones[i].x,
@@ -580,6 +586,12 @@ export class Card extends GameObjects.Sprite {
                         // 先检查是否可以移动到这个目标
                         const newColumnIndex = gameScene.getColumnIndex(target);
                         if (newColumnIndex !== -1) {
+                            // 提升卡牌渲染优先级
+                            this.setDepth(Card.DRAG_DEPTH);
+                            attachedCards.forEach((card, index) => {
+                                card.setDepth(Card.DRAG_DEPTH + index + 1);
+                            });
+
                             // 可以移动到这张卡上
                             await this.animateMove(
                                 target.x,
