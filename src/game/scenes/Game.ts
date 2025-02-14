@@ -68,12 +68,12 @@ export class Game extends Scene {
             gap: 130       // CARD_WIDTH + 10
         },
         score: {
-            x: 40,
-            y: 360        // height / 3
+            x: 140,      // 原来的40 + 100
+            y: 360       // height / 3
         },
         downloadButton: {
-            x: 240,       // CARD_WIDTH * 2
-            y: 880        // height - 200
+            x: 340,      // 原来的240 + 100
+            y: 880       // height - 200
         }
     };
 
@@ -702,14 +702,14 @@ export class Game extends Scene {
         // 创建手势图片
         this.handGuide = this.add.image(0, 0, 'hand');
         this.handGuide.setOrigin(0, 0); // 设置origin为左上角
-        this.handGuide.setScale(0.5);
+        this.handGuide.setScale(0.75);
         this.handGuide.setDepth(2000);
         this.handGuide.setVisible(false);
 
         // 添加缩放动画
         this.tweens.add({
             targets: this.handGuide,
-            scale: 0.4,
+            scale: 0.6,
             duration: 500,
             yoyo: true,
             repeat: -1,
