@@ -3,6 +3,7 @@ import { GameObjects, Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
 import { initialLayout, Card as CardType, CardSuit, CardValue } from '../../config/layout';
 import download from './constants/download';
+import { getTranslation } from '../i18n';
 
 interface CardColumn {
     cards: CardComponent[];
@@ -44,6 +45,7 @@ export class Game extends Scene {
     public currentOffsetY: number = 0;
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 收牌区位置
     public playNowButton: Phaser.GameObjects.Image; // 添加按钮属性
+    private playNowText: Phaser.GameObjects.Text; // 添加按钮文本属性
     private columns: CardColumn[] = []; // 存储每列的卡牌
     private foundations: FoundationPile[] = []; // 存储收牌区状态
     private score: number = 0; // 游戏得分
@@ -152,13 +154,15 @@ export class Game extends Scene {
             strokeThickness: 6
         };
 
+        const t = getTranslation();
+
         // 创建移动次数显示
-        this.movesText = this.add.text(40, 0, 'Moves: 0', textStyle);
+        this.movesText = this.add.text(40, 0, `${t.moves}0`, textStyle);
         this.movesText.setScrollFactor(0);
         this.movesText.setDepth(1000);
 
         // 创建分数显示
-        this.scoreText = this.add.text(40, 0, 'Score: 0', textStyle);
+        this.scoreText = this.add.text(40, 0, `${t.score}0`, textStyle);
         this.scoreText.setScrollFactor(0);
         this.scoreText.setDepth(1000);
 
@@ -277,7 +281,9 @@ export class Game extends Scene {
     }
 
     private createPlayNowButton(): void {
+        // 创建按钮背景
         this.playNowButton = this.add.image(0, 0, 'download');
+        this.playNowButton.setScale(0.8);  // 设置初始大小为0.8倍
         this.playNowButton.setInteractive();
         this.playNowButton.on('pointerdown', () => {
             // 播放点击音效
@@ -285,11 +291,39 @@ export class Game extends Scene {
             // 调用下载函数
             download();
         });
+
+        // 创建文本样式
+        const textStyle = {
+            fontSize: '64px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 6
+        };
+
+        // 获取当前语言的文本
+        const t = getTranslation();
         
-        // 添加缩放动画,持续时间改为750ms
+        // 创建文本并设置为按钮的子对象
+        this.playNowText = this.add.text(0, 0, t.playNow, textStyle);
+        this.playNowText.setOrigin(0.5, 0.5);  // 设置文本锚点为中心
+        this.playNowText.setDepth(this.playNowButton.depth + 1);  // 确保文本在按钮上方
+        this.playNowText.setScale(0.8);  // 文本也设置为0.8倍大小
+
+        // 添加按钮缩放动画
         this.tweens.add({
             targets: this.playNowButton,
-            scale: 1.15,
+            scale: 0.88,  // 0.8 * 1.1
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // 添加文本缩放动画
+        this.tweens.add({
+            targets: this.playNowText,
+            scale: 1.1,  // 1.0 * 1.1
             duration: 500,
             yoyo: true,
             repeat: -1,
@@ -302,13 +336,15 @@ export class Game extends Scene {
     // 更新分数
     private updateScore(points: number) {
         this.score += points;
-        this.scoreText.setText(`Score: ${this.score}`);
+        const t = getTranslation();
+        this.scoreText.setText(`${t.score}${this.score}`);
     }
 
     // 增加移动次数
     private incrementMoves() {
         this.moves++;
-        this.movesText.setText(`Moves: ${this.moves}`);
+        const t = getTranslation();
+        this.movesText.setText(`${t.moves}${this.moves}`);
 
         // 当移动次数超过10次时自动下载
         if (this.moves > 10) {
@@ -457,14 +493,77 @@ export class Game extends Scene {
         const isLandscape = aspectRatio > 1;
 
         if (isLandscape) {
-            // 横屏模式保持原样
-            this.playNowButton.setPosition(layout.downloadButton.x, layout.downloadButton.y);
-        } else {
-            // 竖屏模式：底部200单位，水平居中
-            const x = this.scale.width / 2;
-            const y = this.scale.height - 200;
-
+            // 横屏模式
+            const x = layout.downloadButton.x;
+            const y = layout.downloadButton.y;
             this.playNowButton.setPosition(x, y);
+            this.playNowText.setPosition(x, y);
+            this.playNowButton.setScale(0.8);
+            this.playNowText.setScale(0.8);
+            
+            // 停止现有动画
+            this.tweens.killTweensOf(this.playNowButton);
+            this.tweens.killTweensOf(this.playNowText);
+
+            // 添加按钮缩放动画
+            this.tweens.add({
+                targets: this.playNowButton,
+                scale: 0.88,  // 0.8 * 1.1
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // 添加文本缩放动画
+            this.tweens.add({
+                targets: this.playNowText,
+                scale: 1.1,  // 1.0 * 1.1
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else {
+            // 竖屏模式：宽度为屏幕的70%，保持宽高比
+            const screenWidth = this.scale.width;
+            const targetWidth = screenWidth * 0.7;
+            const originalWidth = this.playNowButton.width / this.playNowButton.scaleX;
+            const originalHeight = this.playNowButton.height / this.playNowButton.scaleY;
+            const aspectRatio = originalHeight / originalWidth;
+            const targetHeight = targetWidth * aspectRatio;
+
+            // 设置位置和大小
+            const x = screenWidth / 2;
+            const y = this.scale.height - 200;
+            this.playNowButton.setPosition(x, y);
+            this.playNowText.setPosition(x, y);
+            this.playNowButton.setDisplaySize(targetWidth, targetHeight);
+
+            // 停止现有动画
+            this.tweens.killTweensOf(this.playNowButton);
+            this.tweens.killTweensOf(this.playNowText);
+
+            // 添加按钮缩放动画
+            const currentScale = this.playNowButton.scale;
+            this.tweens.add({
+                targets: this.playNowButton,
+                scale: currentScale * 1.1,
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // 添加文本缩放动画
+            this.tweens.add({
+                targets: this.playNowText,
+                scale: 1.1,  // 1.0 * 1.1
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
         }
     }
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 // 导入音频文件
 import bgmAudio from './assets/audios/bgm.mp3';
@@ -23,16 +23,66 @@ const AUDIO_MAP: {
     'play-popup': popupAudio
 };
 
+// 全局音频状态
+let isSoundEnabled = false;
+let bgmAudioInstance: HTMLAudioElement | null = null;
+
 const Sound: React.FC = () => {
     useEffect(() => {
+        // 获取MRAID环境
+        const mraid = (window as any).mraid;
+
+        // 检查MRAID是否可用
+        if (mraid) {
+            // 监听viewable事件
+            mraid.addEventListener('viewableChange', (viewable: boolean) => {
+                isSoundEnabled = viewable;
+                
+                // 处理背景音乐
+                if (bgmAudioInstance) {
+                    if (viewable) {
+                        bgmAudioInstance.play().catch(() => {});
+                    } else {
+                        bgmAudioInstance.pause();
+                    }
+                }
+            });
+
+            // 初始状态
+            isSoundEnabled = mraid.isViewable();
+        }
+
         // 监听所有音频事件
         Object.keys(AUDIO_MAP).forEach(eventName => {
             EventBus.on(eventName, () => {
-                console.log(eventName)
-                const audio = new Audio(AUDIO_MAP[eventName] as string);
-                audio.play(); //放音频  
+                // 只有在可见且允许声音时才播放
+                if (!isSoundEnabled) return;
+
+                if (eventName === 'play-bgm') {
+                    // 背景音乐特殊处理：循环播放
+                    if (!bgmAudioInstance) {
+                        bgmAudioInstance = new Audio(AUDIO_MAP[eventName]);
+                        bgmAudioInstance.loop = true;
+                    }
+                    bgmAudioInstance.play().catch(() => {});
+                } else {
+                    // 其他音效
+                    const audio = new Audio(AUDIO_MAP[eventName]);
+                    audio.play().catch(() => {});
+                }
             });
         });
+
+        // 清理函数
+        return () => {
+            if (bgmAudioInstance) {
+                bgmAudioInstance.pause();
+                bgmAudioInstance = null;
+            }
+            if (mraid) {
+                mraid.removeEventListener('viewableChange');
+            }
+        };
     }, []);
 
     return <></>;
