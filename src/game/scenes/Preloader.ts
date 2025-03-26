@@ -10,6 +10,7 @@ import iconImg from '../../assets/icon.png';
 import noImg from '../../assets/no.png';
 import textImg from '../../assets/text.png';
 import yesImg from '../../assets/yes.png';
+import shadowBImg from '../../assets/shadow.png'; // 导入阴影图片
 import cardFillImg from '../../assets/cards/fill.png';
 import cardBackImg from '../../assets/cards/卡背.png';
 
@@ -91,6 +92,7 @@ export class Preloader extends Scene {
         this.load.image('no', noImg);
         this.load.image('text', textImg);
         this.load.image('yes', yesImg);
+        this.load.image('shadowb', shadowBImg); // 加载阴影图片并使用shadowb作为key
         this.load.image('card-fill', cardFillImg);
         this.load.image('card-back', cardBackImg);
 

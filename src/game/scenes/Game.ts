@@ -136,7 +136,7 @@ export class Game extends Scene {
         });
         
         // 加载卡牌阴影图片
-        this.load.image('shadow', 'src/assets/shadow.png');
+        this.load.image('shadowb', 'src/assets/shadow-b.png');
         console.log('正在加载卡牌阴影图片');
         
         // 若需要可以在这里添加其他资源预加载

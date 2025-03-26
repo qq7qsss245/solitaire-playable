@@ -100,7 +100,7 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
     this.setDisplaySize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
     
     // 创建阴影图片
-    this.shadow = scene.add.image(x, y, 'shadow'); // 阴影位置与卡牌中心对齐
+    this.shadow = scene.add.image(x, y, 'shadowb'); // 使用新的阴影图片
     
     // 使用比卡牌略大的缩放比例，使阴影更明显
     const shadowScale = 1.01; // 阴影比卡牌大1%
