@@ -49,10 +49,45 @@ export class Card extends GameObjects.Sprite {
     }
 
     // 定义卡牌尺寸
-    private static readonly CARD_WIDTH = 120;  // 180 * (2/3)
-    private static readonly CARD_HEIGHT = 164; // 246 * (2/3)
-    private static readonly CARD_GAP_Y = Card.CARD_HEIGHT / 4; // 垂直间距为卡牌高度的1/4
+    private static readonly CARD_WIDTH = 120;  // 固定宽度为120像素
+    private static cardHeight = 164; // 初始默认高度，将在加载卡背后更新
+    private static aspectRatio = 164/120; // 初始默认宽高比
+    
+    // 使用getter方法获取动态计算的高度
+    static get CARD_HEIGHT(): number {
+        return Card.cardHeight;
+    }
+    
+    static get CARD_GAP_Y(): number {
+        return Card.CARD_HEIGHT / 4; // 垂直间距为卡牌高度的1/4
+    }
+    
     private static readonly DRAG_DEPTH = 10000; // 拖拽时的基础深度值
+    
+    // 静态方法用于计算并设置卡牌高度
+    public static calculateCardHeight(scene: Phaser.Scene): void {
+        try {
+            // 获取卡背图片尺寸
+            const backTexture = scene.textures.get('card-back');
+            if (backTexture && backTexture.source[0]) {
+                const source = backTexture.source[0];
+                const imgWidth = source.width;
+                const imgHeight = source.height;
+                
+                // 计算宽高比
+                Card.aspectRatio = imgHeight / imgWidth;
+                console.log(`卡背图片尺寸: ${imgWidth}x${imgHeight}, 宽高比: ${Card.aspectRatio}`);
+                
+                // 根据固定宽度和宽高比计算高度
+                Card.cardHeight = Math.round(Card.CARD_WIDTH * Card.aspectRatio);
+                console.log(`计算得到的卡牌高度: ${Card.cardHeight}`);
+            } else {
+                console.warn('无法获取卡背图片尺寸，使用默认高度');
+            }
+        } catch (error) {
+            console.error('计算卡牌高度时出错:', error);
+        }
+    }
 
     constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
         super(scene, x, y, faceUp ? `${Card.getSuitName(suit)}${value}` : 'card-back');

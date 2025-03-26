@@ -109,24 +109,45 @@ export class Game extends Scene {
     public readonly PORTRAIT_HEIGHT = 1920;
     public readonly ColumGap = 10;
 
-    // 定义卡牌基础尺寸
-    public readonly CARD_HEIGHT = 164;     // 246 * (2/3)
-    public readonly CARD_WIDTH = 120;      // 180 * (2/3)
+    // 定义卡牌基础尺寸 - 宽度固定，高度使用Card组件的动态计算值
+    public readonly CARD_WIDTH = 120;      // 固定宽度
+    
+    // 使用getter从CardComponent获取动态计算的高度
+    public get CARD_HEIGHT(): number {
+        return CardComponent.CARD_HEIGHT;
+    }
 
     // 定义卡牌布局参数(全部基于卡牌尺寸计算)
     public get CARD_GAP_X() { return this.CARD_WIDTH + this.ColumGap; }
-    public get CARD_GAP_Y() { return this.CARD_HEIGHT / 4; }       // 垂直间距为卡牌高度的1/4
-    public get MARGIN_TOP() { return this.CARD_HEIGHT * 0.4 - 100; }      // 顶部边距为卡牌高度的0.4倍减去100单位
-    public get LAYOUT_OFFSET_X() { return this.CARD_HEIGHT * 4.5; } // 整体右偏移为卡牌高度的4.5倍
+    public get CARD_GAP_Y() { return CardComponent.CARD_GAP_Y; }   // 使用Card中计算的垂直间距
+    public get MARGIN_TOP() { return CardComponent.CARD_HEIGHT * 0.4 - 100; } // 使用动态计算的卡牌高度
+    public get LAYOUT_OFFSET_X() { return CardComponent.CARD_HEIGHT * 4.5; } // 使用动态计算的卡牌高度
     public fillZones: GameObjects.Image[] = [];
 
     constructor() {
         super('Game');
     }
 
+    preload() {
+        // 确保卡背图片已预加载完成，这样在计算高度时能获取正确尺寸
+        // 通常这些资源应该在启动场景加载，这里是为了确保它们已加载完成
+        this.load.once('complete', () => {
+            console.log('游戏资源加载完成，准备计算卡牌高度');
+        });
+        
+        // 若需要可以在这里添加其他资源预加载
+    }
+
     create() {
         // 播放背景音乐
         EventBus.emit('play-bgm');
+
+        // 根据卡背图片计算卡牌高度 (直接使用导入的CardComponent)
+        CardComponent.calculateCardHeight(this);
+        console.log('卡牌高度计算完成，当前高度:', CardComponent.CARD_HEIGHT);
+        
+        // 更新基于卡牌高度的其他计算值
+        console.log('卡牌垂直间距:', CardComponent.CARD_GAP_Y);
 
         // 创建初始牌局
         this.createInitialLayout();
