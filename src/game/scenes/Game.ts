@@ -296,9 +296,7 @@ export class Game extends Scene {
         const textStyle = {
             fontSize: '64px',
             fontFamily: 'Arial',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 6
+            color: '#ffffff'
         };
 
         // 获取当前语言的文本
@@ -311,9 +309,10 @@ export class Game extends Scene {
         this.playNowText.setScale(0.8);  // 文本也设置为0.8倍大小
 
         // 添加按钮缩放动画
+        const buttonScale = this.playNowButton.scale;
         this.tweens.add({
             targets: this.playNowButton,
-            scale: 0.88,  // 0.8 * 1.1
+            scale: buttonScale * 1.1,
             duration: 500,
             yoyo: true,
             repeat: -1,
@@ -321,9 +320,10 @@ export class Game extends Scene {
         });
 
         // 添加文本缩放动画
+        const textScale = this.playNowText.scale;
         this.tweens.add({
             targets: this.playNowText,
-            scale: 1.1,  // 1.0 * 1.1
+            scale: textScale * 1.1,
             duration: 500,
             yoyo: true,
             repeat: -1,
@@ -495,7 +495,7 @@ export class Game extends Scene {
         if (isLandscape) {
             // 横屏模式
             const x = layout.downloadButton.x;
-            const y = layout.downloadButton.y;
+            const y = layout.downloadButton.y - 100; // 向上移动100单位
             this.playNowButton.setPosition(x, y);
             this.playNowText.setPosition(x, y);
             this.playNowButton.setScale(0.8);
@@ -506,9 +506,10 @@ export class Game extends Scene {
             this.tweens.killTweensOf(this.playNowText);
 
             // 添加按钮缩放动画
+            const buttonScale = this.playNowButton.scale;
             this.tweens.add({
                 targets: this.playNowButton,
-                scale: 0.88,  // 0.8 * 1.1
+                scale: buttonScale * 1.1,
                 duration: 500,
                 yoyo: true,
                 repeat: -1,
@@ -516,9 +517,10 @@ export class Game extends Scene {
             });
 
             // 添加文本缩放动画
+            const textScale = this.playNowText.scale;
             this.tweens.add({
                 targets: this.playNowText,
-                scale: 1.1,  // 1.0 * 1.1
+                scale: textScale * 1.1,
                 duration: 500,
                 yoyo: true,
                 repeat: -1,
@@ -539,6 +541,7 @@ export class Game extends Scene {
             this.playNowButton.setPosition(x, y);
             this.playNowText.setPosition(x, y);
             this.playNowButton.setDisplaySize(targetWidth, targetHeight);
+            this.playNowText.setScale(1.5); // 竖屏模式下文本放大1.5倍
 
             // 停止现有动画
             this.tweens.killTweensOf(this.playNowButton);
@@ -558,7 +561,7 @@ export class Game extends Scene {
             // 添加文本缩放动画
             this.tweens.add({
                 targets: this.playNowText,
-                scale: 1.1,  // 1.0 * 1.1
+                scale: 1.6,  // 1.5 * 1.067
                 duration: 500,
                 yoyo: true,
                 repeat: -1,

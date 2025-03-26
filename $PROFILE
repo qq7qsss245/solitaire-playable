@@ -1,0 +1,31 @@
+#f45873b3-b655-43a6-b217-97c00aa0db58 PowerToys CommandNotFound module
+Import-Module -Name Microsoft.WinGet.CommandNotFound
+#f45873b3-b655-43a6-b217-97c00aa0db58
+
+# 导入PSReadLine模块
+Import-Module PSReadLine
+
+# 配置PSReadLine选项
+# 仅使用历史记录作为预测源
+Set-PSReadLineOption -PredictionSource History
+Set-PSReadLineOption -HistorySearchCursorMovesToEnd
+Set-PSReadLineOption -HistorySaveStyle SaveIncrementally
+Set-PSReadLineOption -MaximumHistoryCount 5000
+
+# 设置键绑定
+# 向上箭头搜索历史中以当前输入开头的命令
+Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
+Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+
+# 快速补全历史命令的键绑定
+# 按下Ctrl+j快速补全历史命令
+Set-PSReadLineKeyHandler -Key "Ctrl+j" -ScriptBlock {
+    [Microsoft.PowerShell.PSConsoleReadLine]::HistorySearchForward()
+    [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+}
+
+# Tab优先使用历史命令进行补全
+Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+
+# 智能历史记录搜索 (Ctrl+r)
+Set-PSReadLineKeyHandler -Key 'Ctrl+r' -Function ReverseSearchHistory
