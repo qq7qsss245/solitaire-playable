@@ -135,6 +135,10 @@ export class Game extends Scene {
             console.log('游戏资源加载完成，准备计算卡牌高度');
         });
         
+        // 加载卡牌阴影图片
+        this.load.image('shadow', 'src/assets/shadow.png');
+        console.log('正在加载卡牌阴影图片');
+        
         // 若需要可以在这里添加其他资源预加载
     }
 

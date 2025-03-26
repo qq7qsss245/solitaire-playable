@@ -19,6 +19,7 @@ export class Card extends GameObjects.Sprite {
     private isFlipping: boolean = false; // 是否正在翻转
     private clickTimer: number = 0;
     private static readonly DRAG_THRESHOLD = 200; // 200毫秒阈值
+    private shadow: Phaser.GameObjects.Image; // 卡牌阴影
     
     // 添加动作到队列
     private async addToQueue(action: () => Promise<void>) {
@@ -88,32 +89,78 @@ export class Card extends GameObjects.Sprite {
             console.error('计算卡牌高度时出错:', error);
         }
     }
+constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
+    super(scene, x, y, faceUp ? `${Card.getSuitName(suit)}${value}` : 'card-back');
+    
+    this._suit = suit;
+    this._value = value;
+    this._faceUp = faceUp;
+    
+    // 先设置卡牌尺寸
+    this.setDisplaySize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
+    
+    // 创建阴影图片
+    this.shadow = scene.add.image(x, y, 'shadow'); // 阴影位置与卡牌中心对齐
+    
+    // 使用与卡牌相同的缩放比例
+    this.shadow.setScale(this.scaleX, this.scaleY);
+    
+    // 设置阴影深度
+    this.shadow.setDepth(y - 1); // 确保阴影在卡牌下方
+    this.shadow.setAlpha(0.5); // 设置阴影透明度
+    
+    // 设置交互区域
+    this.setInteractive();
+    
+    // 设置初始深度
+    this.normalDepth = y;
+    this.setDepth(this.normalDepth);
+    
+    // 注册拖拽事件
+    scene.input.setDraggable(this);
+    
+    // 注册事件监听器
+    this.on('dragstart', this.onDragStart, this);
+    this.on('drag', this.onDrag, this);
+    this.on('dragend', this.onDragEnd, this);
+    this.on('pointerdown', this.onPointerDown, this);
+    this.on('pointerup', this.onPointerUp, this);
+    }
+    
+    // 重写setPosition方法，使阴影跟随卡牌移动
+    setPosition(x?: number, y?: number, z?: number, w?: number): this {
+        super.setPosition(x, y, z, w);
+        
+        // 更新阴影位置，与卡牌中心对齐
+        if (this.shadow && typeof x === 'number' && typeof y === 'number') {
+            this.shadow.setPosition(x, y);
+        }
+        
+        return this;
+    }
+    
+    // 重写setDepth方法，确保阴影始终在卡牌下方
+    setDepth(value: number): this {
+        super.setDepth(value);
+        
+        // 阴影深度比卡牌低，但高于它下方的卡牌
+        if (this.shadow) {
+            this.shadow.setDepth(value - 0.5);
+        }
+        
+        return this;
+    }
 
-    constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
-        super(scene, x, y, faceUp ? `${Card.getSuitName(suit)}${value}` : 'card-back');
+    // 重写setScale方法，确保阴影与卡牌采用相同缩放比例
+    setScale(x: number, y?: number): this {
+        super.setScale(x, y);
         
-        this._suit = suit;
-        this._value = value;
-        this._faceUp = faceUp;
+        // 更新阴影缩放比例
+        if (this.shadow) {
+            this.shadow.setScale(x, y === undefined ? x : y);
+        }
         
-        // 设置卡牌尺寸
-        this.setDisplaySize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
-        
-        // 设置交互区域
-        this.setInteractive();
-        
-        // 设置初始深度
-        this.normalDepth = y;
-        this.setDepth(this.normalDepth);
-        
-        // 注册拖拽事件
-        scene.input.setDraggable(this);
-        
-        this.on('dragstart', this.onDragStart, this);
-        this.on('drag', this.onDrag, this);
-        this.on('dragend', this.onDragEnd, this);
-        this.on('pointerdown', this.onPointerDown, this);
-        this.on('pointerup', this.onPointerUp, this);
+        return this;
     }
 
     // 获取花色的中文名称
@@ -387,14 +434,13 @@ export class Card extends GameObjects.Sprite {
         const dx = dragX - this.x;
         const dy = dragY - this.y;
         
-        // 移动主卡牌
-        this.x = dragX;
-        this.y = dragY;
+        // 移动主卡牌（使用setPosition确保阴影跟随）
+        this.setPosition(dragX, dragY);
         
         // 移动附属卡牌
         this.attachedCards.forEach((card, index) => {
-            card.x += dx;
-            card.y += dy;
+            // 使用setPosition而不是直接修改坐标，确保阴影也跟着移动
+            card.setPosition(card.x + dx, card.y + dy);
         });
         
         // 保持在最上层
@@ -421,16 +467,15 @@ export class Card extends GameObjects.Sprite {
         const dropResult = this.checkDropTarget();
 
         if (!dropResult.canDrop) {
-            // 如果不能放置,返回原位
-            this.x = this.startX;
-            this.y = this.startY;
+            // 如果不能放置,返回原位（使用setPosition确保阴影跟随）
+            this.setPosition(this.startX, this.startY);
             // 恢复原来的深度
             this.setDepth(this.normalDepth);
             
             // 返回附属卡牌到原位
             this.attachedCards.forEach(card => {
-                card.x = card.startX;
-                card.y = card.startY;
+                // 使用setPosition而不是直接修改坐标，确保阴影也跟着移动
+                card.setPosition(card.startX, card.startY);
                 card.setDepth(card.y);
             });
         } else {
@@ -736,8 +781,8 @@ export class Card extends GameObjects.Sprite {
     
                             if (!positionOk) {
                                 console.warn('Position not exact, forcing correction');
-                                this.x = targetX;
-                                this.y = targetY;
+                                // 使用setPosition确保阴影跟随
+                                this.setPosition(targetX, targetY);
                                 this.setDepth(targetY);
                             }
     
@@ -771,18 +816,30 @@ export class Card extends GameObjects.Sprite {
                 to: { x: targetX, y: targetY }
             });
 
+            // 添加一个onUpdate回调，确保每一帧都更新阴影位置
+            const updateShadowPosition = () => {
+                if (this.shadow) {
+                    this.shadow.setPosition(this.x, this.y); // 完全中心对齐，没有垂直偏移
+                }
+            };
+            
             this.scene.tweens.add({
                 targets: this,
                 x: targetX,
                 y: targetY,
                 duration: 200,
                 ease: 'Power2',
+                onUpdate: updateShadowPosition, // 每帧更新阴影位置
                 onComplete: () => {
                     console.log('Main card animation complete:', {
                         card: this._suit + this._value,
                         position: { x: this.x, y: this.y }
                     });
+                    
+                    // 确保最终位置正确并且阴影位置同步
+                    this.setPosition(targetX, targetY);
                     this.setDepth(targetY);
+                    
                     checkAllComplete();
                 }
             });
@@ -803,18 +860,30 @@ export class Card extends GameObjects.Sprite {
                     to: { x: targetX, y: cardY }
                 });
 
+                // 为附属卡牌添加onUpdate回调，确保其阴影跟随
+                const updateAttachedShadow = () => {
+                    if (card.shadow) {
+                        card.shadow.setPosition(card.x, card.y); // 完全中心对齐，没有垂直偏移
+                    }
+                };
+                
                 this.scene.tweens.add({
                     targets: card,
                     x: targetX,
                     y: cardY,
                     duration: 200,
                     ease: 'Power2',
+                    onUpdate: updateAttachedShadow, // 每帧更新阴影位置
                     onComplete: () => {
                         console.log('Attached card animation complete:', {
                             card: card._suit + card._value,
                             position: { x: card.x, y: card.y }
                         });
+                        
+                        // 使用setPosition方法确保阴影位置同步
+                        card.setPosition(targetX, cardY);
                         card.setDepth(cardY);
+                        
                         checkAllComplete();
                     }
                 });
