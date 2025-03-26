@@ -146,6 +146,10 @@ export class Card extends GameObjects.Sprite {
                         if (texture) {
                             this.setTexture(newTexture);
                             flipState.textureLoaded = true;
+                            // 在纹理已经切换后播放音效，比等到动画完成更早
+                            if (this._faceUp) {
+                                EventBus.emit('play-deal');
+                            }
                             resolveTexture();
                         } else {
                             console.log('Waiting for texture to load');
@@ -153,6 +157,10 @@ export class Card extends GameObjects.Sprite {
                                 console.log('Texture loaded, applying change');
                                 this.setTexture(newTexture);
                                 flipState.textureLoaded = true;
+                                // 在纹理加载完成后播放音效
+                                if (this._faceUp) {
+                                    EventBus.emit('play-deal');
+                                }
                                 resolveTexture();
                             });
                         }
@@ -178,8 +186,7 @@ export class Card extends GameObjects.Sprite {
                                 console.log('Second animation phase complete');
                                 flipState.secondAnimationComplete = true;
                                 
-                                // 更新最终状态
-                                EventBus.emit('play-deal');
+                                // 更新最终状态 (音效已经在第二阶段触发，此处不再触发)
                                 this.isFlipping = false;  // 立即重置翻转状态
                                 
                                 if (this._faceUp) {
