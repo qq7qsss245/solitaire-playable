@@ -53,6 +53,8 @@ const INSTANCES_COUNT: Record<AudioEventName, number> = {
 // 全局音频状态
 let isSoundEnabled = true; // 默认开启音效
 let bgmAudioInstance: HTMLAudioElement | null = null;
+let hasUserInteracted = false; // 用户是否已交互
+let isBgmPlaying = false; // BGM是否正在播放
 
 // 从缓存中获取一个可用的音频实例
 const getAudioFromCache = (eventName: AudioEventName): HTMLAudioElement | null => {
@@ -135,6 +137,38 @@ const Sound: React.FC = () => {
             // 非MRAID环境，默认启用音效
             console.log("非MRAID环境，默认启用音效");
             isSoundEnabled = true;
+            
+            // 在非MRAID环境中也尝试播放背景音乐
+            if (bgmAudioInstance) {
+                console.log("非MRAID环境：尝试播放背景音乐");
+                bgmAudioInstance.play()
+                    .then(() => {
+                        isBgmPlaying = true;
+                        console.log("非MRAID环境：背景音乐播放成功");
+                    })
+                    .catch((error) => {
+                        console.error("非MRAID环境：背景音乐播放失败", error);
+                        
+                        // 在用户首次交互时尝试再次播放
+                        const playBgmAfterInteraction = () => {
+                            hasUserInteracted = true;
+                            
+                            if (!isBgmPlaying && bgmAudioInstance) {
+                                console.log("用户已交互，尝试再次播放BGM");
+                                bgmAudioInstance.play()
+                                    .then(() => {
+                                        isBgmPlaying = true;
+                                        console.log("交互后BGM播放成功");
+                                    })
+                                    .catch(e => console.error("交互后播放BGM失败:", e));
+                            }
+                        };
+                        
+                        // 监听全局点击和触摸事件
+                        document.addEventListener('click', playBgmAfterInteraction, { once: true });
+                        document.addEventListener('touchstart', playBgmAfterInteraction, { once: true });
+                    });
+            }
         }
 
         // 预加载所有音频
@@ -145,37 +179,115 @@ const Sound: React.FC = () => {
             EventBus.on(eventName, () => {
                 // 只有在可见且允许声音时才播放
                 if (!isSoundEnabled) return;
+                
+                // 利用任何音频事件来标记用户交互并尝试播放BGM
+                if (!hasUserInteracted && eventName !== 'play-bgm') {
+                    hasUserInteracted = true;
+                    console.log("检测到用户交互事件:", eventName);
+                    
+                    // 如果BGM尚未播放，并且这不是BGM事件本身，则尝试播放
+                    if (!isBgmPlaying && bgmAudioInstance) {
+                        console.log("利用用户音频交互尝试自动播放BGM");
+                        bgmAudioInstance.play()
+                            .then(() => {
+                                isBgmPlaying = true;
+                                console.log("用户交互后BGM自动播放成功");
+                            })
+                            .catch(e => console.error("用户交互后自动播放BGM失败:", e));
+                    }
+                }
 
                 if (eventName === 'play-bgm') {
                     // 背景音乐特殊处理：使用预加载的实例
                     if (bgmAudioInstance) {
                         console.log("尝试播放背景音乐");
-                        bgmAudioInstance.play().catch((error) => {
-                            console.error("背景音乐播放失败:", error);
-                            // 在用户首次交互时尝试再次播放
-                            document.addEventListener('click', function bgmPlayHandler() {
-                                if (bgmAudioInstance) {
-                                    bgmAudioInstance.play().catch(e => console.error("交互后播放BGM失败:", e));
-                                    document.removeEventListener('click', bgmPlayHandler);
+                        
+                        // 如果BGM已经在播放，不需要再次播放
+                        if (isBgmPlaying) {
+                            console.log("BGM已经在播放中");
+                            return;
+                        }
+                        
+                        bgmAudioInstance.play()
+                            .then(() => {
+                                isBgmPlaying = true;
+                                console.log("背景音乐播放成功");
+                            })
+                            .catch((error) => {
+                                console.error("背景音乐播放失败:", error);
+                                
+                                // 在用户首次交互时尝试再次播放
+                                if (!isBgmPlaying) {
+                                    const playBgmAfterInteraction = () => {
+                                        hasUserInteracted = true;
+                                        
+                                        if (!isBgmPlaying && bgmAudioInstance) {
+                                            console.log("用户已交互，尝试再次播放BGM");
+                                            bgmAudioInstance.play()
+                                                .then(() => {
+                                                    isBgmPlaying = true;
+                                                    console.log("交互后BGM播放成功");
+                                                })
+                                                .catch(e => console.error("交互后播放BGM失败:", e));
+                                        }
+                                    };
+                                    
+                                    // 监听点击、触摸等用户交互事件
+                                    document.addEventListener('click', playBgmAfterInteraction, { once: true });
+                                    document.addEventListener('touchstart', playBgmAfterInteraction, { once: true });
                                 }
-                            }, { once: true });
-                        });
+                            });
                     }
                 } else {
                     // 从缓存获取预加载的音效
                     const audio = getAudioFromCache(eventName);
+                    
                     if (audio) {
                         console.log(`播放预加载的音效: ${eventName}`);
-                        audio.play().catch((error) => {
-                            console.error(`音效 ${eventName} 播放失败:`, error);
-                        });
+                        audio.play()
+                            .then(() => {
+                                // 音效播放成功，标记用户已交互
+                                hasUserInteracted = true;
+                                
+                                // 如果BGM尚未播放，尝试启动它
+                                if (!isBgmPlaying && bgmAudioInstance && !document.hidden) {
+                                    console.log(`${eventName}音效播放成功后尝试BGM`);
+                                    bgmAudioInstance.play()
+                                        .then(() => {
+                                            isBgmPlaying = true;
+                                            console.log("音效播放后BGM启动成功");
+                                        })
+                                        .catch(e => console.log("音效播放后BGM启动仍失败:", e));
+                                }
+                            })
+                            .catch((error) => {
+                                console.error(`音效 ${eventName} 播放失败:`, error);
+                                
+                                // 即使音效播放失败，也标记用户已交互
+                                hasUserInteracted = true;
+                            });
                     } else {
                         // 回退到创建新实例（应该不会发生，除非缓存出问题）
                         console.warn(`未找到预加载的音效 ${eventName}，创建新实例`);
                         const newAudio = new Audio(AUDIO_MAP[eventName]);
-                        newAudio.play().catch((error) => {
-                            console.error(`音效 ${eventName} 播放失败:`, error);
-                        });
+                        newAudio.play()
+                            .then(() => {
+                                hasUserInteracted = true;
+                                
+                                // 其它音效播放成功后尝试BGM
+                                if (!isBgmPlaying && bgmAudioInstance && !document.hidden) {
+                                    bgmAudioInstance.play()
+                                        .then(() => {
+                                            isBgmPlaying = true;
+                                            console.log("新音效实例播放后BGM启动成功");
+                                        })
+                                        .catch(e => console.log("新音效实例播放后BGM启动仍失败:", e));
+                                }
+                            })
+                            .catch((error) => {
+                                console.error(`音效 ${eventName} 播放失败:`, error);
+                                hasUserInteracted = true;
+                            });
                     }
                 }
             });
