@@ -695,8 +695,11 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
                     }
                 }
 
-                // 如果没有可移动位置,播放错误音效
-                EventBus.emit('play-click');
+                // 如果没有可移动位置，播放错误音效并添加晃动效果
+                EventBus.emit('play-miss'); // 播放miss音效
+                
+                // 添加晃动效果
+                this.playShakeAnimation();
             } catch (error) {
                 console.error('Error during move:', error);
                 // 出错时恢复到原始状态
@@ -707,6 +710,45 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
         });
     }
 
+    // 晃动动画 - 表示无法移动的提示效果
+    private playShakeAnimation(): void {
+        if (this.scene) {
+            // 记录原始位置
+            const originalX = this.x;
+            
+            // 创建晃动动画
+            this.scene.tweens.add({
+                targets: this,
+                x: originalX - 10, // 向左晃动10像素
+                duration: 50,
+                yoyo: true,
+                repeat: 3, // 重复3次，总共晃动4次
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    // 确保动画结束后回到原始位置
+                    this.setPosition(originalX, this.y);
+                }
+            });
+            
+            // 如果有阴影，也让阴影跟随晃动
+            if (this.shadow) {
+                const originalShadowX = this.shadow.x;
+                this.scene.tweens.add({
+                    targets: this.shadow,
+                    x: originalShadowX - 10,
+                    duration: 50,
+                    yoyo: true,
+                    repeat: 3,
+                    ease: 'Sine.easeInOut',
+                    onComplete: () => {
+                        // 确保阴影回到正确位置
+                        this.shadow.setPosition(originalX, this.shadow.y);
+                    }
+                });
+            }
+        }
+    }
+    
     // 移动动画
     private animateMove(targetX: number, targetY: number, onComplete: () => void, attachedCards: Card[] = [], canDrop: boolean = true): Promise<void> {
         if (this.isMoving) {

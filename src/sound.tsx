@@ -8,10 +8,11 @@ import dealAudio from './assets/audios/deal.mp3';
 import fillAudio from './assets/audios/fill.mp3';
 import moveAudio from './assets/audios/move.mp3';
 import popupAudio from './assets/audios/popup.mp3';
+import missAudio from './assets/audios/miss.mp3';
 import { EventBus } from "./game/EventBus";
 
 // 定义音频事件类型
-type AudioEventName = 'play-bgm' | 'play-big' | 'play-click' | 'play-deal' | 'play-fill' | 'play-move' | 'play-popup';
+type AudioEventName = 'play-bgm' | 'play-big' | 'play-click' | 'play-deal' | 'play-fill' | 'play-move' | 'play-popup' | 'play-miss';
 
 // 音频类型映射
 const AUDIO_MAP: Record<AudioEventName, string> = {
@@ -21,7 +22,8 @@ const AUDIO_MAP: Record<AudioEventName, string> = {
     'play-deal': dealAudio,
     'play-fill': fillAudio,
     'play-move': moveAudio,
-    'play-popup': popupAudio
+    'play-popup': popupAudio,
+    'play-miss': missAudio
 };
 
 // 音频缓存，预加载所有音效
@@ -32,7 +34,8 @@ const AUDIO_CACHE: Record<AudioEventName, HTMLAudioElement[]> = {
     'play-deal': [],
     'play-fill': [],
     'play-move': [],
-    'play-popup': []
+    'play-popup': [],
+    'play-miss': []   // 添加miss音效缓存
 };
 
 // 每种音效缓存的实例数量
@@ -43,7 +46,8 @@ const INSTANCES_COUNT: Record<AudioEventName, number> = {
     'play-deal': 5, // deal音效可能频繁触发，多缓存几个
     'play-fill': 3,
     'play-move': 5, // 移动音效也较频繁
-    'play-popup': 3
+    'play-popup': 3,
+    'play-miss': 5   // miss音效可能频繁触发，多缓存几个实例
 };
 
 // 全局音频状态
