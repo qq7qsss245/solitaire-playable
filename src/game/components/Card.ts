@@ -102,8 +102,9 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
     // 创建阴影图片
     this.shadow = scene.add.image(x, y, 'shadow'); // 阴影位置与卡牌中心对齐
     
-    // 使用与卡牌相同的缩放比例
-    this.shadow.setScale(this.scaleX, this.scaleY);
+    // 使用比卡牌略大的缩放比例，使阴影更明显
+    const shadowScale = 1.01; // 阴影比卡牌大1%
+    this.shadow.setScale(this.scaleX * shadowScale, this.scaleY * shadowScale);
     
     // 设置阴影深度
     this.shadow.setDepth(y - 1); // 确保阴影在卡牌下方
@@ -151,13 +152,17 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
         return this;
     }
 
-    // 重写setScale方法，确保阴影与卡牌采用相同缩放比例
+    // 重写setScale方法，确保阴影保持比卡牌略大的缩放比例
     setScale(x: number, y?: number): this {
         super.setScale(x, y);
         
-        // 更新阴影缩放比例
+        // 更新阴影缩放比例，保持1.01的放大倍数
+        const shadowScale = 1.01; // 阴影比卡牌大1%
         if (this.shadow) {
-            this.shadow.setScale(x, y === undefined ? x : y);
+            this.shadow.setScale(
+                x * shadowScale,
+                (y === undefined ? x : y) * shadowScale
+            );
         }
         
         return this;
@@ -716,17 +721,30 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
             // 记录原始位置
             const originalX = this.x;
             
-            // 创建晃动动画
+            // 禁用交互，直到动画结束
+            this.disableInteractive();
+            
+            // 创建左右晃动动画
             this.scene.tweens.add({
                 targets: this,
-                x: originalX - 10, // 向左晃动10像素
-                duration: 50,
+                x: {
+                    from: originalX - 5, // 保持相同幅度
+                    to: originalX + 5    // 保持相同幅度
+                },
+                duration: 50, // 减少持续时间，加快速度
                 yoyo: true,
-                repeat: 3, // 重复3次，总共晃动4次
+                repeat: 3, // 重复3次
                 ease: 'Sine.easeInOut',
                 onComplete: () => {
                     // 确保动画结束后回到原始位置
                     this.setPosition(originalX, this.y);
+                    
+                    // 重新启用交互
+                    this.setInteractive();
+                    
+                    // 重新注册为可拖拽
+                    const gameScene = this.scene as Game;
+                    gameScene.input.setDraggable(this);
                 }
             });
             
@@ -735,8 +753,11 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
                 const originalShadowX = this.shadow.x;
                 this.scene.tweens.add({
                     targets: this.shadow,
-                    x: originalShadowX - 10,
-                    duration: 50,
+                    x: {
+                        from: originalShadowX - 5, // 保持相同幅度
+                        to: originalShadowX + 5    // 保持相同幅度
+                    },
+                    duration: 50, // 减少持续时间，加快速度
                     yoyo: true,
                     repeat: 3,
                     ease: 'Sine.easeInOut',
