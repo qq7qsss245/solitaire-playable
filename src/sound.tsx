@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 
 // 导入音频文件
-import bgmAudio from './assets/audios/bgm.mp3';
-import bigAudio from './assets/audios/big.mp3';
-import clickAudio from './assets/audios/click.mp3';
-import dealAudio from './assets/audios/deal.mp3';
-import fillAudio from './assets/audios/fill.mp3';
-import moveAudio from './assets/audios/move.mp3';
-import popupAudio from './assets/audios/popup.mp3';
+import bgmAudio from './assets/audio/bgm.mp3';
+import cardFlipAudio from './assets/audio/card-flip.mp3';
+import cardPlaceAudio from './assets/audio/card-place.mp3';
+import cardDealAudio from './assets/audio/card-deal.mp3';
+import slotPlaceAudio from './assets/audio/slot-place.mp3';
+import victoryAudio from './assets/audio/victory.mp3';
+import errorAudio from './assets/audio/error.mp3';
 import { EventBus } from "./game/EventBus";
 
 // 音频类型映射
@@ -15,12 +15,18 @@ const AUDIO_MAP: {
     [key: string]: string;
 } = {
     'play-bgm': bgmAudio,
-    'play-big': bigAudio,
-    'play-click': clickAudio,
-    'play-deal': dealAudio,
-    'play-fill': fillAudio,
-    'play-move': moveAudio,
-    'play-popup': popupAudio
+    'play-card-flip': cardFlipAudio,
+    'play-card-place': cardPlaceAudio,
+    'play-card-deal': cardDealAudio,
+    'play-slot-place': slotPlaceAudio,
+    'play-victory': victoryAudio,
+    'play-error': errorAudio,
+    // 为兼容性添加别名
+    'play-click': cardPlaceAudio, // 点击音效使用卡牌放置音效
+    'play-deal': cardDealAudio, // 发牌音效别名
+    'play-move': cardPlaceAudio, // 移动音效使用卡牌放置音效
+    'play-step-complete': cardPlaceAudio, // 步骤完成音效
+    'play-tutorial-complete': victoryAudio // 教学完成音效使用胜利音效
 };
 
 // 全局音频状态

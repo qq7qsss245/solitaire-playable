@@ -1,6 +1,6 @@
 import { Game } from '../scenes/Game';
 import { Card as CardComponent } from '../components/Card';
-import { TutorialState } from './TutorialManager';
+import { TutorialState } from './TutorialState';
 
 export interface TutorialStep {
     id: TutorialState;

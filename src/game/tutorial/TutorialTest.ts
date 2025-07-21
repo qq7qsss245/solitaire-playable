@@ -1,5 +1,6 @@
 // 教学系统测试和验证工具
-import { TutorialManager, TutorialState } from './TutorialManager';
+import { TutorialManager } from './TutorialManager';
+import { TutorialState } from './TutorialState';
 import { TutorialSteps } from './TutorialSteps';
 import { Game } from '../scenes/Game';
 

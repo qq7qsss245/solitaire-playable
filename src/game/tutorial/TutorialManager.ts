@@ -4,19 +4,7 @@ import { Card as CardComponent } from '../components/Card';
 import { Game } from '../scenes/Game';
 import { GuideSystem } from './GuideSystem';
 import { TutorialSteps, TutorialStep } from './TutorialSteps';
-
-export enum TutorialState {
-    INACTIVE = 'inactive',
-    ACTIVE = 'active',
-    STEP_INTRO = 'step_intro',
-    STEP_RULES = 'step_rules', 
-    STEP_ACE_TO_FOUNDATION = 'step_ace_to_foundation',
-    STEP_CARD_TO_PILE = 'step_card_to_pile',
-    STEP_STOCK_FLIP = 'step_stock_flip',
-    STEP_PILE_TO_PILE = 'step_pile_to_pile',
-    STEP_FREE_PLAY = 'step_free_play',
-    COMPLETED = 'completed'
-}
+import { TutorialState } from './TutorialState';
 
 export interface TutorialTarget {
     card?: CardComponent;
@@ -324,7 +312,7 @@ export class TutorialManager {
         console.log(`Completing step ${this.currentStepIndex + 1}`);
         
         // 播放步骤完成音效
-        EventBus.emit('play-step-complete');
+        EventBus.emit('play-card-place');
         
         // 清除当前引导
         this.guideSystem.hideAllGuides();
@@ -349,7 +337,7 @@ export class TutorialManager {
         this.guideSystem.hideAllGuides();
         
         // 播放教学完成音效
-        EventBus.emit('play-tutorial-complete');
+        EventBus.emit('play-victory');
         
         // 启用自由游戏模式
         this.enableFreePlay();

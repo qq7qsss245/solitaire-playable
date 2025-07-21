@@ -81,14 +81,7 @@ import guideText5 from './images/tutorial/guide-texts/Awesome! Now try to move t
 import guideText6 from './images/tutorial/guide-texts/Hmmm, now try to look in the stock_.png';
 import guideText7 from './images/tutorial/guide-texts/Perfect! Can you try to complete the puzzle now__.png';
 
-// 音频文件
-import bgm from './audio/bgm.mp3';
-import cardFlip from './audio/card-flip.mp3';
-import cardPlace from './audio/card-place.mp3';
-import cardDeal from './audio/card-deal.mp3';
-import slotPlace from './audio/slot-place.mp3';
-import victory from './audio/victory.mp3';
-import error from './audio/error.mp3';
+// 音频文件现在通过React组件(src/sound.tsx)直接导入，不需要在这里重复导入
 
 // 导出所有资源
 export const Assets = {
@@ -187,16 +180,7 @@ export const Assets = {
     },
   },
   
-  // 音频
-  audio: {
-    bgm,
-    cardFlip,
-    cardPlace,
-    cardDeal,
-    slotPlace,
-    victory,
-    error,
-  },
+  // 音频现在通过React组件(src/sound.tsx)管理，不需要在这里导出
 };
 
 // 资源键名常量

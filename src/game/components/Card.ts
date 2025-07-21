@@ -1,25 +1,272 @@
-
 import { GameObjects, Scene } from 'phaser';
 import { CardSuit, CardValue } from '../../config/klondike-layout';
 import { Game } from '../scenes/Game';
 import { EventBus } from '../EventBus';
+import { AssetKeys } from '../../assets';
 
-export class Card extends GameObjects.Sprite {
+// 卡牌数据接口
+export interface CardData {
+    suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
+    value: 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K';
+    faceUp: boolean;
+}
+
+// 花色映射
+const SUIT_KEYS = {
+    hearts: AssetKeys.SUIT_HEART,
+    diamonds: AssetKeys.SUIT_DIAMOND,
+    clubs: AssetKeys.SUIT_CLUB,
+    spades: AssetKeys.SUIT_SPADE
+};
+
+// 数值映射 (红色/黑色)
+const VALUE_KEYS = {
+    red: {
+        A: AssetKeys.RED_A,
+        2: AssetKeys.RED_2,
+        3: AssetKeys.RED_3,
+        4: AssetKeys.RED_4,
+        5: AssetKeys.RED_5,
+        6: AssetKeys.RED_6,
+        7: AssetKeys.RED_7,
+        8: AssetKeys.RED_8,
+        9: AssetKeys.RED_9,
+        10: AssetKeys.RED_10,
+        J: AssetKeys.RED_J,
+        Q: AssetKeys.RED_Q,
+        K: AssetKeys.RED_K,
+    },
+    black: {
+        A: AssetKeys.BLACK_A,
+        2: AssetKeys.BLACK_2,
+        3: AssetKeys.BLACK_3,
+        4: AssetKeys.BLACK_4,
+        5: AssetKeys.BLACK_5,
+        6: AssetKeys.BLACK_6,
+        7: AssetKeys.BLACK_7,
+        8: AssetKeys.BLACK_8,
+        9: AssetKeys.BLACK_9,
+        10: AssetKeys.BLACK_10,
+        J: AssetKeys.BLACK_J,
+        Q: AssetKeys.BLACK_Q,
+        K: AssetKeys.BLACK_K,
+    }
+};
+
+export class Card extends GameObjects.Container {
     private _suit: CardSuit;
     private _value: CardValue;
     private _faceUp: boolean;
     private isDragging: boolean = false;
-    private isMoving: boolean = false;  // 是否正在移动
+    private isMoving: boolean = false;
     private startX: number = 0;
     private startY: number = 0;
     private normalDepth: number = 0;
-    private attachedCards: Card[] = []; // 存储拖拽时附带的卡牌
-    private actionQueue: (() => Promise<void>)[] = []; // 动作队列
-    private isProcessingQueue: boolean = false; // 是否正在处理队列
-    private isFlipping: boolean = false; // 是否正在翻转
+    private attachedCards: Card[] = [];
+    private actionQueue: (() => Promise<void>)[] = [];
+    private isProcessingQueue: boolean = false;
+    private isFlipping: boolean = false;
     private clickTimer: number = 0;
-    private static readonly DRAG_THRESHOLD = 200; // 200毫秒阈值
-    
+    private static readonly DRAG_THRESHOLD = 200;
+
+    // 卡牌组件
+    private cardBackground!: GameObjects.Image;
+    private suitTopLeft!: GameObjects.Image;
+    private valueTopLeft!: GameObjects.Image;
+    private centerSuit!: GameObjects.Image; // 新增：中心大花色
+
+    // 卡牌尺寸和布局常量
+    private static readonly CARD_WIDTH = 147;
+    private static readonly CARD_HEIGHT = 230;
+    private static readonly CARD_GAP_Y = Card.CARD_HEIGHT / 4;
+    private static readonly DRAG_DEPTH = 10000;
+
+    // 优化后的布局位置常量（左右边距30px，上下边距35px，数字在上花色在下）
+    private static readonly TOP_LEFT_VALUE_POS = { x: -43, y: -80 };    // 距左边30px，距上边35px，数字在上
+    private static readonly TOP_LEFT_SUIT_POS = { x: -43, y: -40 };     // 数字下方40px，花色在下
+    private static readonly CENTER_SUIT_POS = { x: 0, y: 15 };          // 中心位置，稍微向下
+
+    constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
+        super(scene, x, y);
+        
+        this._suit = suit;
+        this._value = value;
+        this._faceUp = faceUp;
+        
+        // 创建卡牌视觉组件
+        this.createCardVisuals();
+        
+        // 设置交互区域 - 确保覆盖整个卡牌
+        this.setSize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
+        this.setInteractive();
+        
+        // 设置初始深度
+        this.normalDepth = y;
+        this.setDepth(this.normalDepth);
+        
+        // 注册拖拽事件
+        scene.input.setDraggable(this);
+        
+        this.on('dragstart', this.onDragStart, this);
+        this.on('drag', this.onDrag, this);
+        this.on('dragend', this.onDragEnd, this);
+        this.on('pointerdown', this.onPointerDown, this);
+        this.on('pointerup', this.onPointerUp, this);
+
+        // 更新显示状态
+        this.updateCardDisplay();
+    }
+
+    // 创建卡牌的视觉组件
+    private createCardVisuals(): void {
+        // 创建卡面背景
+        this.cardBackground = this.scene.add.image(0, 0, AssetKeys.CARD_FACE);
+        this.cardBackground.setDisplaySize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
+        this.add(this.cardBackground);
+
+        // 创建花色图标 - 左上角
+        this.suitTopLeft = this.scene.add.image(
+            Card.TOP_LEFT_SUIT_POS.x,
+            Card.TOP_LEFT_SUIT_POS.y,
+            this.getSuitKey()
+        );
+        this.suitTopLeft.setScale(0.64); // 缩小到80%
+        this.add(this.suitTopLeft);
+
+        // 创建数值图标 - 左上角
+        this.valueTopLeft = this.scene.add.image(
+            Card.TOP_LEFT_VALUE_POS.x,
+            Card.TOP_LEFT_VALUE_POS.y,
+            this.getValueKey()
+        );
+        this.valueTopLeft.setScale(0.64);
+        this.add(this.valueTopLeft);
+
+
+        // 创建中心大花色图标
+        this.centerSuit = this.scene.add.image(
+            Card.CENTER_SUIT_POS.x,
+            Card.CENTER_SUIT_POS.y,
+            this.getSuitKey()
+        );
+        this.centerSuit.setScale(1.8); // 放大1.8倍，比角落花色更大
+        this.add(this.centerSuit);
+    }
+
+    // 更新卡牌显示状态（正面/背面）
+    private updateCardDisplay(): void {
+        if (this._faceUp) {
+            // 显示正面
+            this.cardBackground.setTexture(AssetKeys.CARD_FACE);
+            this.suitTopLeft.setVisible(true);
+            this.valueTopLeft.setVisible(true);
+            this.centerSuit.setVisible(true); // 显示中心花色
+            
+            // 更新花色和数值纹理
+            const suitKey = this.getSuitKey();
+            const valueKey = this.getValueKey();
+            
+            this.suitTopLeft.setTexture(suitKey);
+            this.centerSuit.setTexture(suitKey); // 更新中心花色纹理
+            this.valueTopLeft.setTexture(valueKey);
+        } else {
+            // 显示背面
+            this.cardBackground.setTexture(AssetKeys.CARD_BACK);
+            this.suitTopLeft.setVisible(false);
+            this.valueTopLeft.setVisible(false);
+            this.centerSuit.setVisible(false); // 隐藏中心花色
+        }
+    }
+
+    // 获取卡牌颜色（红色/黑色）
+    private getCardColor(): 'red' | 'black' {
+        return (this._suit === 'h' || this._suit === 'd') ? 'red' : 'black';
+    }
+
+    // 获取花色资源键名
+    private getSuitKey(): string {
+        const suitMap = {
+            'h': 'hearts',
+            'd': 'diamonds', 
+            'c': 'clubs',
+            's': 'spades'
+        } as const;
+        
+        return SUIT_KEYS[suitMap[this._suit]];
+    }
+
+    // 获取数值资源键名
+    private getValueKey(): string {
+        const color = this.getCardColor();
+        return VALUE_KEYS[color][this._value];
+    }
+
+    // 翻牌动画
+    flip(): Promise<void> {
+        if (!this.canInteract(true)) return Promise.resolve();
+
+        return new Promise<void>((resolve, reject) => {
+            this.addToQueue(async () => {
+                try {
+                    if (this.isFlipping) {
+                        await new Promise(r => setTimeout(r, 50));
+                        if (this.isFlipping) {
+                            throw new Error('Card is still flipping');
+                        }
+                    }
+
+                    this.isFlipping = true;
+                    const originalScaleX = this.scaleX;
+                    this.disableInteractive();
+
+                    // 第一阶段：缩放到0
+                    await new Promise<void>((resolveFirst) => {
+                        this.scene.tweens.add({
+                            targets: this,
+                            scaleX: 0,
+                            duration: 150,
+                            ease: 'Power1',
+                            onComplete: () => resolveFirst()
+                        });
+                    });
+
+                    // 第二阶段：切换状态和纹理
+                    this._faceUp = !this._faceUp;
+                    this.updateCardDisplay();
+
+                    // 第三阶段：恢复缩放
+                    await new Promise<void>((resolveSecond) => {
+                        this.scene.tweens.add({
+                            targets: this,
+                            scaleX: originalScaleX,
+                            duration: 150,
+                            ease: 'Power1',
+                            onComplete: () => {
+                                EventBus.emit('play-card-deal');
+                                this.isFlipping = false;
+                                
+                                if (this._faceUp) {
+                                    this.setInteractive();
+                                    const gameScene = this.scene as Game;
+                                    gameScene.input.setDraggable(this);
+                                    gameScene.onCardFlipped();
+                                }
+                                
+                                setTimeout(() => resolveSecond(), 16);
+                            }
+                        });
+                    });
+
+                    resolve();
+                } catch (error) {
+                    console.error('Flip error:', error);
+                    this.isFlipping = false;
+                    reject(error);
+                }
+            });
+        });
+    }
+
     // 添加动作到队列
     private async addToQueue(action: () => Promise<void>) {
         this.actionQueue.push(action);
@@ -48,260 +295,9 @@ export class Card extends GameObjects.Sprite {
         }
     }
 
-    // 定义卡牌尺寸
-    private static readonly CARD_WIDTH = 120;  // 180 * (2/3)
-    private static readonly CARD_HEIGHT = 164; // 246 * (2/3)
-    private static readonly CARD_GAP_Y = Card.CARD_HEIGHT / 4; // 垂直间距为卡牌高度的1/4
-    private static readonly DRAG_DEPTH = 10000; // 拖拽时的基础深度值
-
-    constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
-        super(scene, x, y, faceUp ? `${Card.getSuitName(suit)}${value}` : 'card-back');
-        
-        this._suit = suit;
-        this._value = value;
-        this._faceUp = faceUp;
-        
-        // 设置卡牌尺寸
-        this.setDisplaySize(Card.CARD_WIDTH, Card.CARD_HEIGHT);
-        
-        // 设置交互区域
-        this.setInteractive();
-        
-        // 设置初始深度
-        this.normalDepth = y;
-        this.setDepth(this.normalDepth);
-        
-        // 注册拖拽事件
-        scene.input.setDraggable(this);
-        
-        this.on('dragstart', this.onDragStart, this);
-        this.on('drag', this.onDrag, this);
-        this.on('dragend', this.onDragEnd, this);
-        this.on('pointerdown', this.onPointerDown, this);
-        this.on('pointerup', this.onPointerUp, this);
-    }
-
-    // 获取花色的中文名称
-    private static getSuitName(suit: CardSuit): string {
-        const suitName = {
-            'h': '红桃',
-            'd': '方块',
-            's': '黑桃',
-            'c': '梅花'
-        };
-        return suitName[suit];
-    }
-
-    // 翻转卡牌
-    flip(): Promise<void> {
-        if (!this.canInteract(true)) return Promise.resolve();
-
-        // 将翻转操作添加到动作队列中
-        return new Promise<void>((resolve, reject) => {
-            this.addToQueue(async () => {
-                const flipState = {
-                    firstAnimationComplete: false,
-                    textureLoaded: false,
-                    secondAnimationComplete: false,
-                    interactionsEnabled: false,
-                    error: null as Error | null
-                };
-
-                try {
-                    const startTime = Date.now();
-                    // 如果正在翻转，等待一小段时间后重试
-                    if (this.isFlipping) {
-                        await new Promise(r => setTimeout(r, 50));
-                        if (this.isFlipping) {
-                            throw new Error('Card is still flipping');
-                        }
-                    }
-
-                    this.isFlipping = true;
-                    const originalScaleX = this.scaleX;
-                    this.disableInteractive();
-
-                    // 第一阶段：缩放到0
-                    await new Promise<void>((resolveFirst) => {
-                        this.scene.tweens.add({
-                            targets: this,
-                            scaleX: 0,
-                            duration: 150,
-                            ease: 'Power1',
-                            onComplete: () => {
-                                flipState.firstAnimationComplete = true;
-                                resolveFirst();
-                            }
-                        });
-                    });
-
-                    // 第二阶段：切换纹理
-                    this._faceUp = !this._faceUp;
-                    const newTexture = this._faceUp ?
-                        `${Card.getSuitName(this._suit)}${this._value}` :
-                        'card-back';
-
-                    await new Promise<void>((resolveTexture) => {
-                        const texture = this.scene.textures.get(newTexture);
-                        if (texture) {
-                            this.setTexture(newTexture);
-                            flipState.textureLoaded = true;
-                            resolveTexture();
-                        } else {
-                            console.log('Waiting for texture to load');
-                            this.scene.load.once('complete', () => {
-                                console.log('Texture loaded, applying change');
-                                this.setTexture(newTexture);
-                                flipState.textureLoaded = true;
-                                resolveTexture();
-                            });
-                        }
-                    });
-
-                    // 第三阶段：恢复缩放
-                    console.log('=== Phase 3: Scale back ===');
-                    console.log('Pre-scale back state:', {
-                        card: this._suit + this._value,
-                        currentScaleX: this.scaleX,
-                        targetScaleX: originalScaleX,
-                        texture: this.texture.key,
-                        faceUp: this._faceUp,
-                        flipState
-                    });
-                    await new Promise<void>((resolveSecond) => {
-                        this.scene.tweens.add({
-                            targets: this,
-                            scaleX: originalScaleX,
-                            duration: 150,
-                            ease: 'Power1',
-                            onComplete: () => {
-                                console.log('Second animation phase complete');
-                                flipState.secondAnimationComplete = true;
-                                
-                                // 更新最终状态
-                                EventBus.emit('play-deal');
-                                this.isFlipping = false;  // 立即重置翻转状态
-                                
-                                if (this._faceUp) {
-                                    this.setInteractive();
-                                    const gameScene = this.scene as Game;
-                                    gameScene.input.setDraggable(this);
-                                    gameScene.onCardFlipped();
-                                    flipState.interactionsEnabled = true;
-                                }
-                                
-                                // 确保状态已完全更新
-                                setTimeout(() => {
-                                    console.log('State update complete:', {
-                                        isFlipping: this.isFlipping,
-                                        faceUp: this._faceUp,
-                                        interactive: this.input?.enabled
-                                    });
-                                    resolveSecond();
-                                }, 16);
-                            }
-                        });
-                    });
-
-                    // 等待所有动画和状态真正完成
-                    await new Promise<void>((resolveDelay) => {
-                        const startTime = Date.now();
-                        const maxAttempts = 10; // 最多尝试10次
-                        let attempts = 0;
-
-                        const checkState = () => {
-                            attempts++;
-                            console.log('=== Animation state check (attempt ' + attempts + ') ===');
-                            console.log('Current state:', {
-                                card: this._suit + this._value,
-                                scaleX: this.scaleX,
-                                texture: this.texture.key,
-                                faceUp: this._faceUp,
-                                isFlipping: this.isFlipping,
-                                flipState,
-                                position: { x: this.x, y: this.y },
-                                depth: this.depth,
-                                interactive: this.input?.enabled,
-                                elapsedTime: Date.now() - startTime,
-                                attempts
-                            });
-
-                            // 验证所有状态
-                            const stateValid =
-                                flipState.firstAnimationComplete &&
-                                flipState.textureLoaded &&
-                                flipState.secondAnimationComplete &&
-                                Math.abs(this.scaleX - originalScaleX) < 0.01 && // 允许一点误差
-                                !this.isFlipping &&
-                                ((this._faceUp && this.input?.enabled) || !this._faceUp);
-
-                            if (!stateValid && attempts < maxAttempts) {
-                                console.log('State validation failed:', {
-                                    firstAnimationComplete: flipState.firstAnimationComplete,
-                                    textureLoaded: flipState.textureLoaded,
-                                    secondAnimationComplete: flipState.secondAnimationComplete,
-                                    scaleXDiff: Math.abs(this.scaleX - originalScaleX),
-                                    isFlipping: this.isFlipping,
-                                    faceUp: this._faceUp,
-                                    interactive: this.input?.enabled
-                                });
-                                setTimeout(checkState, 32); // 增加检查间隔
-                                return;
-                            }
-
-                            console.log('=== Animation verification complete ===');
-                            console.log('Final state:', {
-                                card: this._suit + this._value,
-                                scaleX: this.scaleX,
-                                texture: this.texture.key,
-                                faceUp: this._faceUp,
-                                isFlipping: this.isFlipping,
-                                flipState,
-                                elapsedTime: Date.now() - startTime,
-                                attempts,
-                                success: stateValid
-                            });
-
-                            // 如果达到最大尝试次数但状态仍然不正确，强制修正状态
-                            if (!stateValid) {
-                                console.warn('Forcing state correction after max attempts');
-                                this.scaleX = originalScaleX;
-                                this.isFlipping = false;
-                                if (this._faceUp) {
-                                    this.setInteractive();
-                                }
-                            }
-
-                            resolveDelay();
-                        };
-
-                        checkState();
-                    });
-
-                    console.log('=== Flip animation sequence complete ===');
-                    console.log('Total time:', Date.now() - startTime);
-
-                    // 动画序列完成后
-                    this.isFlipping = false;
-                    resolve();
-                } catch (error) {
-                    console.error('Flip error:', error, {
-                        card: this._suit + this._value,
-                        state: flipState
-                    });
-                    this.isFlipping = false;
-                    reject(error);
-                }
-            });
-        });
-    }
-
-
     // 检查卡牌是否可以操作
     private canInteract(allowFaceDown: boolean = false): boolean {
-        const canInteract = (allowFaceDown || this._faceUp) && !this.isFlipping && !this.isProcessingQueue && !this.isMoving;
-
-        return canInteract;
+        return (allowFaceDown || this._faceUp) && !this.isFlipping && !this.isProcessingQueue && !this.isMoving;
     }
 
     // 拖拽开始
@@ -325,13 +321,11 @@ export class Card extends GameObjects.Sprite {
         
         const timeDiff = Date.now() - this.clickTimer;
         if (timeDiff > Card.DRAG_THRESHOLD) {
-            // 如果超过阈值，说明是拖拽操作
-            EventBus.emit('play-click');
+            EventBus.emit('play-card-flip');
         }
         
-        // 设置一个很大的深度值确保显示在最上层
+        // 设置深度
         this.setDepth(Card.DRAG_DEPTH);
-        // 设置附属卡牌的深度
         this.attachedCards.forEach((card, index) => {
             card.setDepth(Card.DRAG_DEPTH + index + 1);
         });
@@ -367,13 +361,7 @@ export class Card extends GameObjects.Sprite {
         if (!this.isDragging) return;
         
         this.isDragging = false;
-        this.isMoving = false;  // 确保重置移动状态
-        console.log('=== onDragEnd ===');
-        console.log('Card:', this._suit + this._value);
-        console.log('State reset:', {
-            isDragging: this.isDragging,
-            isMoving: this.isMoving
-        });
+        this.isMoving = false;
         
         // 检查是否可以放置到目标位置
         const dropResult = this.checkDropTarget();
@@ -382,7 +370,6 @@ export class Card extends GameObjects.Sprite {
             // 如果不能放置,返回原位
             this.x = this.startX;
             this.y = this.startY;
-            // 恢复原来的深度
             this.setDepth(this.normalDepth);
             
             // 返回附属卡牌到原位
@@ -399,7 +386,7 @@ export class Card extends GameObjects.Sprite {
             
             if (dropResult.canDrop) {
                 // 播放成功音效
-                EventBus.emit('play-move');
+                EventBus.emit('play-card-place');
 
                 // 开始动画移动
                 await this.animateMove(
@@ -410,57 +397,29 @@ export class Card extends GameObjects.Sprite {
                         const updateState = async () => {
                             try {
                                 if (dropResult.onDrop) {
-                                    // 如果有onDrop回调(收牌区),执行它
                                     await dropResult.onDrop();
                                 } else {
-                                    // 否则是普通列的移动
-                                    // 简化处理：让Game场景处理移动逻辑
                                     const gameScene = this.scene as Game;
-                                    // 这里可以添加更复杂的逻辑，暂时简化处理
                                     console.log('Card moved to new position:', { x: this.x, y: this.y });
                                 }
 
                                 // 翻转原列中的下一张卡牌
                                 if (nextCard && !nextCard.faceUp && !nextCard.isFlipping) {
                                     try {
-                                        console.log('Flipping next card:', {
-                                            card: nextCard._suit + nextCard._value,
-                                            state: {
-                                                isFlipping: nextCard.isFlipping,
-                                                faceUp: nextCard._faceUp,
-                                                isProcessingQueue: nextCard.isProcessingQueue
-                                            }
-                                        });
                                         await nextCard.flip();
                                     } catch (error) {
                                         console.warn('Failed to flip next card:', error);
-                                        // 继续执行，不影响主要流程
                                     }
-                                } else if (nextCard) {
-                                    console.log('Skipping next card flip:', {
-                                        card: nextCard._suit + nextCard._value,
-                                        state: {
-                                            isFlipping: nextCard.isFlipping,
-                                            faceUp: nextCard._faceUp,
-                                            isProcessingQueue: nextCard.isProcessingQueue
-                                        }
-                                    });
                                 }
                             } catch (error) {
                                 console.error('Error updating state:', error);
-                                // 出错时恢复到原始状态
                                 this.x = this.startX;
                                 this.y = this.startY;
                                 this.setDepth(this.normalDepth);
-                                this.isMoving = false;  // 确保重置移动状态
-                                console.log('Error recovery:', {
-                                    position: { x: this.x, y: this.y },
-                                    isMoving: this.isMoving
-                                });
+                                this.isMoving = false;
                             }
                         };
 
-                        // 执行状态更新
                         updateState();
                     },
                     this.attachedCards
@@ -483,8 +442,7 @@ export class Card extends GameObjects.Sprite {
         
         const timeDiff = Date.now() - this.clickTimer;
         if (timeDiff < Card.DRAG_THRESHOLD && !this.isDragging) {
-            // 如果时间小于阈值且没有拖拽，说明是点击操作
-            EventBus.emit('play-click');
+            EventBus.emit('play-card-flip');
             this.tryAutoMove();
         }
     }
@@ -493,54 +451,28 @@ export class Card extends GameObjects.Sprite {
     private tryAutoMove(): void {
         this.addToQueue(async () => {
             try {
-                console.log('=== tryAutoMove ===');
-                console.log('Card:', this._suit + this._value);
-                
                 const gameScene = this.scene as Game;
                 const attachedCards = gameScene.getAttachedCards(this);
                 
                 // 首先尝试移动到收牌区
                 for (let i = 0; i < gameScene.foundationZones.length; i++) {
                     if (gameScene.canAddToFoundation(this, i) && attachedCards.length === 0) {
-                        // 获取并保存当前卡牌的上一张牌
                         const nextCard = gameScene.getNextCard(this);
                         
-                        // 提升卡牌渲染优先级
                         this.setDepth(Card.DRAG_DEPTH);
                         attachedCards.forEach((card, index) => {
                             card.setDepth(Card.DRAG_DEPTH + index + 1);
                         });
 
-                        // 可以移动到收牌区
                         await this.animateMove(
                             gameScene.foundationZones[i].x,
                             gameScene.foundationZones[i].y,
                             () => new Promise<void>(async (resolveMove) => {
                                 try {
-                                    // 先执行收牌
-                                    gameScene.addToFoundation(this, i, true); // 在这里计数,因为是直接的移动操作
+                                    gameScene.addToFoundation(this, i, true);
 
-                                    // 检查下一张卡牌
                                     if (nextCard && !nextCard.faceUp && !nextCard.isFlipping) {
-                                        console.log('Flipping next card in foundation move:', {
-                                            card: nextCard._suit + nextCard._value,
-                                            state: {
-                                                isFlipping: nextCard.isFlipping,
-                                                faceUp: nextCard._faceUp,
-                                                isProcessingQueue: nextCard.isProcessingQueue
-                                            }
-                                        });
                                         await nextCard.flip();
-                                        console.log('Next card flip complete in foundation move');
-                                    } else if (nextCard) {
-                                        console.log('Skipping next card flip in foundation move:', {
-                                            card: nextCard._suit + nextCard._value,
-                                            state: {
-                                                isFlipping: nextCard.isFlipping,
-                                                faceUp: nextCard._faceUp,
-                                                isProcessingQueue: nextCard.isProcessingQueue
-                                            }
-                                        });
                                     }
                                     resolveMove();
                                 } catch (error) {
@@ -551,7 +483,6 @@ export class Card extends GameObjects.Sprite {
                             attachedCards
                         );
                         
-                        // 移动成功后返回
                         return;
                     }
                 }
@@ -562,21 +493,17 @@ export class Card extends GameObjects.Sprite {
 
                 for (const target of targets) {
                     if (target.isRed !== this.isRed && target.numericValue === this.numericValue + 1) {
-                        // 先检查是否可以移动到这个目标
                         const newColumnIndex = gameScene.getColumnIndex(target);
                         if (newColumnIndex !== -1) {
-                            // 提升卡牌渲染优先级
                             this.setDepth(Card.DRAG_DEPTH);
                             attachedCards.forEach((card, index) => {
                                 card.setDepth(Card.DRAG_DEPTH + index + 1);
                             });
 
-                            // 可以移动到这张卡上
                             await this.animateMove(
                                 target.x,
                                 target.y + Card.CARD_GAP_Y,
                                 () => new Promise<void>((resolveMove) => {
-                                    // 更新列的数据并计数
                                     gameScene.moveCardToColumn(this, newColumnIndex, true);
                                     resolveMove();
                                 }),
@@ -588,10 +515,9 @@ export class Card extends GameObjects.Sprite {
                 }
 
                 // 如果没有可移动位置,播放错误音效
-                EventBus.emit('play-click');
+                EventBus.emit('play-error');
             } catch (error) {
                 console.error('Error during move:', error);
-                // 出错时恢复到原始状态
                 this.x = this.startX;
                 this.y = this.startY;
                 this.setDepth(this.normalDepth);
@@ -602,28 +528,10 @@ export class Card extends GameObjects.Sprite {
     // 移动动画
     private animateMove(targetX: number, targetY: number, onComplete: () => void, attachedCards: Card[] = [], canDrop: boolean = true): Promise<void> {
         if (this.isMoving) {
-            console.log('Card is already moving:', {
-                card: this._suit + this._value,
-                from: { x: this.x, y: this.y },
-                to: { x: targetX, y: targetY }
-            });
             return Promise.resolve();
         }
 
         this.isMoving = true;
-        console.log('=== animateMove start ===');
-        console.log('Card:', this._suit + this._value);
-        console.log('Animation params:', {
-            targetX,
-            targetY,
-            currentX: this.x,
-            currentY: this.y,
-            attachedCardsCount: attachedCards.length,
-            canDrop,
-            isFlipping: this.isFlipping,
-            isMoving: this.isMoving,
-            faceUp: this._faceUp
-        });
 
         return new Promise<void>((resolve) => {
             let completedAnimations = 0;
@@ -631,68 +539,30 @@ export class Card extends GameObjects.Sprite {
             
             const checkAllComplete = () => {
                 completedAnimations++;
-                console.log('Animation progress:', {
-                    card: this._suit + this._value,
-                    completed: completedAnimations,
-                    total: totalAnimations,
-                    position: { x: this.x, y: this.y }
-                });
 
                 if (completedAnimations === totalAnimations) {
-                    console.log('=== All animations complete ===');
-                    console.log('Main card:', {
-                        card: this._suit + this._value,
-                        position: { x: this.x, y: this.y },
-                        isFlipping: this.isFlipping,
-                        faceUp: this._faceUp
-                    });
-                    console.log('Attached cards:', attachedCards.map(card => ({
-                        card: card._suit + card._value,
-                        position: { x: card.x, y: card.y }
-                    })));
-
-                    // 等待一帧以确保所有状态都已更新
                     setTimeout(() => {
-                        // 等待一帧以确保位置和深度更新完成
                         setTimeout(() => {
-                            // 验证最终位置
-                            const finalState = {
-                                card: this._suit + this._value,
-                                position: { x: this.x, y: this.y },
-                                targetPosition: { x: targetX, y: targetY },
-                                depth: this.depth,
-                                isFlipping: this.isFlipping,
-                                faceUp: this._faceUp
-                            };
-                            console.log('Verifying final position:', finalState);
-    
-                            // 检查位置是否正确
                             const positionOk =
                                 Math.abs(this.x - targetX) < 0.1 &&
                                 Math.abs(this.y - targetY) < 0.1;
     
                             if (!positionOk) {
-                                console.warn('Position not exact, forcing correction');
                                 this.x = targetX;
                                 this.y = targetY;
                                 this.setDepth(targetY);
                             }
     
                             if (canDrop) {
-                                console.log('Executing onComplete callback');
                                 Promise.resolve(onComplete()).then(() => {
-                                    console.log('onComplete callback finished');
-                                    console.log('Animation sequence finished');
                                     this.isMoving = false;
                                     resolve();
                                 }).catch(error => {
                                     console.error('Error in onComplete callback:', error);
-                                    console.log('Animation sequence finished with error');
                                     this.isMoving = false;
                                     resolve();
                                 });
                             } else {
-                                console.log('Animation sequence finished (no callback)');
                                 this.isMoving = false;
                                 resolve();
                             }
@@ -702,12 +572,6 @@ export class Card extends GameObjects.Sprite {
             };
             
             // 创建主卡牌动画
-            console.log('Starting main card animation:', {
-                card: this._suit + this._value,
-                from: { x: this.x, y: this.y },
-                to: { x: targetX, y: targetY }
-            });
-
             this.scene.tweens.add({
                 targets: this,
                 x: targetX,
@@ -715,30 +579,14 @@ export class Card extends GameObjects.Sprite {
                 duration: 200,
                 ease: 'Power2',
                 onComplete: () => {
-                    console.log('Main card animation complete:', {
-                        card: this._suit + this._value,
-                        position: { x: this.x, y: this.y }
-                    });
                     this.setDepth(targetY);
                     checkAllComplete();
                 }
             });
             
             // 创建附属卡牌动画
-            if (attachedCards.length > 0) {
-                console.log('Starting attached cards animations:', {
-                    count: attachedCards.length,
-                    cards: attachedCards.map(card => card._suit + card._value)
-                });
-            }
-
             attachedCards.forEach((card, index) => {
                 const cardY = targetY + (index + 1) * Card.CARD_GAP_Y;
-                console.log('Animating attached card:', {
-                    card: card._suit + card._value,
-                    from: { x: card.x, y: card.y },
-                    to: { x: targetX, y: cardY }
-                });
 
                 this.scene.tweens.add({
                     targets: card,
@@ -747,10 +595,6 @@ export class Card extends GameObjects.Sprite {
                     duration: 200,
                     ease: 'Power2',
                     onComplete: () => {
-                        console.log('Attached card animation complete:', {
-                            card: card._suit + card._value,
-                            position: { x: card.x, y: card.y }
-                        });
                         card.setDepth(cardY);
                         checkAllComplete();
                     }
@@ -758,7 +602,7 @@ export class Card extends GameObjects.Sprite {
             });
             
             // 播放移动音效
-            EventBus.emit('play-move');
+            EventBus.emit('play-card-place');
         });
     }
 
@@ -820,7 +664,6 @@ export class Card extends GameObjects.Sprite {
 
         // 检查空列（只允许K）
         if (this.numericValue === 13) {
-            // 简化的空列检测 - 检查是否在Tableau区域内但没有目标卡牌
             const tableauBounds = {
                 left: gameScene.currentLayout?.tableau.startX || 0,
                 right: (gameScene.currentLayout?.tableau.startX || 0) + 7 * (gameScene.currentLayout?.tableau.columnGap || 130),
@@ -831,10 +674,8 @@ export class Card extends GameObjects.Sprite {
             if (this.x >= tableauBounds.left && this.x <= tableauBounds.right &&
                 this.y >= tableauBounds.top && this.y <= tableauBounds.bottom) {
                 
-                // 计算最接近的列
                 const columnIndex = Math.floor((this.x - tableauBounds.left) / (gameScene.currentLayout?.tableau.columnGap || 130));
                 if (columnIndex >= 0 && columnIndex < 7) {
-                    // 检查该列是否为空
                     const columnCards = gameScene.getColumnBottomCards();
                     const hasCardInColumn = columnCards.some(card => gameScene.getColumnIndex(card) === columnIndex);
                     
@@ -885,5 +726,16 @@ export class Card extends GameObjects.Sprite {
             case 'K': return 13;
             default: return parseInt(this._value);
         }
+    }
+
+    // 兼容性方法 - 保持与现有代码的兼容性
+    static getSuitName(suit: CardSuit): string {
+        const suitName = {
+            'h': '红桃',
+            'd': '方块',
+            's': '黑桃',
+            'c': '梅花'
+        };
+        return suitName[suit];
     }
 }

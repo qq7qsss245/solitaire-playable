@@ -96,14 +96,7 @@ export class Preloader extends Scene {
         this.load.image(AssetKeys.GUIDE_CHECK_STOCK, Assets.tutorial.guideTexts.checkStock);
         this.load.image(AssetKeys.GUIDE_COMPLETE, Assets.tutorial.guideTexts.complete);
 
-        // 加载音频文件
-        this.load.audio(AssetKeys.BGM, Assets.audio.bgm);
-        this.load.audio(AssetKeys.CARD_FLIP, Assets.audio.cardFlip);
-        this.load.audio(AssetKeys.CARD_PLACE, Assets.audio.cardPlace);
-        this.load.audio(AssetKeys.CARD_DEAL, Assets.audio.cardDeal);
-        this.load.audio(AssetKeys.SLOT_PLACE, Assets.audio.slotPlace);
-        this.load.audio(AssetKeys.VICTORY, Assets.audio.victory);
-        this.load.audio(AssetKeys.ERROR, Assets.audio.error);
+        // 音频文件现在通过React组件(src/sound.tsx)直接导入，不需要在Phaser中加载
 
         // 兼容性：保持原有的键名以确保现有代码正常工作
         // 这些可以在后续重构时逐步替换为新的键名

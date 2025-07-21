@@ -267,7 +267,7 @@ export class Game extends Scene {
         this.playNowButton.setScale(0.8);
         this.playNowButton.setInteractive();
         this.playNowButton.on('pointerdown', () => {
-            EventBus.emit('play-click');
+            EventBus.emit('play-card-place');
             download();
         });
 
@@ -451,7 +451,7 @@ export class Game extends Scene {
 
         // 当移动次数超过10次时自动下载
         if (this.moves > 10) {
-            EventBus.emit('play-click');
+            EventBus.emit('play-card-place');
             download();
         }
     }
