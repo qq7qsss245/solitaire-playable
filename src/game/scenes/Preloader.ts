@@ -1,77 +1,7 @@
 import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { Global } from './constants/state';
-
-// 基础图片资源
-import bgImg from '../../assets/bg.png';
-import downloadImg from '../../assets/download.png';
-import handImg from '../../assets/hand.png';
-import iconImg from '../../assets/icon.png';
-import noImg from '../../assets/no.png';
-import textImg from '../../assets/text.png';
-import yesImg from '../../assets/yes.png';
-import cardFillImg from '../../assets/cards/fill.png';
-import cardBackImg from '../../assets/cards/卡背.png';
-
-// 方块牌
-import dA from '../../assets/cards/方块A.png';
-import d2 from '../../assets/cards/方块2.png';
-import d3 from '../../assets/cards/方块3.png';
-import d4 from '../../assets/cards/方块4.png';
-import d5 from '../../assets/cards/方块5.png';
-import d6 from '../../assets/cards/方块6.png';
-import d7 from '../../assets/cards/方块7.png';
-import d8 from '../../assets/cards/方块8.png';
-import d9 from '../../assets/cards/方块9.png';
-import d10 from '../../assets/cards/方块10.png';
-import dJ from '../../assets/cards/方块J.png';
-import dQ from '../../assets/cards/方块Q.png';
-import dK from '../../assets/cards/方块K.png';
-
-// 梅花牌
-import cA from '../../assets/cards/梅花A.png';
-import c2 from '../../assets/cards/梅花2.png';
-import c3 from '../../assets/cards/梅花3.png';
-import c4 from '../../assets/cards/梅花4.png';
-import c5 from '../../assets/cards/梅花5.png';
-import c6 from '../../assets/cards/梅花6.png';
-import c7 from '../../assets/cards/梅花7.png';
-import c8 from '../../assets/cards/梅花8.png';
-import c9 from '../../assets/cards/梅花9.png';
-import c10 from '../../assets/cards/梅花10.png';
-import cJ from '../../assets/cards/梅花J.png';
-import cQ from '../../assets/cards/梅花Q.png';
-import cK from '../../assets/cards/梅花K.png';
-
-// 红桃牌
-import hA from '../../assets/cards/红桃A.png';
-import h2 from '../../assets/cards/红桃2.png';
-import h3 from '../../assets/cards/红桃3.png';
-import h4 from '../../assets/cards/红桃4.png';
-import h5 from '../../assets/cards/红桃5.png';
-import h6 from '../../assets/cards/红桃6.png';
-import h7 from '../../assets/cards/红桃7.png';
-import h8 from '../../assets/cards/红桃8.png';
-import h9 from '../../assets/cards/红桃9.png';
-import h10 from '../../assets/cards/红桃10.png';
-import hJ from '../../assets/cards/红桃J.png';
-import hQ from '../../assets/cards/红桃Q.png';
-import hK from '../../assets/cards/红桃K.png';
-
-// 黑桃牌
-import sA from '../../assets/cards/黑桃A.png';
-import s2 from '../../assets/cards/黑桃2.png';
-import s3 from '../../assets/cards/黑桃3.png';
-import s4 from '../../assets/cards/黑桃4.png';
-import s5 from '../../assets/cards/黑桃5.png';
-import s6 from '../../assets/cards/黑桃6.png';
-import s7 from '../../assets/cards/黑桃7.png';
-import s8 from '../../assets/cards/黑桃8.png';
-import s9 from '../../assets/cards/黑桃9.png';
-import s10 from '../../assets/cards/黑桃10.png';
-import sJ from '../../assets/cards/黑桃J.png';
-import sQ from '../../assets/cards/黑桃Q.png';
-import sK from '../../assets/cards/黑桃K.png';
+import { Assets, AssetKeys } from '../../assets';
 
 export class Preloader extends Scene {
     constructor() {
@@ -83,77 +13,165 @@ export class Preloader extends Scene {
     }
 
     preload() {
-        // 加载基础图片资源
-        this.load.image('bg', bgImg);
-        this.load.image('download', downloadImg);
-        this.load.image('hand', handImg);
-        this.load.image('icon', iconImg);
-        this.load.image('no', noImg);
-        this.load.image('text', textImg);
-        this.load.image('yes', yesImg);
-        this.load.image('card-fill', cardFillImg);
-        this.load.image('card-back', cardBackImg);
+        // 加载背景图片
+        this.load.image(AssetKeys.BG_LANDSCAPE, Assets.backgrounds.landscape);
+        this.load.image(AssetKeys.BG_PORTRAIT, Assets.backgrounds.portrait);
 
-        // 加载方块牌
-        this.load.image('方块A', dA);
-        this.load.image('方块2', d2);
-        this.load.image('方块3', d3);
-        this.load.image('方块4', d4);
-        this.load.image('方块5', d5);
-        this.load.image('方块6', d6);
-        this.load.image('方块7', d7);
-        this.load.image('方块8', d8);
-        this.load.image('方块9', d9);
-        this.load.image('方块10', d10);
-        this.load.image('方块J', dJ);
-        this.load.image('方块Q', dQ);
-        this.load.image('方块K', dK);
+        // 加载扑克牌基础图片
+        this.load.image(AssetKeys.CARD_BACK, Assets.cards.back);
+        this.load.image(AssetKeys.CARD_FACE, Assets.cards.face);
 
-        // 加载梅花牌
-        this.load.image('梅花A', cA);
-        this.load.image('梅花2', c2);
-        this.load.image('梅花3', c3);
-        this.load.image('梅花4', c4);
-        this.load.image('梅花5', c5);
-        this.load.image('梅花6', c6);
-        this.load.image('梅花7', c7);
-        this.load.image('梅花8', c8);
-        this.load.image('梅花9', c9);
-        this.load.image('梅花10', c10);
-        this.load.image('梅花J', cJ);
-        this.load.image('梅花Q', cQ);
-        this.load.image('梅花K', cK);
+        // 加载花色图片
+        this.load.image(AssetKeys.SUIT_DIAMOND, Assets.cards.suits.diamond);
+        this.load.image(AssetKeys.SUIT_CLUB, Assets.cards.suits.club);
+        this.load.image(AssetKeys.SUIT_HEART, Assets.cards.suits.heart);
+        this.load.image(AssetKeys.SUIT_SPADE, Assets.cards.suits.spade);
 
-        // 加载红桃牌
-        this.load.image('红桃A', hA);
-        this.load.image('红桃2', h2);
-        this.load.image('红桃3', h3);
-        this.load.image('红桃4', h4);
-        this.load.image('红桃5', h5);
-        this.load.image('红桃6', h6);
-        this.load.image('红桃7', h7);
-        this.load.image('红桃8', h8);
-        this.load.image('红桃9', h9);
-        this.load.image('红桃10', h10);
-        this.load.image('红桃J', hJ);
-        this.load.image('红桃Q', hQ);
-        this.load.image('红桃K', hK);
+        // 加载红色牌值
+        this.load.image(AssetKeys.RED_A, Assets.cards.values.red.A);
+        this.load.image(AssetKeys.RED_2, Assets.cards.values.red[2]);
+        this.load.image(AssetKeys.RED_3, Assets.cards.values.red[3]);
+        this.load.image(AssetKeys.RED_4, Assets.cards.values.red[4]);
+        this.load.image(AssetKeys.RED_5, Assets.cards.values.red[5]);
+        this.load.image(AssetKeys.RED_6, Assets.cards.values.red[6]);
+        this.load.image(AssetKeys.RED_7, Assets.cards.values.red[7]);
+        this.load.image(AssetKeys.RED_8, Assets.cards.values.red[8]);
+        this.load.image(AssetKeys.RED_9, Assets.cards.values.red[9]);
+        this.load.image(AssetKeys.RED_10, Assets.cards.values.red[10]);
+        this.load.image(AssetKeys.RED_J, Assets.cards.values.red.J);
+        this.load.image(AssetKeys.RED_Q, Assets.cards.values.red.Q);
+        this.load.image(AssetKeys.RED_K, Assets.cards.values.red.K);
 
-        // 加载黑桃牌
-        this.load.image('黑桃A', sA);
-        this.load.image('黑桃2', s2);
-        this.load.image('黑桃3', s3);
-        this.load.image('黑桃4', s4);
-        this.load.image('黑桃5', s5);
-        this.load.image('黑桃6', s6);
-        this.load.image('黑桃7', s7);
-        this.load.image('黑桃8', s8);
-        this.load.image('黑桃9', s9);
-        this.load.image('黑桃10', s10);
-        this.load.image('黑桃J', sJ);
-        this.load.image('黑桃Q', sQ);
-        this.load.image('黑桃K', sK);
+        // 加载黑色牌值
+        this.load.image(AssetKeys.BLACK_A, Assets.cards.values.black.A);
+        this.load.image(AssetKeys.BLACK_2, Assets.cards.values.black[2]);
+        this.load.image(AssetKeys.BLACK_3, Assets.cards.values.black[3]);
+        this.load.image(AssetKeys.BLACK_4, Assets.cards.values.black[4]);
+        this.load.image(AssetKeys.BLACK_5, Assets.cards.values.black[5]);
+        this.load.image(AssetKeys.BLACK_6, Assets.cards.values.black[6]);
+        this.load.image(AssetKeys.BLACK_7, Assets.cards.values.black[7]);
+        this.load.image(AssetKeys.BLACK_8, Assets.cards.values.black[8]);
+        this.load.image(AssetKeys.BLACK_9, Assets.cards.values.black[9]);
+        this.load.image(AssetKeys.BLACK_10, Assets.cards.values.black[10]);
+        this.load.image(AssetKeys.BLACK_J, Assets.cards.values.black.J);
+        this.load.image(AssetKeys.BLACK_Q, Assets.cards.values.black.Q);
+        this.load.image(AssetKeys.BLACK_K, Assets.cards.values.black.K);
 
+        // 加载UI图片
+        this.load.image(AssetKeys.HAND, Assets.ui.hand);
+        this.load.image(AssetKeys.ICON, Assets.ui.icon);
+        this.load.image(AssetKeys.PLAY_FREE, Assets.ui.playFree);
+        this.load.image(AssetKeys.PRODUCT_NAME, Assets.ui.productName);
+        this.load.image(AssetKeys.FIVE_STARS, Assets.ui.fiveStars);
+
+        // 加载卡槽图片
+        this.load.image(AssetKeys.SLOT, Assets.ui.slots.slot);
+        this.load.image(AssetKeys.RESET, Assets.ui.slots.reset);
+
+        // 加载计分板图片
+        this.load.image(AssetKeys.SCOREBOARD_LANDSCAPE, Assets.ui.scoreboard.landscape);
+        this.load.image(AssetKeys.SCOREBOARD_PORTRAIT, Assets.ui.scoreboard.portrait);
+        this.load.image(AssetKeys.MOVES_TEXT, Assets.ui.scoreboard.moves);
+        this.load.image(AssetKeys.SCORE_TEXT, Assets.ui.scoreboard.score);
+        this.load.image(AssetKeys.TIME_TEXT, Assets.ui.scoreboard.time);
+
+        // 加载结算界面图片
+        this.load.image(AssetKeys.GAMEOVER_BG, Assets.ui.gameover.bg);
+        this.load.image(AssetKeys.BEST_UI, Assets.ui.gameover.bestUi);
+        this.load.image(AssetKeys.CONTINUE_BUTTON, Assets.ui.gameover.continueButton);
+        this.load.image(AssetKeys.GREAT_TEXT, Assets.ui.gameover.great);
+        this.load.image(AssetKeys.BEST_TEXT, Assets.ui.gameover.best);
+        this.load.image(AssetKeys.CONTINUE_SMALL_TEXT, Assets.ui.gameover.continueSmall);
+        this.load.image(AssetKeys.MOVES_GAMEOVER_TEXT, Assets.ui.gameover.moves);
+        this.load.image(AssetKeys.SCORE_GAMEOVER_TEXT, Assets.ui.gameover.score);
+        this.load.image(AssetKeys.TIME_GAMEOVER_TEXT, Assets.ui.gameover.time);
+        this.load.image(AssetKeys.YOUR_TEXT, Assets.ui.gameover.your);
+
+        // 加载引导文案图片
+        this.load.image(AssetKeys.GUIDE_INTRO, Assets.tutorial.guideTexts.intro);
+        this.load.image(AssetKeys.GUIDE_OBJECTIVE, Assets.tutorial.guideTexts.objective);
+        this.load.image(AssetKeys.GUIDE_ACE_TO_FOUNDATION, Assets.tutorial.guideTexts.aceToFoundation);
+        this.load.image(AssetKeys.GUIDE_CARD_TO_PILE, Assets.tutorial.guideTexts.cardToPile);
+        this.load.image(AssetKeys.GUIDE_MOVE_CARD, Assets.tutorial.guideTexts.moveCard);
+        this.load.image(AssetKeys.GUIDE_CHECK_STOCK, Assets.tutorial.guideTexts.checkStock);
+        this.load.image(AssetKeys.GUIDE_COMPLETE, Assets.tutorial.guideTexts.complete);
+
+        // 加载音频文件
+        this.load.audio(AssetKeys.BGM, Assets.audio.bgm);
+        this.load.audio(AssetKeys.CARD_FLIP, Assets.audio.cardFlip);
+        this.load.audio(AssetKeys.CARD_PLACE, Assets.audio.cardPlace);
+        this.load.audio(AssetKeys.CARD_DEAL, Assets.audio.cardDeal);
+        this.load.audio(AssetKeys.SLOT_PLACE, Assets.audio.slotPlace);
+        this.load.audio(AssetKeys.VICTORY, Assets.audio.victory);
+        this.load.audio(AssetKeys.ERROR, Assets.audio.error);
+
+        // 兼容性：保持原有的键名以确保现有代码正常工作
+        // 这些可以在后续重构时逐步替换为新的键名
+        this.load.image('card-back', Assets.cards.back);
+        this.load.image('card-fill', Assets.ui.slots.slot); // 用于空区域显示
+        this.load.image('download', Assets.ui.playFree); // 下载按钮
+        this.load.image('hand', Assets.ui.hand);
+        this.load.image('icon', Assets.ui.icon);
+
+        // 方块牌 - 兼容性映射
+        this.load.image('方块A', Assets.cards.values.red.A);
+        this.load.image('方块2', Assets.cards.values.red[2]);
+        this.load.image('方块3', Assets.cards.values.red[3]);
+        this.load.image('方块4', Assets.cards.values.red[4]);
+        this.load.image('方块5', Assets.cards.values.red[5]);
+        this.load.image('方块6', Assets.cards.values.red[6]);
+        this.load.image('方块7', Assets.cards.values.red[7]);
+        this.load.image('方块8', Assets.cards.values.red[8]);
+        this.load.image('方块9', Assets.cards.values.red[9]);
+        this.load.image('方块10', Assets.cards.values.red[10]);
+        this.load.image('方块J', Assets.cards.values.red.J);
+        this.load.image('方块Q', Assets.cards.values.red.Q);
+        this.load.image('方块K', Assets.cards.values.red.K);
+
+        // 梅花牌 - 兼容性映射
+        this.load.image('梅花A', Assets.cards.values.black.A);
+        this.load.image('梅花2', Assets.cards.values.black[2]);
+        this.load.image('梅花3', Assets.cards.values.black[3]);
+        this.load.image('梅花4', Assets.cards.values.black[4]);
+        this.load.image('梅花5', Assets.cards.values.black[5]);
+        this.load.image('梅花6', Assets.cards.values.black[6]);
+        this.load.image('梅花7', Assets.cards.values.black[7]);
+        this.load.image('梅花8', Assets.cards.values.black[8]);
+        this.load.image('梅花9', Assets.cards.values.black[9]);
+        this.load.image('梅花10', Assets.cards.values.black[10]);
+        this.load.image('梅花J', Assets.cards.values.black.J);
+        this.load.image('梅花Q', Assets.cards.values.black.Q);
+        this.load.image('梅花K', Assets.cards.values.black.K);
+
+        // 红桃牌 - 兼容性映射
+        this.load.image('红桃A', Assets.cards.values.red.A);
+        this.load.image('红桃2', Assets.cards.values.red[2]);
+        this.load.image('红桃3', Assets.cards.values.red[3]);
+        this.load.image('红桃4', Assets.cards.values.red[4]);
+        this.load.image('红桃5', Assets.cards.values.red[5]);
+        this.load.image('红桃6', Assets.cards.values.red[6]);
+        this.load.image('红桃7', Assets.cards.values.red[7]);
+        this.load.image('红桃8', Assets.cards.values.red[8]);
+        this.load.image('红桃9', Assets.cards.values.red[9]);
+        this.load.image('红桃10', Assets.cards.values.red[10]);
+        this.load.image('红桃J', Assets.cards.values.red.J);
+        this.load.image('红桃Q', Assets.cards.values.red.Q);
+        this.load.image('红桃K', Assets.cards.values.red.K);
+
+        // 黑桃牌 - 兼容性映射
+        this.load.image('黑桃A', Assets.cards.values.black.A);
+        this.load.image('黑桃2', Assets.cards.values.black[2]);
+        this.load.image('黑桃3', Assets.cards.values.black[3]);
+        this.load.image('黑桃4', Assets.cards.values.black[4]);
+        this.load.image('黑桃5', Assets.cards.values.black[5]);
+        this.load.image('黑桃6', Assets.cards.values.black[6]);
+        this.load.image('黑桃7', Assets.cards.values.black[7]);
+        this.load.image('黑桃8', Assets.cards.values.black[8]);
+        this.load.image('黑桃9', Assets.cards.values.black[9]);
+        this.load.image('黑桃10', Assets.cards.values.black[10]);
+        this.load.image('黑桃J', Assets.cards.values.black.J);
+        this.load.image('黑桃Q', Assets.cards.values.black.Q);
+        this.load.image('黑桃K', Assets.cards.values.black.K);
     }
 
     loadFont(name: string, url: string) {

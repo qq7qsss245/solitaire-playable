@@ -1,125 +1,77 @@
 import { EventBus } from '../EventBus';
 import { GameObjects, Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
-import { initialLayout, Card as CardType, CardSuit, CardValue } from '../../config/layout';
+import {
+    generateKlondikeLayout,
+    KlondikeLayout,
+    LayoutPositions,
+    portraitLayout,
+    landscapeLayout,
+    CardSuit,
+    CardValue
+} from '../../config/klondike-layout';
+import { generateTutorialLayout } from '../../config/tutorial-deck';
+import { TutorialManager } from '../tutorial/TutorialManager';
 import download from './constants/download';
 import { getTranslation } from '../i18n';
 
-interface CardColumn {
+// 游戏区域类型
+interface TableauColumn {
     cards: CardComponent[];
-    x: number;
 }
 
 interface FoundationPile {
-    zone: Phaser.GameObjects.Sprite;
     cards: CardComponent[];
     suit?: CardSuit;  // 一旦放入第一张牌(A)就确定花色
 }
 
-// 布局配置接口
-interface LayoutConfig {
-    cardColumns: {
-        startX: number;
-        startY: number;
-        gapX: number;
-        gapY: number;
-    };
-    foundation: {
-        startX: number;
-        startY: number;
-        gap: number;
-    };
-    score: {
-        x: number;
-        y: number;
-    };
-    downloadButton: {
-        x: number;
-        y: number;
-    };
+interface StockPile {
+    cards: CardComponent[];
+}
+
+interface WastePile {
+    cards: CardComponent[];
 }
 
 export class Game extends Scene {
-    public cards: CardComponent[] = [];
-    public currentOffsetX: number = 0;
-    public currentOffsetY: number = 0;
-    public foundationZones: Phaser.GameObjects.Sprite[] = []; // 收牌区位置
-    public playNowButton: Phaser.GameObjects.Image; // 添加按钮属性
-    private playNowText: Phaser.GameObjects.Text; // 添加按钮文本属性
-    private columns: CardColumn[] = []; // 存储每列的卡牌
-    private foundations: FoundationPile[] = []; // 存储收牌区状态
-    private score: number = 0; // 游戏得分
-    private moves: number = 0; // 移动次数
-    private scoreText: Phaser.GameObjects.Text; // 分数显示
-    private movesText: Phaser.GameObjects.Text; // 移动次数显示
-    private handGuide: Phaser.GameObjects.Image; // 引导手势图片
-    private guideTimer: number = 0; // 无操作计时器
-    private lastMoves: number = 0; // 上次的移动次数
-
-    // 布局配置
-    private landscapeLayout: LayoutConfig = {
-        cardColumns: {
-            startX: 0,     // 使用0作为基准点
-            startY: 164,   // CARD_HEIGHT
-            gapX: 130,     // CARD_WIDTH + 10
-            gapY: 41       // CARD_HEIGHT / 4
-        },
-        foundation: {
-            startX: -240,  // -2 * CARD_WIDTH
-            startY: 65.6,  // MARGIN_TOP
-            gap: 130       // CARD_WIDTH + 10
-        },
-        score: {
-            x: 140,      // 原来的40 + 100
-            y: 360       // height / 3
-        },
-        downloadButton: {
-            x: 340,      // 原来的240 + 100
-            y: 880       // height - 200
-        }
-    };
-
-    // 竖屏布局配置
-    private portraitLayout: LayoutConfig = {
-        cardColumns: {
-            startX: 0,     // 使用0作为基准点
-            startY: 164,   // CARD_HEIGHT
-            gapX: 130,     // CARD_WIDTH + 10
-            gapY: 41       // CARD_HEIGHT / 4
-        },
-        foundation: {
-            startX: -240,  // -2 * CARD_WIDTH
-            startY: 164,   // 与cardColumns.startY相同，确保在同一水平线上
-            gap: 130       // CARD_WIDTH + 10
-        },
-        score: {
-            x: 40,
-            y: 50         // 顶部50单位处
-        },
-        downloadButton: {
-            x: 240,       // CARD_WIDTH * 2
-            y: 880        // height - 200
-        }
-    };
-
-    // 定义横竖屏尺寸
+    // 游戏状态
+    private gameLayout: KlondikeLayout;
+    public currentLayout: LayoutPositions;
+    
+    // 游戏区域
+    public tableau: TableauColumn[] = []; // 7列游戏区域 - 改为public以供教学系统访问
+    public foundation: FoundationPile[] = []; // 4个基础牌堆 - 改为public
+    public stock: StockPile = { cards: [] }; // 库存牌堆 - 改为public
+    public waste: WastePile = { cards: [] }; // 翻牌区域 - 改为public
+    
+    // UI元素
+    private stockZone: Phaser.GameObjects.Sprite; // 库存牌堆区域
+    private wasteZone: Phaser.GameObjects.Sprite; // 翻牌区域
+    public foundationZones: Phaser.GameObjects.Sprite[] = []; // 基础牌堆区域
+    private playNowButton: Phaser.GameObjects.Image;
+    private playNowText: Phaser.GameObjects.Text;
+    
+    // 游戏统计
+    private score: number = 0;
+    private moves: number = 0;
+    private scoreText: Phaser.GameObjects.Text;
+    private movesText: Phaser.GameObjects.Text;
+    
+    // 教学系统
+    private tutorialManager: TutorialManager | null = null;
+    private isTutorialMode: boolean = false;
+    
+    // 引导系统
+    private handGuide: Phaser.GameObjects.Image;
+    private guideTimer: number = 0;
+    private lastMoves: number = 0;
+    
+    // 游戏尺寸常量
     public readonly LANDSCAPE_WIDTH = 1920;
     public readonly LANDSCAPE_HEIGHT = 1080;
     public readonly PORTRAIT_WIDTH = 1080;
     public readonly PORTRAIT_HEIGHT = 1920;
-    public readonly ColumGap = 10;
-
-    // 定义卡牌基础尺寸
-    public readonly CARD_HEIGHT = 164;     // 246 * (2/3)
-    public readonly CARD_WIDTH = 120;      // 180 * (2/3)
-
-    // 定义卡牌布局参数(全部基于卡牌尺寸计算)
-    public get CARD_GAP_X() { return this.CARD_WIDTH + this.ColumGap; }
-    public get CARD_GAP_Y() { return this.CARD_HEIGHT / 4; }       // 垂直间距为卡牌高度的1/4
-    public get MARGIN_TOP() { return this.CARD_HEIGHT * 0.4 - 100; }      // 顶部边距为卡牌高度的0.4倍减去100单位
-    public get LAYOUT_OFFSET_X() { return this.CARD_HEIGHT * 4.5; } // 整体右偏移为卡牌高度的4.5倍
-    public fillZones: GameObjects.Image[] = [];
-
+    
     constructor() {
         super('Game');
     }
@@ -128,24 +80,166 @@ export class Game extends Scene {
         // 播放背景音乐
         EventBus.emit('play-bgm');
 
-        // 创建初始牌局
-        this.createInitialLayout();
+        // 检查是否启动教学模式（可以通过URL参数或其他方式控制）
+        const urlParams = new URLSearchParams(window.location.search);
+        const tutorialMode = urlParams.get('tutorial') === 'true';
+
+        // 初始化游戏布局
+        this.initializeGame(tutorialMode);
         
-        // 创建收牌区
-        this.createFoundationZones();
-
-        // 创建Play Now按钮
-        this.createPlayNowButton();
-
+        // 创建UI元素
+        this.createUI();
+        
         // 创建引导手势
         this.createHandGuide();
-
+        
         // 添加全局点击事件监听
         this.input.on('pointerdown', () => {
             this.resetGuideState();
+            // 触发用户操作事件
+            EventBus.emit('user-action');
+        });
+        
+        // 监听窗口大小变化
+        const boundOnResize = this.onResize.bind(this);
+        window.addEventListener('resize', boundOnResize);
+        
+        // 通知场景准备完成
+        EventBus.emit('current-scene-ready', this);
+        
+        // 设置初始游戏尺寸
+        this.updateGameSize();
+        
+        // 添加场景销毁时的清理
+        this.events.on('destroy', () => {
+            window.removeEventListener('resize', boundOnResize);
+            if (this.tutorialManager) {
+                this.tutorialManager.destroy();
+            }
+        });
+    }
+
+    private initializeGame(tutorialMode: boolean = false): void {
+        // 根据模式生成布局
+        if (tutorialMode) {
+            this.gameLayout = generateTutorialLayout();
+            this.isTutorialMode = true;
+        } else {
+            this.gameLayout = generateKlondikeLayout();
+            this.isTutorialMode = false;
+        }
+        
+        // 初始化游戏区域
+        this.initializeTableau();
+        this.initializeFoundation();
+        this.initializeStock();
+        this.initializeWaste();
+        
+        // 创建卡牌
+        this.createCards();
+        
+        // 初始化教学系统
+        if (this.isTutorialMode) {
+            this.initializeTutorial();
+        }
+    }
+
+    private initializeTutorial(): void {
+        this.tutorialManager = new TutorialManager(this);
+        
+        // 延迟启动教学，确保所有组件都已初始化
+        this.time.delayedCall(1000, () => {
+            if (this.tutorialManager) {
+                this.tutorialManager.startTutorial();
+            }
+        });
+    }
+
+    private initializeTableau(): void {
+        // 初始化7列游戏区域
+        this.tableau = [];
+        for (let i = 0; i < 7; i++) {
+            this.tableau.push({ cards: [] });
+        }
+    }
+
+    private initializeFoundation(): void {
+        // 初始化4个基础牌堆
+        this.foundation = [];
+        for (let i = 0; i < 4; i++) {
+            this.foundation.push({ cards: [] });
+        }
+    }
+
+    private initializeStock(): void {
+        this.stock = { cards: [] };
+    }
+
+    private initializeWaste(): void {
+        this.waste = { cards: [] };
+    }
+
+    private createCards(): void {
+        // 创建Tableau区域的卡牌
+        this.gameLayout.tableau.forEach((column, columnIndex) => {
+            column.forEach((cardData, cardIndex) => {
+                const card = new CardComponent(
+                    this,
+                    0, 0, // 位置稍后设置
+                    cardData.suit,
+                    cardData.value,
+                    cardData.faceUp
+                );
+                
+                this.add.existing(card);
+                this.tableau[columnIndex].cards.push(card);
+            });
         });
 
-        // 创建分数和移动次数显示
+        // 创建Stock区域的卡牌
+        this.gameLayout.stock.forEach((cardData) => {
+            const card = new CardComponent(
+                this,
+                0, 0, // 位置稍后设置
+                cardData.suit,
+                cardData.value,
+                cardData.faceUp
+            );
+            
+            this.add.existing(card);
+            this.stock.cards.push(card);
+        });
+    }
+
+    private createUI(): void {
+        this.createZones();
+        this.createScoreboard();
+        this.createPlayNowButton();
+    }
+
+    private createZones(): void {
+        // 创建库存牌堆区域
+        this.stockZone = this.add.sprite(0, 0, 'card-fill');
+        this.stockZone.setDisplaySize(120, 164); // 使用固定尺寸
+        this.stockZone.setDepth(0);
+        this.stockZone.setInteractive();
+        this.stockZone.on('pointerdown', () => this.onStockClick());
+
+        // 创建翻牌区域
+        this.wasteZone = this.add.sprite(0, 0, 'card-fill');
+        this.wasteZone.setDisplaySize(120, 164);
+        this.wasteZone.setDepth(0);
+
+        // 创建4个基础牌堆区域
+        for (let i = 0; i < 4; i++) {
+            const zone = this.add.sprite(0, 0, 'card-fill');
+            zone.setDisplaySize(120, 164);
+            zone.setDepth(0);
+            this.foundationZones.push(zone);
+        }
+    }
+
+    private createScoreboard(): void {
         const textStyle = {
             fontSize: '64px',
             fontFamily: 'Arial',
@@ -157,138 +251,23 @@ export class Game extends Scene {
         const t = getTranslation();
 
         // 创建移动次数显示
-        this.movesText = this.add.text(40, 0, `${t.moves}0`, textStyle);
+        this.movesText = this.add.text(0, 0, `${t.moves}0`, textStyle);
         this.movesText.setScrollFactor(0);
         this.movesText.setDepth(1000);
 
         // 创建分数显示
-        this.scoreText = this.add.text(40, 0, `${t.score}0`, textStyle);
+        this.scoreText = this.add.text(0, 0, `${t.score}0`, textStyle);
         this.scoreText.setScrollFactor(0);
         this.scoreText.setDepth(1000);
-
-        // 设置文本位置
-        this.updateScorePosition();
-
-        // 监听窗口大小变化
-        const boundOnResize = this.onResize.bind(this);
-        window.addEventListener('resize', boundOnResize);
-
-        // 通知场景准备完成
-        EventBus.emit('current-scene-ready', this);
-
-        // 设置初始游戏尺寸
-        this.updateGameSize();
-
-        // 添加场景销毁时的清理
-        this.events.on('destroy', () => {
-            window.removeEventListener('resize', boundOnResize);
-        });
-    }
-
-    private calculateOffsets(isLandscape: boolean): { offsetX: number; offsetY: number } {
-        const layout = this.getCurrentLayout();
-        if (isLandscape) {
-            return {
-                offsetX: layout.cardColumns.startX + this.LANDSCAPE_WIDTH - (this.CARD_WIDTH * 5),
-                offsetY: layout.cardColumns.startY
-            };
-        } else {
-            // 计算计分板的高度和位置
-            const scoreboardTop = 50; // 计分板顶部位置
-            const scoreboardHeight = 64; // 文本高度（根据fontSize: '64px'）
-            const scoreboardGap = 50; // 计分板与牌组之间的间距
-            const startY = scoreboardTop + scoreboardHeight + scoreboardGap;
-
-            return {
-                offsetX: layout.cardColumns.startX + this.PORTRAIT_WIDTH / 2,
-                offsetY: startY
-            };
-        }
-    }
-
-    private updateGameSize(): void {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const aspectRatio = width / height;
-        const isLandscape = aspectRatio > 1;
-
-        // 设置游戏尺寸
-        if (isLandscape) {
-            this.scale.setGameSize(this.LANDSCAPE_WIDTH, this.LANDSCAPE_HEIGHT);
-        } else {
-            this.scale.setGameSize(this.PORTRAIT_WIDTH, this.PORTRAIT_HEIGHT);
-        }
-
-        // 计算新的偏移量
-        const offsets = this.calculateOffsets(isLandscape);
-        this.currentOffsetX = offsets.offsetX;
-        this.currentOffsetY = offsets.offsetY;
-
-        // 更新组件位置
-        this.updateComponents();
-    }
-
-    private createFoundationZones(): void {
-        // 计算最左侧牌组的x坐标(与createInitialLayout中的计算保持一致)
-        const middleStartX = -this.CARD_GAP_X;
-        const leftmostPileX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap));
-        
-        // 计算右侧倒数第二列和最后一列的x坐标
-        const rightSecondLastX = middleStartX + (3 * this.CARD_GAP_X); // 倒数第二列
-        const rightLastX = middleStartX + (4 * this.CARD_GAP_X);       // 最后一列
-        
-        // 存储所有cardFill的x坐标
-        const cardFillXPositions = [];
-        
-        // 创建前两个收牌区(左侧)
-        for (let i = 0; i < 2; i++) {
-            const x = leftmostPileX + (i * (this.CARD_WIDTH + this.ColumGap)) + this.currentOffsetX;
-            cardFillXPositions.push(x);
-            const zone = this.add.sprite(x, this.MARGIN_TOP + this.currentOffsetY, 'card-fill');
-            zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
-            zone.setDepth(0); // 设置收牌区基础深度为0
-            this.foundationZones.push(zone);
-            this.fillZones.push(zone);
-            
-            // 初始化收牌区状态
-            this.foundations.push({
-                zone: zone,
-                cards: []
-            });
-        }
-
-        // 创建后两个收牌区(右侧),但位置相反
-        const rightPositions = [
-            rightLastX,      // 第四个位置(最右列)
-            rightSecondLastX // 第三个位置(倒数第二列)
-        ];
-        
-        for (let i = 0; i < 2; i++) {
-            const x = rightPositions[i] + this.currentOffsetX;
-            cardFillXPositions.push(x);
-            const zone = this.add.sprite(x, this.MARGIN_TOP + this.currentOffsetY, 'card-fill');
-            zone.setDisplaySize(this.CARD_WIDTH, this.CARD_HEIGHT);
-            zone.setDepth(0); // 设置收牌区基础深度为0
-            this.foundationZones.push(zone);
-            this.fillZones.push(zone);
-            
-            // 初始化收牌区状态
-            this.foundations.push({
-                zone: zone,
-                cards: []
-            });
-        }
     }
 
     private createPlayNowButton(): void {
         // 创建按钮背景
         this.playNowButton = this.add.image(0, 0, 'download');
-        this.playNowButton.setScale(0.8);  // 设置初始大小为0.8倍
+        this.playNowButton.setScale(0.8);
         this.playNowButton.setInteractive();
         this.playNowButton.on('pointerdown', () => {
-            // 播放点击音效
             EventBus.emit('play-click');
-            // 调用下载函数
             download();
         });
 
@@ -302,17 +281,16 @@ export class Game extends Scene {
         // 获取当前语言的文本
         const t = getTranslation();
         
-        // 创建文本并设置为按钮的子对象
+        // 创建文本
         this.playNowText = this.add.text(0, 0, t.playNow, textStyle);
-        this.playNowText.setOrigin(0.5, 0.5);  // 设置文本锚点为中心
-        this.playNowText.setDepth(this.playNowButton.depth + 1);  // 确保文本在按钮上方
-        this.playNowText.setScale(0.8);  // 文本也设置为0.8倍大小
+        this.playNowText.setOrigin(0.5, 0.5);
+        this.playNowText.setDepth(this.playNowButton.depth + 1);
+        this.playNowText.setScale(0.8);
 
         // 添加按钮缩放动画
-        const buttonScale = this.playNowButton.scale;
         this.tweens.add({
             targets: this.playNowButton,
-            scale: buttonScale * 1.1,
+            scale: 0.8 * 1.1,
             duration: 500,
             yoyo: true,
             repeat: -1,
@@ -320,95 +298,58 @@ export class Game extends Scene {
         });
 
         // 添加文本缩放动画
-        const textScale = this.playNowText.scale;
         this.tweens.add({
             targets: this.playNowText,
-            scale: textScale * 1.1,
+            scale: 0.8 * 1.1,
             duration: 500,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-
-        this.updatePlayNowButtonPosition();
     }
 
-    // 更新分数
-    private updateScore(points: number) {
-        this.score += points;
-        const t = getTranslation();
-        this.scoreText.setText(`${t.score}${this.score}`);
+    private createHandGuide(): void {
+        // 创建引导手势图片
+        this.handGuide = this.add.image(0, 0, 'hand');
+        this.handGuide.setVisible(false);
+        this.handGuide.setDepth(10000);
+        this.handGuide.setScale(0.8);
     }
 
-    // 增加移动次数
-    private incrementMoves() {
-        this.moves++;
-        const t = getTranslation();
-        this.movesText.setText(`${t.moves}${this.moves}`);
-
-        // 当移动次数超过10次时自动下载
-        if (this.moves > 10) {
-            // 播放点击音效
-            EventBus.emit('play-click');
-            // 调用下载函数
-            download();
-        }
-    }
-
-    private updatePlayNowButtonPosition(): void {
+    private updateGameSize(): void {
         const width = window.innerWidth;
         const height = window.innerHeight;
         const aspectRatio = width / height;
-
-        if (aspectRatio > 1) {
-            // 横屏模式
-            this.playNowButton.setPosition(
-                this.CARD_WIDTH * 2,
-                this.scale.height - 200
-            );
-        } else {
-            // 竖屏模式
-            this.playNowButton.setPosition(
-                this.CARD_WIDTH,
-                this.scale.height - 200
-            );
-        }
-    }
-
-    private getCurrentLayout(): LayoutConfig {
-        const aspectRatio = window.innerWidth / window.innerHeight;
-        return aspectRatio > 1 ? this.landscapeLayout : this.portraitLayout;
-    }
-
-    private updateCardPositions(): void {
-        const layout = this.getCurrentLayout();
-        const aspectRatio = window.innerWidth / window.innerHeight;
         const isLandscape = aspectRatio > 1;
-        const middleStartX = -this.CARD_GAP_X;
-        const sideStartY = this.MARGIN_TOP + 5 * this.CARD_GAP_Y;
-        // 竖屏模式下额外的Y轴偏移
-        const portraitExtraY = isLandscape ? 0 : 150;
 
-        // 更新每列中卡牌的位置
-        this.columns.forEach((column, columnIndex) => {
-            let baseX;
-            if (columnIndex < 2) {
-                // 左侧两列
-                baseX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap)) + (columnIndex * (this.CARD_WIDTH + this.ColumGap));
-            } else if (columnIndex < 5) {
-                // 中间三列
-                baseX = middleStartX + ((columnIndex - 2) * this.CARD_GAP_X);
-            } else {
-                // 右侧两列
-                baseX = middleStartX + (3 * this.CARD_GAP_X) + ((columnIndex - 5) * this.CARD_GAP_X);
-            }
+        // 设置游戏尺寸
+        if (isLandscape) {
+            this.scale.setGameSize(this.LANDSCAPE_WIDTH, this.LANDSCAPE_HEIGHT);
+            this.currentLayout = landscapeLayout;
+        } else {
+            this.scale.setGameSize(this.PORTRAIT_WIDTH, this.PORTRAIT_HEIGHT);
+            this.currentLayout = portraitLayout;
+        }
 
+        // 更新所有组件位置
+        this.updateAllPositions();
+    }
+
+    private updateAllPositions(): void {
+        this.updateTableauPositions();
+        this.updateFoundationPositions();
+        this.updateStockWastePositions();
+        this.updateScoreboardPosition();
+        this.updatePlayNowButtonPosition();
+    }
+
+    private updateTableauPositions(): void {
+        // 更新7列游戏区域的卡牌位置
+        this.tableau.forEach((column, columnIndex) => {
+            const x = this.currentLayout.tableau.startX + columnIndex * this.currentLayout.tableau.columnGap;
+            
             column.cards.forEach((card, cardIndex) => {
-                const x = baseX + this.currentOffsetX;
-                const y = (columnIndex < 2 || columnIndex > 4)
-                    ? sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY + portraitExtraY
-                    : this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y + this.currentOffsetY + portraitExtraY;
-
+                const y = this.currentLayout.tableau.startY + cardIndex * this.currentLayout.tableau.cardGap;
                 card.setPosition(x, y);
                 card.setDepth(y);
             });
@@ -416,262 +357,302 @@ export class Game extends Scene {
     }
 
     private updateFoundationPositions(): void {
-        const layout = this.getCurrentLayout();
-        const aspectRatio = window.innerWidth / window.innerHeight;
-        const isLandscape = aspectRatio > 1;
-        const middleStartX = -this.CARD_GAP_X;
-        const leftmostPileX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap));
-        const rightSecondLastX = middleStartX + (3 * this.CARD_GAP_X);
-        const rightLastX = middleStartX + (4 * this.CARD_GAP_X);
-        // 竖屏模式下额外的Y轴偏移
-        const portraitExtraY = isLandscape ? 0 : 150;
-
-        // 更新左侧两个收牌区
-        for (let i = 0; i < 2; i++) {
-            const x = leftmostPileX + (i * (this.CARD_WIDTH + this.ColumGap)) + this.currentOffsetX;
-            const y = this.MARGIN_TOP + this.currentOffsetY + portraitExtraY;
-            const zone = this.foundationZones[i];
-            const foundation = this.foundations[i];
-
+        // 更新4个基础牌堆的位置
+        this.foundationZones.forEach((zone, index) => {
+            const x = this.currentLayout.foundation.startX + (index % 2) * this.currentLayout.foundation.gap;
+            const y = this.currentLayout.foundation.startY + Math.floor(index / 2) * (this.currentLayout.cardHeight + 20);
             zone.setPosition(x, y);
-            zone.setDepth(0);
-
-            // 更新收牌区中的卡牌位置
-            foundation.cards.forEach((card, cardIndex) => {
-                card.setPosition(x, y);
-                card.setDepth(10 + cardIndex);
-            });
-        }
-
-        // 更新右侧两个收牌区
-        const rightPositions = [rightLastX, rightSecondLastX];
-        for (let i = 0; i < 2; i++) {
-            const x = rightPositions[i] + this.currentOffsetX;
-            const y = this.MARGIN_TOP + this.currentOffsetY + portraitExtraY;
-            const zone = this.foundationZones[i + 2];
-            const foundation = this.foundations[i + 2];
-
-            zone.setPosition(x, y);
-            zone.setDepth(0);
-
-            // 更新收牌区中的卡牌位置
-            foundation.cards.forEach((card, cardIndex) => {
-                card.setPosition(x, y);
-                card.setDepth(10 + cardIndex);
-            });
-        }
-    }
-
-    private updateScorePosition(): void {
-        const layout = this.getCurrentLayout();
-        const aspectRatio = window.innerWidth / window.innerHeight;
-        const isLandscape = aspectRatio > 1;
-
-        if (isLandscape) {
-            // 横屏模式：使用原有布局
-            this.movesText.setPosition(layout.score.x, layout.score.y - 50);
-            this.scoreText.setPosition(layout.score.x, layout.score.y + 50);
-        } else {
-            // 竖屏模式：横向平铺
-            const screenWidth = this.scale.width;
-            const scoreboardWidth = screenWidth * 0.8; // 计分板宽度为屏幕宽度的80%
-            const margin = (screenWidth - scoreboardWidth) / 2; // 两侧边距
-
-            // 设置移动次数文本位置（左端）
-            this.movesText.setPosition(margin, layout.score.y);
-
-            // 设置分数文本位置（右端）
-            const scoreTextWidth = this.scoreText.width;
-            this.scoreText.setPosition(screenWidth - margin - scoreTextWidth, layout.score.y);
-        }
-
-    }
-
-    private updateButtonPosition(): void {
-        const layout = this.getCurrentLayout();
-        const aspectRatio = window.innerWidth / window.innerHeight;
-        const isLandscape = aspectRatio > 1;
-
-        if (isLandscape) {
-            // 横屏模式
-            const x = layout.downloadButton.x;
-            const y = layout.downloadButton.y - 100; // 向上移动100单位
-            this.playNowButton.setPosition(x, y);
-            this.playNowText.setPosition(x, y);
-            this.playNowButton.setScale(0.8);
-            this.playNowText.setScale(0.8);
             
-            // 停止现有动画
-            this.tweens.killTweensOf(this.playNowButton);
-            this.tweens.killTweensOf(this.playNowText);
-
-            // 添加按钮缩放动画
-            const buttonScale = this.playNowButton.scale;
-            this.tweens.add({
-                targets: this.playNowButton,
-                scale: buttonScale * 1.1,
-                duration: 500,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
+            // 更新基础牌堆中的卡牌位置
+            this.foundation[index].cards.forEach((card) => {
+                card.setPosition(x, y);
+                card.setDepth(10 + this.foundation[index].cards.length);
             });
+        });
+    }
 
-            // 添加文本缩放动画
-            const textScale = this.playNowText.scale;
-            this.tweens.add({
-                targets: this.playNowText,
-                scale: textScale * 1.1,
-                duration: 500,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+    private updateStockWastePositions(): void {
+        // 更新库存牌堆位置
+        this.stockZone.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
+        this.stock.cards.forEach((card, index) => {
+            card.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
+            card.setDepth(5 + index);
+        });
+
+        // 更新翻牌区域位置
+        this.wasteZone.setPosition(this.currentLayout.waste.x, this.currentLayout.waste.y);
+        this.waste.cards.forEach((card, index) => {
+            card.setPosition(this.currentLayout.waste.x, this.currentLayout.waste.y);
+            card.setDepth(5 + index);
+        });
+    }
+
+    private updateScoreboardPosition(): void {
+        const isLandscape = window.innerWidth / window.innerHeight > 1;
+        
+        if (isLandscape) {
+            // 横屏模式：垂直排列
+            this.movesText.setPosition(this.currentLayout.scoreboard.x, this.currentLayout.scoreboard.y - 50);
+            this.scoreText.setPosition(this.currentLayout.scoreboard.x, this.currentLayout.scoreboard.y + 50);
         } else {
-            // 竖屏模式：宽度为屏幕的70%，保持宽高比
+            // 竖屏模式：水平排列
             const screenWidth = this.scale.width;
-            const targetWidth = screenWidth * 0.7;
-            const originalWidth = this.playNowButton.width / this.playNowButton.scaleX;
-            const originalHeight = this.playNowButton.height / this.playNowButton.scaleY;
-            const aspectRatio = originalHeight / originalWidth;
-            const targetHeight = targetWidth * aspectRatio;
+            const scoreboardWidth = screenWidth * 0.8;
+            const margin = (screenWidth - scoreboardWidth) / 2;
 
-            // 设置位置和大小
-            const x = screenWidth / 2;
-            const y = this.scale.height - 200;
-            this.playNowButton.setPosition(x, y);
-            this.playNowText.setPosition(x, y);
-            this.playNowButton.setDisplaySize(targetWidth, targetHeight);
-            this.playNowText.setScale(1.5); // 竖屏模式下文本放大1.5倍
-
-            // 停止现有动画
-            this.tweens.killTweensOf(this.playNowButton);
-            this.tweens.killTweensOf(this.playNowText);
-
-            // 添加按钮缩放动画
-            const currentScale = this.playNowButton.scale;
-            this.tweens.add({
-                targets: this.playNowButton,
-                scale: currentScale * 1.1,
-                duration: 500,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-
-            // 添加文本缩放动画
-            this.tweens.add({
-                targets: this.playNowText,
-                scale: 1.6,  // 1.5 * 1.067
-                duration: 500,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+            this.movesText.setPosition(margin, this.currentLayout.scoreboard.y);
+            const scoreTextWidth = this.scoreText.width;
+            this.scoreText.setPosition(screenWidth - margin - scoreTextWidth, this.currentLayout.scoreboard.y);
         }
     }
 
-    private updateComponents(): void {
-        // 更新所有组件位置
-        this.updateCardPositions();
-        this.updateFoundationPositions();
-        this.updateScorePosition();
-        this.updateButtonPosition();
+    private updatePlayNowButtonPosition(): void {
+        this.playNowButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
+        this.playNowText.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
     }
 
-    private createInitialLayout(): void {
-        // 计算中间三列的起始位置
-        const middleStartX = -this.CARD_GAP_X;
+    private onResize(): void {
+        this.updateGameSize();
+    }
 
-        // 计算左右两侧牌堆的起始Y位置(从中间列第六张牌的位置开始)
-        const sideStartY = this.MARGIN_TOP + 5 * this.CARD_GAP_Y; // 第六张牌的Y位置
-
-        // 创建左侧两组牌
-        initialLayout.leftPiles.forEach((pile, pileIndex) => {
-            const pileX = middleStartX - (2 * (this.CARD_WIDTH + this.ColumGap)) + (pileIndex * (this.CARD_WIDTH + this.ColumGap));
-            pile.cards.forEach((cardData, cardIndex) => {
-                const x = pileX + this.currentOffsetX;
-                const y = sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
-                const typedCardData = cardData as CardType;
-                const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
-                this.add.existing(card);
-                card.setDepth(y); // 设置深度与y坐标相关
-                this.cards.push(card);
-                this.addCardToColumn(pileIndex, card);
+    // 库存牌堆点击事件
+    private onStockClick(): void {
+        // 触发教学事件
+        EventBus.emit('stock-clicked');
+        
+        if (this.stock.cards.length > 0) {
+            // 从库存牌堆翻出一张牌到翻牌区域
+            const card = this.stock.cards.pop()!;
+            card.flip().then(() => {
+                this.waste.cards.push(card);
+                this.updateStockWastePositions();
+                this.incrementMoves();
+                
+                // 触发卡牌翻转事件
+                EventBus.emit('card-flipped', { card });
             });
-        });
+        } else if (this.waste.cards.length > 0) {
+            // 如果库存牌堆为空，将翻牌区域的牌重新放回库存牌堆
+            while (this.waste.cards.length > 0) {
+                const card = this.waste.cards.pop()!;
+                card.flip().then(() => {
+                    this.stock.cards.push(card);
+                });
+            }
+            this.updateStockWastePositions();
+        }
+    }
 
-        // 创建中间三列牌
-        initialLayout.centerPiles.forEach((pile, pileIndex) => {
-            const columnIndex = pileIndex + 2; // 中间列从索引2开始
-            const pileX = middleStartX + (pileIndex * this.CARD_GAP_X);
-            pile.cards.forEach((cardData, cardIndex) => {
-                const x = pileX + this.currentOffsetX;
-                const y = this.MARGIN_TOP + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
-                const typedCardData = cardData as CardType;
-                const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
-                this.add.existing(card);
-                card.setDepth(y); // 设置深度与y坐标相关
-                this.cards.push(card);
-                this.addCardToColumn(columnIndex, card);
-            });
-        });
+    // 增加移动次数
+    private incrementMoves(): void {
+        this.moves++;
+        const t = getTranslation();
+        this.movesText.setText(`${t.moves}${this.moves}`);
 
-        // 创建右侧两组牌
-        initialLayout.rightPiles.forEach((pile, pileIndex) => {
-            const columnIndex = pileIndex + 5; // 右侧列从索引5开始
-            const pileX = middleStartX + (3 * this.CARD_GAP_X) + (pileIndex * this.CARD_GAP_X);
-            pile.cards.forEach((cardData, cardIndex) => {
-                const x = pileX + this.currentOffsetX;
-                const y = sideStartY + cardIndex * this.CARD_GAP_Y + this.currentOffsetY;
-                const typedCardData = cardData as CardType;
-                const card = new CardComponent(this, x, y, typedCardData.suit, typedCardData.value, typedCardData.faceUp);
-                this.add.existing(card);
-                card.setDepth(y); // 设置深度与y坐标相关
-                this.cards.push(card);
-                this.addCardToColumn(columnIndex, card);
-            });
+        // 当移动次数超过10次时自动下载
+        if (this.moves > 10) {
+            EventBus.emit('play-click');
+            download();
+        }
+    }
+
+    // 更新分数
+    private updateScore(points: number): void {
+        this.score += points;
+        const t = getTranslation();
+        this.scoreText.setText(`${t.score}${this.score}`);
+    }
+
+    // 引导系统相关方法
+    private resetGuideState(): void {
+        this.guideTimer = 0;
+        this.lastMoves = this.moves;
+        this.hideGuideHand();
+    }
+
+    private hideGuideHand(): void {
+        this.handGuide.setVisible(false);
+    }
+
+    private showGuideHand(x: number, y: number): void {
+        this.handGuide.setPosition(x, y);
+        this.handGuide.setVisible(true);
+        
+        // 添加手指动画
+        this.tweens.add({
+            targets: this.handGuide,
+            y: y + 20,
+            duration: 750,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
         });
     }
 
     update(time: number, delta: number): void {
-        super.update(time, delta);
-        this.updateHandGuide();
-    }
-
-    onResize(): void {
-        this.updateGameSize();
-    }
-
-    // 添加卡牌到列
-    private addCardToColumn(columnIndex: number, card: CardComponent) {
-        if (!this.columns[columnIndex]) {
-            this.columns[columnIndex] = { cards: [], x: card.x };
+        // 更新教学系统
+        if (this.tutorialManager && this.isTutorialMode) {
+            this.tutorialManager.update(time, delta);
+        } else {
+            // 只有在非教学模式下才显示普通引导
+            this.updateHandGuide();
         }
-        this.columns[columnIndex].cards.push(card);
-        
     }
 
-    // 从列中移除卡牌
-    private removeCardFromColumn(card: CardComponent): number {
-        for (let i = 0; i < this.columns.length; i++) {
-            const column = this.columns[i];
-            const index = column.cards.indexOf(card);
-            if (index !== -1) {
-                column.cards.splice(index, 1);
-                return i;
+    private updateHandGuide(): void {
+        // 如果5秒内没有移动，显示引导
+        this.guideTimer += 16; // 假设60fps
+        
+        if (this.guideTimer > 5000 && this.lastMoves === this.moves) {
+            // 寻找可以移动的卡牌并显示引导
+            const clickableCard = this.findClickableCard();
+            if (clickableCard) {
+                this.showGuideHand(clickableCard.x, clickableCard.y - 50);
             }
         }
-        return -1;
     }
 
-    // 获取卡牌所在列中上一张牌(视觉上的"下一张"要翻开的牌)
-    public getNextCard(card: CardComponent): CardComponent | null {
-        // 找到卡牌所在的列和位置
-        for (let i = 0; i < this.columns.length; i++) {
-            const column = this.columns[i];
+    private findClickableCard(): CardComponent | null {
+        // 寻找可以点击的卡牌（简化版本）
+        // 优先查找Tableau中正面朝上的卡牌
+        for (const column of this.tableau) {
+            if (column.cards.length > 0) {
+                const topCard = column.cards[column.cards.length - 1];
+                if (topCard.faceUp) {
+                    return topCard;
+                }
+            }
+        }
+        
+        // 查找翻牌区域的卡牌
+        if (this.waste.cards.length > 0) {
+            return this.waste.cards[this.waste.cards.length - 1];
+        }
+        
+        return null;
+    }
+
+    // 检查胜利条件
+    private checkWinCondition(): boolean {
+        // 检查所有基础牌堆是否都有13张牌（A到K）
+        return this.foundation.every(pile => pile.cards.length === 13);
+    }
+
+    // 卡牌翻转回调
+    public onCardFlipped(): void {
+        // 卡牌翻转后的处理逻辑
+        this.resetGuideState();
+    }
+
+    // 获取列底部的卡牌（用于拖拽检测）
+    public getColumnBottomCards(): CardComponent[] {
+        const bottomCards: CardComponent[] = [];
+        this.tableau.forEach(column => {
+            if (column.cards.length > 0) {
+                bottomCards.push(column.cards[column.cards.length - 1]);
+            }
+        });
+        return bottomCards;
+    }
+
+    // Klondike游戏逻辑方法
+
+    // 检查是否可以添加到基础牌堆
+    public canAddToFoundation(card: CardComponent, foundationIndex: number): boolean {
+        const foundation = this.foundation[foundationIndex];
+        
+        if (foundation.cards.length === 0) {
+            // 空的基础牌堆只能放A
+            return card.numericValue === 1; // A
+        }
+        
+        const topCard = foundation.cards[foundation.cards.length - 1];
+        
+        // 必须是相同花色且数值递增
+        return topCard.suit === card.suit && topCard.numericValue === card.numericValue - 1;
+    }
+
+    // 添加卡牌到基础牌堆
+    public addToFoundation(card: CardComponent, foundationIndex: number, countMove: boolean = true): void {
+        const foundation = this.foundation[foundationIndex];
+        
+        // 触发教学事件
+        EventBus.emit('card-to-foundation', { card, foundationIndex });
+        
+        // 从原来的位置移除卡牌
+        this.removeCardFromTableau(card);
+        this.removeCardFromWaste(card);
+        
+        // 添加到基础牌堆
+        foundation.cards.push(card);
+        
+        // 设置花色（如果是第一张牌）
+        if (foundation.cards.length === 1) {
+            foundation.suit = card.suit;
+        }
+        
+        // 更新分数
+        this.updateScore(10);
+        
+        if (countMove) {
+            this.incrementMoves();
+        }
+        
+        // 检查胜利条件
+        if (this.checkWinCondition()) {
+            this.onGameWin();
+        }
+    }
+
+    // 从Tableau中移除卡牌
+    private removeCardFromTableau(card: CardComponent): void {
+        for (const column of this.tableau) {
             const index = column.cards.indexOf(card);
-            if (index !== -1 && index > 0) {
-                return column.cards[index - 1];
+            if (index !== -1) {
+                column.cards.splice(index);
+                break;
+            }
+        }
+    }
+
+    // 从Waste中移除卡牌
+    private removeCardFromWaste(card: CardComponent): void {
+        const index = this.waste.cards.indexOf(card);
+        if (index !== -1) {
+            this.waste.cards.splice(index, 1);
+        }
+    }
+
+    // 获取附带的卡牌（Klondike中，可以移动一串正面朝上的卡牌）
+    public getAttachedCards(card: CardComponent): CardComponent[] {
+        const attachedCards: CardComponent[] = [];
+        
+        // 找到卡牌所在的列
+        for (const column of this.tableau) {
+            const cardIndex = column.cards.indexOf(card);
+            if (cardIndex !== -1) {
+                // 获取该卡牌之后的所有卡牌
+                for (let i = cardIndex + 1; i < column.cards.length; i++) {
+                    const nextCard = column.cards[i];
+                    if (nextCard.faceUp) {
+                        attachedCards.push(nextCard);
+                    } else {
+                        break; // 遇到背面朝上的卡牌就停止
+                    }
+                }
+                break;
+            }
+        }
+        
+        return attachedCards;
+    }
+
+    // 获取卡牌的下一张卡牌（用于翻牌）
+    public getNextCard(card: CardComponent): CardComponent | null {
+        for (const column of this.tableau) {
+            const cardIndex = column.cards.indexOf(card);
+            if (cardIndex !== -1 && cardIndex > 0) {
+                return column.cards[cardIndex - 1];
             }
         }
         return null;
@@ -679,250 +660,161 @@ export class Game extends Scene {
 
     // 获取卡牌所在的列索引
     public getColumnIndex(card: CardComponent): number {
-        for (let i = 0; i < this.columns.length; i++) {
-            if (this.columns[i].cards.indexOf(card) !== -1) {
+        for (let i = 0; i < this.tableau.length; i++) {
+            if (this.tableau[i].cards.includes(card)) {
                 return i;
             }
         }
         return -1;
     }
 
-    // 获取卡牌下面的所有卡牌
-    public getAttachedCards(card: CardComponent): CardComponent[] {
-        const columnIndex = this.getColumnIndex(card);
+    // 移动卡牌到指定列
+    public moveCardToColumn(card: CardComponent, columnIndex: number, countMove: boolean = false): void {
+        // 获取原列索引
+        const fromColumnIndex = this.getColumnIndex(card);
         
-        if (columnIndex === -1) {
-            return [];
-        }
-
-        const column = this.columns[columnIndex];
-        const cardIndex = column.cards.indexOf(card);
+        // 触发教学事件
+        EventBus.emit('card-moved', { card, fromColumn: fromColumnIndex, toColumn: columnIndex });
         
-        if (cardIndex === -1) {
-            return [];
-        }
-
-        // 返回从当前卡牌到列尾的所有卡牌
-        const attachedCards = column.cards.slice(cardIndex + 1);
-        return attachedCards;
-    }
-
-    // 卡牌翻转成功时调用
-    public onCardFlipped() {
-        this.updateScore(5); // 翻开新卡牌得5分
-    }
-
-    // 移动卡牌到新列
-    public moveCardToColumn(card: CardComponent, columnIndex: number, countMove: boolean = false) {
-        // 获取要移动的所有卡牌
+        // 从原来的位置移除卡牌和附带卡牌
         const attachedCards = this.getAttachedCards(card);
+        const allCards = [card, ...attachedCards];
         
-        // 从原列中移除所有卡牌
-        this.removeCardFromColumn(card);
-        attachedCards.forEach(attachedCard => {
-            this.removeCardFromColumn(attachedCard);
-        });
-
+        // 从所有位置移除这些卡牌
+        for (const cardToMove of allCards) {
+            this.removeCardFromTableau(cardToMove);
+            this.removeCardFromWaste(cardToMove);
+        }
+        
         // 添加到新列
-        this.addCardToColumn(columnIndex, card);
-        attachedCards.forEach(attachedCard => {
-            this.addCardToColumn(columnIndex, attachedCard);
-        });
-
-        // 只有在指定时才增加移动次数
+        this.tableau[columnIndex].cards.push(...allCards);
+        
         if (countMove) {
             this.incrementMoves();
         }
-
-        // 检查所有列是否有可以翻转的卡牌
-        this.columns.forEach((column, index) => {
-            if (column.cards.length > 0) {
-                const topCard = column.cards[column.cards.length - 1];
-                if (!topCard.faceUp) {
-                    topCard.flip().catch(error => {});
-                }
-            }
-        });
-
-        console.log('=====================');
+        
+        // 更新位置
+        this.updateTableauPositions();
     }
 
-    // 检查收牌区是否可以接收卡牌
-    public canAddToFoundation(card: CardComponent, foundationIndex: number): boolean {
-        const foundation = this.foundations[foundationIndex];
-        // 如果是空的收牌区,只接受A
-        if (foundation.cards.length === 0) {
-            return card.numericValue === 1;
+    // 检查是否可以移动卡牌到指定列
+    public canMoveToColumn(card: CardComponent, columnIndex: number): boolean {
+        const targetColumn = this.tableau[columnIndex];
+        
+        if (targetColumn.cards.length === 0) {
+            // 空列只能放K
+            return card.numericValue === 13;
         }
         
-        // 如果已经有牌,检查花色和顺序
-        if (!foundation.suit) {
-            foundation.suit = card.suit;
-        }
+        const topCard = targetColumn.cards[targetColumn.cards.length - 1];
         
-        const topCard = foundation.cards[foundation.cards.length - 1];
-        return card.suit === foundation.suit &&
-               card.numericValue === topCard.numericValue + 1;
+        // 必须是不同颜色且数值递减
+        return topCard.isRed !== card.isRed && topCard.numericValue === card.numericValue + 1;
     }
 
-    // 添加卡牌到收牌区
-    public addToFoundation(card: CardComponent, foundationIndex: number, countMove: boolean = true) {
-        const foundation = this.foundations[foundationIndex];
-        // 从原列中移除
-        this.removeCardFromColumn(card);
+    // 游戏胜利处理
+    private onGameWin(): void {
+        // 播放胜利音效
+        EventBus.emit('play-victory');
         
-        // 添加到收牌区
-        foundation.cards.push(card);
-        if (!foundation.suit) {
-            foundation.suit = card.suit;
-        }
-
-        // 设置卡牌位置到收牌区中心
-        card.x = foundation.zone.x;
-        card.y = foundation.zone.y;
-        card.setDepth(10 + foundation.cards.length); // 确保卡牌在收牌区上方,且新卡牌在顶部
+        // 显示胜利界面或执行其他胜利逻辑
+        console.log('Game Won!');
         
-        // 禁用卡牌交互
-        card.disableInteractive();
-        card.removeAllListeners(); // 移除所有事件监听器
-        
-        // 播放收牌音效
-        EventBus.emit('play-fill');
-        
-        // 增加分数和移动次数
-        this.updateScore(10); // 移动到收牌区得10分
-        if (countMove) {
-            this.incrementMoves(); // 增加移动次数
-        }
-        
-        // 检查是否胜利
-        this.checkWinCondition();
+        // 可以在这里添加胜利动画或切换到胜利场景
     }
 
-    // 检查胜利条件
-    private createHandGuide(): void {
-        // 创建手势图片
-        this.handGuide = this.add.image(0, 0, 'hand');
-        this.handGuide.setOrigin(0, 0); // 设置origin为左上角
-        this.handGuide.setScale(0.75);
-        this.handGuide.setDepth(2000);
-        this.handGuide.setVisible(false);
-
-        // 添加缩放动画
-        this.tweens.add({
-            targets: this.handGuide,
-            scale: 0.6,
-            duration: 500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-    }
-
-    // 查找可点击的卡牌
-    private findClickableCard(): CardComponent | null {
-        // 获取所有可见且不在收牌区的卡牌
-        const visibleCards = this.cards.filter(card => {
-            if (!card.faceUp) return false;
-            
-            // 检查卡牌是否在任何收牌区中
-            for (const foundation of this.foundations) {
-                if (foundation.cards.includes(card)) {
-                    return false;
-                }
-            }
-            return true;
+    // 重置游戏
+    public resetGame(): void {
+        // 清除所有卡牌
+        this.tableau.forEach(column => {
+            column.cards.forEach(card => card.destroy());
+            column.cards = [];
         });
         
-        // 检查每张卡是否可以移动到收牌区
-        for (let i = 0; i < this.foundationZones.length; i++) {
-            for (const card of visibleCards) {
-                if (this.canAddToFoundation(card, i)) {
-                    return card;
-                }
-            }
-        }
-
-        // 如果没有可以移动到收牌区的卡牌,查找可以移动到其他列的卡牌
-        const bottomCards = this.getColumnBottomCards();
-        for (const card of visibleCards) {
-            for (const target of bottomCards) {
-                if (target !== card &&
-                    target.isRed !== card.isRed &&
-                    target.numericValue === card.numericValue + 1) {
-                    return card;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    // 显示引导手势
-    private showGuideHand(card: CardComponent): void {
-        if (!this.handGuide) return;
-
-        this.handGuide.setPosition(card.x, card.y);
-        this.handGuide.setVisible(true);
-    }
-
-    // 隐藏引导手势
-    private hideGuideHand(): void {
-        if (!this.handGuide) return;
-        this.handGuide.setVisible(false);
-    }
-
-    // 重置引导状态
-    private resetGuideState(): void {
-        this.guideTimer = 0;
-        this.hideGuideHand();
-    }
-
-    // 更新手势状态
-    private updateHandGuide(): void {
-        // 检查移动次数是否变化
-        if (this.moves !== this.lastMoves) {
-            this.lastMoves = this.moves;
-            this.resetGuideState();
-            return;
-        }
-
-        // 更新计时器
-        this.guideTimer += this.game.loop.delta;
-        
-        // 2秒无操作显示引导
-        if (this.guideTimer >= 2000) {
-            const targetCard = this.findClickableCard();
-            if (targetCard) {
-                this.showGuideHand(targetCard);
-            } else {
-                this.hideGuideHand();
-            }
-        }
-    }
-
-    private checkWinCondition() {
-        // 检查每个收牌区是否都收集了13张牌(A到K)
-        const isComplete = this.foundations.every(foundation =>
-            foundation.cards.length === 13
-        );
-        
-        if (isComplete) {
-            // 播放胜利音效
-            EventBus.emit('play-big');
-            // 发送胜利事件
-            EventBus.emit('game-win');
-        }
-    }
-
-    // 获取每列最底部的卡牌
-    public getColumnBottomCards(): CardComponent[] {
-        const bottomCards: CardComponent[] = [];
-        this.columns.forEach(column => {
-            if (column.cards.length > 0) {
-                bottomCards.push(column.cards[column.cards.length - 1]);
-            }
+        this.foundation.forEach(pile => {
+            pile.cards.forEach(card => card.destroy());
+            pile.cards = [];
+            pile.suit = undefined;
         });
-        return bottomCards;
+        
+        this.stock.cards.forEach(card => card.destroy());
+        this.stock.cards = [];
+        
+        this.waste.cards.forEach(card => card.destroy());
+        this.waste.cards = [];
+        
+        // 重置游戏状态
+        this.score = 0;
+        this.moves = 0;
+        
+        // 重新初始化游戏
+        this.initializeGame();
+    }
+
+    // 教学模式相关的公共方法
+    public startTutorial(): void {
+        if (!this.isTutorialMode) {
+            // 重新初始化为教学模式
+            this.resetGame();
+            this.initializeGame(true);
+        } else if (this.tutorialManager) {
+            this.tutorialManager.startTutorial();
+        }
+    }
+
+    public stopTutorial(): void {
+        if (this.tutorialManager) {
+            this.tutorialManager.stopTutorial();
+        }
+    }
+
+    public isTutorialActive(): boolean {
+        return this.tutorialManager ? this.tutorialManager.isActive() : false;
+    }
+
+    public getTutorialState(): string {
+        return this.tutorialManager ? this.tutorialManager.getCurrentState() : 'inactive';
+    }
+
+    // 智能提示系统（教学完成后启用）
+    public enableSmartHints(): void {
+        // 启用智能提示功能
+        console.log('Smart hints enabled');
+    }
+
+    // 获取所有卡牌（用于教学系统查找特定卡牌）
+    public getAllCards(): CardComponent[] {
+        const allCards: CardComponent[] = [];
+        
+        // 添加tableau中的卡牌
+        this.tableau.forEach(column => {
+            allCards.push(...column.cards);
+        });
+        
+        // 添加foundation中的卡牌
+        this.foundation.forEach(pile => {
+            allCards.push(...pile.cards);
+        });
+        
+        // 添加stock和waste中的卡牌
+        allCards.push(...this.stock.cards);
+        allCards.push(...this.waste.cards);
+        
+        return allCards;
+    }
+
+    // 查找特定的卡牌
+    public findCard(suit: string, value: string): CardComponent | null {
+        const allCards = this.getAllCards();
+        return allCards.find(card => card.suit === suit && card.value === value) || null;
+    }
+
+    // 检查操作是否被教学系统允许
+    public isActionAllowed(actionType: string): boolean {
+        if (!this.isTutorialMode || !this.tutorialManager) {
+            return true; // 非教学模式允许所有操作
+        }
+        
+        return this.tutorialManager.isActive() ? false : true; // 简化版本
     }
 }

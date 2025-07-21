@@ -1,6 +1,6 @@
 
 import { GameObjects, Scene } from 'phaser';
-import { CardSuit, CardValue } from '../../config/layout';
+import { CardSuit, CardValue } from '../../config/klondike-layout';
 import { Game } from '../scenes/Game';
 import { EventBus } from '../EventBus';
 
@@ -414,31 +414,10 @@ export class Card extends GameObjects.Sprite {
                                     await dropResult.onDrop();
                                 } else {
                                     // 否则是普通列的移动
-                                    // 计算新的列索引
+                                    // 简化处理：让Game场景处理移动逻辑
                                     const gameScene = this.scene as Game;
-                                    const middleStartX = -gameScene.CARD_GAP_X;
-                                    const cardX = this.x - gameScene.currentOffsetX; // 减去偏移量得到相对位置
-                                    
-                                    let newColumnIndex;
-                                    if (cardX < middleStartX - gameScene.CARD_WIDTH) {
-                                        // 左侧两列
-                                        const relativeX = cardX - (middleStartX - 2 * (gameScene.CARD_WIDTH + gameScene.ColumGap));
-                                        newColumnIndex = Math.floor(relativeX / (gameScene.CARD_WIDTH + gameScene.ColumGap));
-                                    } else if (cardX < middleStartX + 3 * gameScene.CARD_GAP_X) {
-                                        // 中间三列
-                                        const relativeX = cardX - middleStartX;
-                                        newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 2;
-                                    } else {
-                                        // 右侧两列
-                                        const relativeX = cardX - (middleStartX + 3 * gameScene.CARD_GAP_X);
-                                        newColumnIndex = Math.floor(relativeX / gameScene.CARD_GAP_X) + 5;
-                                    }
-            
-                                    // 确保列索引在有效范围内
-                                    newColumnIndex = Math.max(0, Math.min(6, newColumnIndex));
-                                    
-                                    // 更新卡牌所在的列,并计数
-                                    gameScene.moveCardToColumn(this, newColumnIndex, true);
+                                    // 这里可以添加更复杂的逻辑，暂时简化处理
+                                    console.log('Card moved to new position:', { x: this.x, y: this.y });
                                 }
 
                                 // 翻转原列中的下一张卡牌
@@ -785,37 +764,27 @@ export class Card extends GameObjects.Sprite {
 
     // 检查是否可以放置到目标位置,返回目标位置信息
     private checkDropTarget(): { canDrop: boolean; x?: number; y?: number; onDrop?: () => void } {
-        // 获取所有可能的目标卡牌
         const gameScene = this.scene as Game;
         
-        // 获取每列最底部的卡牌作为可能的目标
-        const targets = gameScene.getColumnBottomCards()
-            .filter(card => !([this, ...this.attachedCards].includes(card)) && card.faceUp);
-
-        // 获取收牌区
-        const foundationZones = (this.scene as Game).foundationZones;
-
-        // 检查是否在收牌区范围内
-        for (let i = 0; i < foundationZones.length; i++) {
-            const zone = foundationZones[i];
+        // 检查基础牌堆（Foundation）
+        for (let i = 0; i < gameScene.foundationZones.length; i++) {
+            const zone = gameScene.foundationZones[i];
             const bounds = zone.getBounds();
 
-            // 使用当前位置直接判断
             if (this.x >= bounds.left && this.x <= bounds.right &&
                 this.y >= bounds.top && this.y <= bounds.bottom) {
-                // 收牌区不允许放置多张卡牌
+                // 基础牌堆不允许放置多张卡牌
                 if (this.attachedCards.length > 0) {
                     return { canDrop: false };
                 }
                 
-                // 使用Game类的收牌区验证方法
                 if (gameScene.canAddToFoundation(this, i)) {
                     return {
                         canDrop: true,
                         x: bounds.centerX,
                         y: bounds.centerY,
                         onDrop: () => {
-                            gameScene.addToFoundation(this, i, false); // 不在这里计数,因为moveCardToColumn会计数
+                            gameScene.addToFoundation(this, i, false);
                         }
                     };
                 }
@@ -823,48 +792,65 @@ export class Card extends GameObjects.Sprite {
             }
         }
 
-        // 检查是否可以放在其他卡牌上
+        // 检查Tableau列
+        const targets = gameScene.getColumnBottomCards()
+            .filter(card => !([this, ...this.attachedCards].includes(card)) && card.faceUp);
+
         for (const target of targets) {
-            // 计算相对位置
             const dx = Math.abs(this.x - target.x);
             const dy = this.y - target.y;
             
-            // 如果卡牌在目标卡牌的上方且水平距离合适
-            // 放宽检测条件:水平距离小于卡牌宽度,垂直距离在一定范围内
-            if (dx < Card.CARD_WIDTH &&
-                dy > -Card.CARD_HEIGHT / 2 &&
-                dy < Card.CARD_HEIGHT * 2) {
-                
-                // 基本移动规则验证
-                // 1. 红黑交替
-                if (target.isRed === this.isRed) {
-                    return { canDrop: false };
+            // 检测范围：水平距离小于卡牌宽度，垂直距离合理
+            if (dx < Card.CARD_WIDTH && dy > -Card.CARD_HEIGHT / 2 && dy < Card.CARD_HEIGHT * 2) {
+                // Klondike规则：红黑交替，数值递减
+                if (target.isRed !== this.isRed && target.numericValue === this.numericValue + 1) {
+                    const targetColumnIndex = gameScene.getColumnIndex(target);
+                    return {
+                        canDrop: true,
+                        x: target.x,
+                        y: target.y + Card.CARD_GAP_Y,
+                        onDrop: () => {
+                            gameScene.moveCardToColumn(this, targetColumnIndex, false);
+                        }
+                    };
                 }
-                // 2. 数字必须按降序排列
-                if (target.numericValue !== this.numericValue + 1) {
-                    return { canDrop: false };
-                }
-                return {
-                    canDrop: true,
-                    x: target.x,
-                    y: target.y + Card.CARD_GAP_Y
-                };
+                return { canDrop: false };
             }
         }
 
-        // 检查是否放在空列(只允许K)
-        const emptyColumns = this.scene.children.list
-            .filter(obj => obj instanceof GameObjects.Zone);
-        for (const column of emptyColumns) {
-            const bounds = column.getBounds();
-            if (this.x >= bounds.left && this.x <= bounds.right &&
-                this.y >= bounds.top && this.y <= bounds.bottom) {
-                if (this.numericValue === 13) { // 只允许K放在空列
-                    return {
-                        canDrop: true,
-                        x: bounds.centerX,
-                        y: bounds.top + Card.CARD_GAP_Y
-                    };
+        // 检查空列（只允许K）
+        if (this.numericValue === 13) {
+            // 简化的空列检测 - 检查是否在Tableau区域内但没有目标卡牌
+            const tableauBounds = {
+                left: gameScene.currentLayout?.tableau.startX || 0,
+                right: (gameScene.currentLayout?.tableau.startX || 0) + 7 * (gameScene.currentLayout?.tableau.columnGap || 130),
+                top: gameScene.currentLayout?.tableau.startY || 0,
+                bottom: (gameScene.currentLayout?.tableau.startY || 0) + 500
+            };
+
+            if (this.x >= tableauBounds.left && this.x <= tableauBounds.right &&
+                this.y >= tableauBounds.top && this.y <= tableauBounds.bottom) {
+                
+                // 计算最接近的列
+                const columnIndex = Math.floor((this.x - tableauBounds.left) / (gameScene.currentLayout?.tableau.columnGap || 130));
+                if (columnIndex >= 0 && columnIndex < 7) {
+                    // 检查该列是否为空
+                    const columnCards = gameScene.getColumnBottomCards();
+                    const hasCardInColumn = columnCards.some(card => gameScene.getColumnIndex(card) === columnIndex);
+                    
+                    if (!hasCardInColumn) {
+                        const targetX = tableauBounds.left + columnIndex * (gameScene.currentLayout?.tableau.columnGap || 130);
+                        const targetY = tableauBounds.top;
+                        
+                        return {
+                            canDrop: true,
+                            x: targetX,
+                            y: targetY,
+                            onDrop: () => {
+                                gameScene.moveCardToColumn(this, columnIndex, false);
+                            }
+                        };
+                    }
                 }
             }
         }
