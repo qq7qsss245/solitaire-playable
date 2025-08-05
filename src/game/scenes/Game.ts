@@ -143,6 +143,13 @@ export class Game extends Scene {
         if (this.isTutorialMode) {
             this.initializeTutorial();
         }
+        
+        // 确保在下一帧更新Stock Zone显示状态
+        this.time.delayedCall(1, () => {
+            if (this.stockZone) {
+                this.updateStockWastePositions();
+            }
+        });
     }
 
     private initializeTutorial(): void {
@@ -219,8 +226,8 @@ export class Game extends Scene {
     }
 
     private createZones(): void {
-        // 创建库存牌堆区域
-        this.stockZone = this.add.sprite(0, 0, 'card-fill');
+        // 创建库存牌堆区域 - 初始显示牌背，无牌时显示重置图片
+        this.stockZone = this.add.sprite(0, 0, AssetKeys.CARD_BACK);
         this.stockZone.setDisplaySize(120, 164); // 使用固定尺寸
         this.stockZone.setDepth(0);
         this.stockZone.setInteractive();
@@ -357,8 +364,18 @@ export class Game extends Scene {
     }
 
     private updateStockWastePositions(): void {
-        // 更新库存牌堆位置
+        // 更新库存牌堆位置和显示状态
         this.stockZone.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
+        
+        // 根据库存牌堆是否有牌来决定显示内容
+        if (this.stock.cards.length > 0) {
+            // 有牌时显示牌背
+            this.stockZone.setTexture(AssetKeys.CARD_BACK);
+        } else {
+            // 无牌时显示重置图片
+            this.stockZone.setTexture(AssetKeys.RESET);
+        }
+        
         this.stock.cards.forEach((card, index) => {
             card.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
             card.setDepth(5 + index);
