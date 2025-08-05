@@ -57,6 +57,11 @@ export class Preloader extends Scene {
         this.load.image(AssetKeys.BLACK_Q, Assets.cards.values.black.Q);
         this.load.image(AssetKeys.BLACK_K, Assets.cards.values.black.K);
 
+        // 加载人物牌大图
+        this.load.image(AssetKeys.FACE_J, Assets.cards.faceCards.j);
+        this.load.image(AssetKeys.FACE_Q, Assets.cards.faceCards.q);
+        this.load.image(AssetKeys.FACE_K, Assets.cards.faceCards.k);
+
         // 加载UI图片
         this.load.image(AssetKeys.HAND, Assets.ui.hand);
         this.load.image(AssetKeys.ICON, Assets.ui.icon);

@@ -42,6 +42,11 @@ import blackJ from './images/cards/values/black/J.png';
 import blackQ from './images/cards/values/black/Q.png';
 import blackK from './images/cards/values/black/K.png';
 
+// 人物牌大图
+import faceJ from './images/cards/face-cards/j.png';
+import faceQ from './images/cards/face-cards/q.png';
+import faceK from './images/cards/face-cards/k.png';
+
 // UI图片
 import hand from './images/ui/hand.png';
 import icon from './images/ui/icon.png';
@@ -132,6 +137,11 @@ export const Assets = {
         Q: blackQ,
         K: blackK,
       },
+    },
+    faceCards: {
+      j: faceJ,
+      q: faceQ,
+      k: faceK,
     },
   },
   
@@ -228,6 +238,11 @@ export const AssetKeys = {
   BLACK_J: 'black-J',
   BLACK_Q: 'black-Q',
   BLACK_K: 'black-K',
+  
+  // 人物牌大图
+  FACE_J: 'face-j',
+  FACE_Q: 'face-q',
+  FACE_K: 'face-k',
   
   // UI元素
   HAND: 'hand',

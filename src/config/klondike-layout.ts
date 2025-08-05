@@ -130,24 +130,24 @@ export const portraitLayout: LayoutPositions = {
     
     tableau: {
         startX: 75,  // 左边距
-        startY: 350, // 顶部边距（为上方区域留空间）
-        columnGap: 130, // 列间距
+        startY: 450, // 顶部边距（为上方区域留空间）- 向下移动100像素
+        columnGap: 150, // 列间距 - 增加间距
         cardGap: 35,    // 同列卡牌垂直间距
     },
     
     foundation: {
-        startX: 615,  // 右上角开始位置
+        startX: 75,   // 左上角开始位置 - 移动到左侧
         startY: 180,  // 顶部位置
         gap: 130,     // 基础牌堆间距
     },
     
     stock: {
-        x: 75,   // 左上角
+        x: 975,  // 与最右侧列对齐 (75 + 6 × 150 = 975)
         y: 180,
     },
     
     waste: {
-        x: 205,  // 库存牌堆右侧
+        x: 1105, // stock右侧 (975 + 130 = 1105)
         y: 180,
     },
     
@@ -171,24 +171,24 @@ export const landscapeLayout: LayoutPositions = {
     
     tableau: {
         startX: 200,  // 左边距
-        startY: 250,  // 顶部边距
-        columnGap: 130, // 列间距
+        startY: 350,  // 顶部边距 - 向下移动100像素
+        columnGap: 150, // 列间距 - 增加间距
         cardGap: 35,    // 同列卡牌垂直间距
     },
     
     foundation: {
-        startX: 1400, // 右上角开始位置
+        startX: 200,  // 左上角开始位置 - 移动到左侧
         startY: 100,  // 顶部位置
         gap: 130,     // 基础牌堆间距
     },
     
     stock: {
-        x: 200,  // 左上角
+        x: 1100, // 与最右侧列对齐 (200 + 6 × 150 = 1100)
         y: 100,
     },
     
     waste: {
-        x: 330,  // 库存牌堆右侧
+        x: 1230, // stock右侧 (1100 + 130 = 1230)
         y: 100,
     },
     

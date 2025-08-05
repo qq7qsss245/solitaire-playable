@@ -81,10 +81,10 @@ export class Card extends GameObjects.Container {
     private static readonly CARD_GAP_Y = Card.CARD_HEIGHT / 4;
     private static readonly DRAG_DEPTH = 10000;
 
-    // 优化后的布局位置常量（左右边距30px，上下边距35px，数字在上花色在下）
-    private static readonly TOP_LEFT_VALUE_POS = { x: -43, y: -80 };    // 距左边30px，距上边35px，数字在上
-    private static readonly TOP_LEFT_SUIT_POS = { x: -43, y: -40 };     // 数字下方40px，花色在下
-    private static readonly CENTER_SUIT_POS = { x: 0, y: 15 };          // 中心位置，稍微向下
+    // 优化后的布局位置常量（保持15px边距）
+    private static readonly TOP_LEFT_SUIT_POS = { x: -48, y: -20 };    // 距左边15px，距上边15px
+    private static readonly TOP_LEFT_VALUE_POS = { x: -50, y: -75 };    // 花色下方30px
+    private static readonly CENTER_SUIT_POS = { x: 0, y: 0 };           // 中心位置
 
     constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
         super(scene, x, y);
@@ -130,7 +130,7 @@ export class Card extends GameObjects.Container {
             Card.TOP_LEFT_SUIT_POS.y,
             this.getSuitKey()
         );
-        this.suitTopLeft.setScale(0.64); // 缩小到80%
+        this.suitTopLeft.setScale(0.8); // 适当缩放
         this.add(this.suitTopLeft);
 
         // 创建数值图标 - 左上角
@@ -139,7 +139,7 @@ export class Card extends GameObjects.Container {
             Card.TOP_LEFT_VALUE_POS.y,
             this.getValueKey()
         );
-        this.valueTopLeft.setScale(0.64);
+        this.valueTopLeft.setScale(0.8);
         this.add(this.valueTopLeft);
 
 
@@ -160,21 +160,36 @@ export class Card extends GameObjects.Container {
             this.cardBackground.setTexture(AssetKeys.CARD_FACE);
             this.suitTopLeft.setVisible(true);
             this.valueTopLeft.setVisible(true);
-            this.centerSuit.setVisible(true); // 显示中心花色
+            this.centerSuit.setVisible(true); // 显示中心图标
             
             // 更新花色和数值纹理
             const suitKey = this.getSuitKey();
             const valueKey = this.getValueKey();
             
             this.suitTopLeft.setTexture(suitKey);
-            this.centerSuit.setTexture(suitKey); // 更新中心花色纹理
             this.valueTopLeft.setTexture(valueKey);
+            
+            // 根据是否为人物牌决定中心显示内容
+            if (this.isFaceCard()) {
+                // J、Q、K显示人物大图
+                const faceCardKey = this.getFaceCardKey();
+                if (faceCardKey) {
+                    this.centerSuit.setTexture(faceCardKey);
+                    this.centerSuit.setScale(1.5); // 人物牌稍小一些
+                    this.centerSuit.setAlpha(1.0); // 完全不透明
+                }
+            } else {
+                // 其他牌显示花色
+                this.centerSuit.setTexture(suitKey);
+                this.centerSuit.setScale(1.8); // 花色稍大一些
+                this.centerSuit.setAlpha(0.3); // 半透明
+            }
         } else {
             // 显示背面
             this.cardBackground.setTexture(AssetKeys.CARD_BACK);
             this.suitTopLeft.setVisible(false);
             this.valueTopLeft.setVisible(false);
-            this.centerSuit.setVisible(false); // 隐藏中心花色
+            this.centerSuit.setVisible(false); // 隐藏中心图标
         }
     }
 
@@ -199,6 +214,19 @@ export class Card extends GameObjects.Container {
     private getValueKey(): string {
         const color = this.getCardColor();
         return VALUE_KEYS[color][this._value];
+    }
+
+    // 获取人物牌大图资源键名
+    private getFaceCardKey(): string | null {
+        if (this._value === 'J') return AssetKeys.FACE_J;
+        if (this._value === 'Q') return AssetKeys.FACE_Q;
+        if (this._value === 'K') return AssetKeys.FACE_K;
+        return null;
+    }
+
+    // 判断是否为人物牌
+    private isFaceCard(): boolean {
+        return this._value === 'J' || this._value === 'Q' || this._value === 'K';
     }
 
     // 翻牌动画
