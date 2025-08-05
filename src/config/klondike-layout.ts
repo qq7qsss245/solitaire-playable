@@ -198,7 +198,7 @@ export const landscapeLayout: LayoutPositions = {
     },
     
     downloadButton: {
-        x: 1720, // 右下角
-        y: 900,
+        x: 1620, // 右下角，向左移动100
+        y: 800,  // 向上移动100
     },
 };
