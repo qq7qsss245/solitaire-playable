@@ -73,6 +73,7 @@ export class Card extends GameObjects.Container {
     private cardBackground!: GameObjects.Image;
     private suitTopLeft!: GameObjects.Image;
     private valueTopLeft!: GameObjects.Image;
+    private suitTopRight!: GameObjects.Image; // 新增：右上角花色装饰
     private centerSuit!: GameObjects.Image; // 新增：中心大花色
 
     // 卡牌尺寸和布局常量
@@ -84,7 +85,8 @@ export class Card extends GameObjects.Container {
     // 优化后的布局位置常量（保持15px边距）
     private static readonly TOP_LEFT_SUIT_POS = { x: -48, y: -30 };    // 距左边15px，距上边15px
     private static readonly TOP_LEFT_VALUE_POS = { x: -50, y: -75 };    // 花色下方30px
-    private static readonly CENTER_SUIT_POS = { x: 0, y: 25 };           // 中心位置
+    private static readonly TOP_RIGHT_SUIT_POS = { x: 36, y: - 70 };     // 右上角花色装饰位置
+    private static readonly CENTER_SUIT_POS = { x: 0, y: 35 };           // 中心位置
     
     // 中心图标大小常量
     private static readonly CENTER_SUIT_SCALE = 1.5;        // 普通牌花色缩放
@@ -95,6 +97,10 @@ export class Card extends GameObjects.Container {
     // 左上角图标大小常量
     private static readonly TOP_LEFT_SUIT_SCALE = 0.6;      // 左上角花色缩放
     private static readonly TOP_LEFT_VALUE_SCALE = 0.6;     // 左上角数值缩放
+    
+    // 右上角图标大小常量
+    private static readonly TOP_RIGHT_SUIT_SCALE = 1;     // 右上角花色装饰缩放
+    private static readonly TOP_RIGHT_SUIT_ALPHA = 1.0;     // 右上角花色装饰透明度
 
     constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
         super(scene, x, y);
@@ -152,6 +158,16 @@ export class Card extends GameObjects.Container {
         this.valueTopLeft.setScale(Card.TOP_LEFT_VALUE_SCALE); // 使用常量
         this.add(this.valueTopLeft);
 
+        // 创建花色图标 - 右上角装饰
+        this.suitTopRight = this.scene.add.image(
+            Card.TOP_RIGHT_SUIT_POS.x,
+            Card.TOP_RIGHT_SUIT_POS.y,
+            this.getSuitKey()
+        );
+        this.suitTopRight.setScale(Card.TOP_RIGHT_SUIT_SCALE); // 使用常量
+        this.suitTopRight.setAlpha(Card.TOP_RIGHT_SUIT_ALPHA); // 设置透明度
+        this.add(this.suitTopRight);
+
 
         // 创建中心大花色图标
         this.centerSuit = this.scene.add.image(
@@ -170,6 +186,7 @@ export class Card extends GameObjects.Container {
             this.cardBackground.setTexture(AssetKeys.CARD_FACE);
             this.suitTopLeft.setVisible(true);
             this.valueTopLeft.setVisible(true);
+            this.suitTopRight.setVisible(true); // 显示右上角花色装饰
             this.centerSuit.setVisible(true); // 显示中心图标
             
             // 更新花色和数值纹理
@@ -178,6 +195,7 @@ export class Card extends GameObjects.Container {
             
             this.suitTopLeft.setTexture(suitKey);
             this.valueTopLeft.setTexture(valueKey);
+            this.suitTopRight.setTexture(suitKey); // 更新右上角花色纹理
             
             // 根据是否为人物牌决定中心显示内容
             if (this.isFaceCard()) {
@@ -199,6 +217,7 @@ export class Card extends GameObjects.Container {
             this.cardBackground.setTexture(AssetKeys.CARD_BACK);
             this.suitTopLeft.setVisible(false);
             this.valueTopLeft.setVisible(false);
+            this.suitTopRight.setVisible(false); // 隐藏右上角花色装饰
             this.centerSuit.setVisible(false); // 隐藏中心图标
         }
     }
