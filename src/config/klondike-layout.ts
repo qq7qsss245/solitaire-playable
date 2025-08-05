@@ -125,30 +125,30 @@ export interface LayoutPositions {
 export const portraitLayout: LayoutPositions = {
     gameWidth: 1080,
     gameHeight: 1920,
-    cardWidth: 120,
-    cardHeight: 164,
+    cardWidth: 147,  // 更新为卡牌实际尺寸
+    cardHeight: 230, // 更新为卡牌实际尺寸
     
     tableau: {
         startX: 75,  // 左边距
-        startY: 450, // 顶部边距（为上方区域留空间）- 向下移动100像素
-        columnGap: 150, // 列间距 - 增加间距
+        startY: 530, // 向下移动50单位 (480 + 50 = 530)
+        columnGap: 150, // 列间距保持不变
         cardGap: 35,    // 同列卡牌垂直间距
     },
     
     foundation: {
-        startX: 75,   // 左上角开始位置 - 移动到左侧
-        startY: 180,  // 顶部位置
-        gap: 130,     // 基础牌堆间距
+        startX: 75,   // 左上角开始位置
+        startY: 230,  // 向下移动50单位 (180 + 50 = 230)
+        gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
     },
     
     stock: {
-        x: 975,  // 与最右侧列对齐 (75 + 6 × 150 = 975)
-        y: 180,
+        x: 975,  // 与最右侧列对齐位置保持不变
+        y: 230,  // 向下移动50单位 (180 + 50 = 230)
     },
     
     waste: {
-        x: 845,  // stock左侧 (975 - 130 = 845)
-        y: 180,
+        x: 815,  // stock左侧，间距调整为160 (975 - 160 = 815)
+        y: 230,  // 向下移动50单位 (180 + 50 = 230)
     },
     
     scoreboard: {
@@ -166,30 +166,30 @@ export const portraitLayout: LayoutPositions = {
 export const landscapeLayout: LayoutPositions = {
     gameWidth: 1920,
     gameHeight: 1080,
-    cardWidth: 120,
-    cardHeight: 164,
+    cardWidth: 147,  // 更新为卡牌实际尺寸
+    cardHeight: 230, // 更新为卡牌实际尺寸
     
     tableau: {
         startX: 200,  // 左边距
-        startY: 350,  // 顶部边距 - 向下移动100像素
-        columnGap: 150, // 列间距 - 增加间距
+        startY: 430,  // 向下移动50单位 (380 + 50 = 430)
+        columnGap: 150, // 列间距保持不变
         cardGap: 35,    // 同列卡牌垂直间距
     },
     
     foundation: {
-        startX: 200,  // 左上角开始位置 - 移动到左侧
-        startY: 100,  // 顶部位置
-        gap: 130,     // 基础牌堆间距
+        startX: 200,  // 左上角开始位置
+        startY: 150,  // 向下移动50单位 (100 + 50 = 150)
+        gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
     },
     
     stock: {
-        x: 1100, // 与最右侧列对齐 (200 + 6 × 150 = 1100)
-        y: 100,
+        x: 1100, // 与最右侧列对齐位置保持不变
+        y: 150,  // 向下移动50单位 (100 + 50 = 150)
     },
     
     waste: {
-        x: 970,  // stock左侧 (1100 - 130 = 970)
-        y: 100,
+        x: 940,  // stock左侧，间距调整为160 (1100 - 160 = 940)
+        y: 150,  // 向下移动50单位 (100 + 50 = 150)
     },
     
     scoreboard: {

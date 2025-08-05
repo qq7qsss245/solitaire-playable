@@ -10,7 +10,7 @@ import bgLandscape from './assets/images/backgrounds/bg-landscape.png';
 function App() {
     // The sprite can only be moved in the MainMenu Scene
     const [gameOver, setGameOver] = useState(false);
-    const [isLandscape, setIsLandscape] = useState(false);
+    const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
     //  References to the PhaserGame component (game and scene are exposed)
     const phaserRef = useRef<IRefPhaserGame | null>(null);
 
