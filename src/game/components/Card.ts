@@ -82,9 +82,19 @@ export class Card extends GameObjects.Container {
     private static readonly DRAG_DEPTH = 10000;
 
     // 优化后的布局位置常量（保持15px边距）
-    private static readonly TOP_LEFT_SUIT_POS = { x: -48, y: -20 };    // 距左边15px，距上边15px
+    private static readonly TOP_LEFT_SUIT_POS = { x: -48, y: -30 };    // 距左边15px，距上边15px
     private static readonly TOP_LEFT_VALUE_POS = { x: -50, y: -75 };    // 花色下方30px
-    private static readonly CENTER_SUIT_POS = { x: 0, y: 0 };           // 中心位置
+    private static readonly CENTER_SUIT_POS = { x: 0, y: 25 };           // 中心位置
+    
+    // 中心图标大小常量
+    private static readonly CENTER_SUIT_SCALE = 1.5;        // 普通牌花色缩放
+    private static readonly CENTER_FACE_SCALE = 0.6;        // 人物牌缩放（调小）
+    private static readonly CENTER_SUIT_ALPHA = 1.0;        // 普通牌花色透明度
+    private static readonly CENTER_FACE_ALPHA = 1.0;        // 人物牌透明度
+    
+    // 左上角图标大小常量
+    private static readonly TOP_LEFT_SUIT_SCALE = 0.6;      // 左上角花色缩放
+    private static readonly TOP_LEFT_VALUE_SCALE = 0.6;     // 左上角数值缩放
 
     constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue, faceUp: boolean = false) {
         super(scene, x, y);
@@ -130,7 +140,7 @@ export class Card extends GameObjects.Container {
             Card.TOP_LEFT_SUIT_POS.y,
             this.getSuitKey()
         );
-        this.suitTopLeft.setScale(0.8); // 适当缩放
+        this.suitTopLeft.setScale(Card.TOP_LEFT_SUIT_SCALE); // 使用常量
         this.add(this.suitTopLeft);
 
         // 创建数值图标 - 左上角
@@ -139,7 +149,7 @@ export class Card extends GameObjects.Container {
             Card.TOP_LEFT_VALUE_POS.y,
             this.getValueKey()
         );
-        this.valueTopLeft.setScale(0.8);
+        this.valueTopLeft.setScale(Card.TOP_LEFT_VALUE_SCALE); // 使用常量
         this.add(this.valueTopLeft);
 
 
@@ -175,14 +185,14 @@ export class Card extends GameObjects.Container {
                 const faceCardKey = this.getFaceCardKey();
                 if (faceCardKey) {
                     this.centerSuit.setTexture(faceCardKey);
-                    this.centerSuit.setScale(1.5); // 人物牌稍小一些
-                    this.centerSuit.setAlpha(1.0); // 完全不透明
+                    this.centerSuit.setScale(Card.CENTER_FACE_SCALE); // 使用常量
+                    this.centerSuit.setAlpha(Card.CENTER_FACE_ALPHA); // 使用常量
                 }
             } else {
                 // 其他牌显示花色
                 this.centerSuit.setTexture(suitKey);
-                this.centerSuit.setScale(1.8); // 花色稍大一些
-                this.centerSuit.setAlpha(0.3); // 半透明
+                this.centerSuit.setScale(Card.CENTER_SUIT_SCALE); // 使用常量
+                this.centerSuit.setAlpha(Card.CENTER_SUIT_ALPHA); // 使用常量
             }
         } else {
             // 显示背面
