@@ -47,7 +47,7 @@ export class Game extends Scene {
     
     // UI元素
     private stockZone: Phaser.GameObjects.Sprite; // 库存牌堆区域
-    private wasteZone: Phaser.GameObjects.Sprite; // 翻牌区域
+    // 移除wasteZone - 翻牌区域不需要背景卡槽，翻出的牌直接显示
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 基础牌堆区域
     private playNowButton: Phaser.GameObjects.Image;
     private playNowText: Phaser.GameObjects.Text;
@@ -233,10 +233,7 @@ export class Game extends Scene {
         this.stockZone.setInteractive();
         this.stockZone.on('pointerdown', () => this.onStockClick());
 
-        // 创建翻牌区域
-        this.wasteZone = this.add.sprite(0, 0, 'card-fill');
-        this.wasteZone.setDisplaySize(120, 164);
-        this.wasteZone.setDepth(0);
+        // 不创建翻牌区域的卡槽背景 - 翻出的牌会直接显示，不需要背景卡槽
 
         // 创建4个基础牌堆区域，使用对应花色的卡槽
         const slotKeys = [
@@ -381,8 +378,7 @@ export class Game extends Scene {
             card.setDepth(5 + index);
         });
 
-        // 更新翻牌区域位置
-        this.wasteZone.setPosition(this.currentLayout.waste.x, this.currentLayout.waste.y);
+        // 更新翻牌区域的卡牌位置（不需要背景卡槽）
         this.waste.cards.forEach((card, index) => {
             card.setPosition(this.currentLayout.waste.x, this.currentLayout.waste.y);
             card.setDepth(5 + index);

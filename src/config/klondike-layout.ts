@@ -147,7 +147,7 @@ export const portraitLayout: LayoutPositions = {
     },
     
     waste: {
-        x: 1105, // stock右侧 (975 + 130 = 1105)
+        x: 845,  // stock左侧 (975 - 130 = 845)
         y: 180,
     },
     
@@ -188,7 +188,7 @@ export const landscapeLayout: LayoutPositions = {
     },
     
     waste: {
-        x: 1230, // stock右侧 (1100 + 130 = 1230)
+        x: 970,  // stock左侧 (1100 - 130 = 970)
         y: 100,
     },
     
