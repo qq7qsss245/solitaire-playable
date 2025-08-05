@@ -54,9 +54,12 @@ import playFree from './images/ui/play-free.png';
 import productName from './images/ui/product-name.png';
 import fiveStars from './images/ui/five-stars.png';
 
-// 卡槽图片
-import slot from './images/ui/slots/卡槽.png';
-import reset from './images/ui/slots/重置.png';
+// 卡槽图片 - 使用新的单独花色卡槽
+import slotHeart from './images/ui/卡槽/红桃.png';
+import slotDiamond from './images/ui/卡槽/方块.png';
+import slotClub from './images/ui/卡槽/梅花.png';
+import slotSpade from './images/ui/卡槽/黑桃.png';
+import reset from './images/ui/卡槽/重置.png';
 
 // 计分板图片
 import scoreboardLandscape from './images/ui/scoreboard/横计分板.png';
@@ -153,7 +156,10 @@ export const Assets = {
     productName,
     fiveStars,
     slots: {
-      slot,
+      heart: slotHeart,
+      diamond: slotDiamond,
+      club: slotClub,
+      spade: slotSpade,
       reset,
     },
     scoreboard: {
@@ -251,8 +257,11 @@ export const AssetKeys = {
   PRODUCT_NAME: 'product-name',
   FIVE_STARS: 'five-stars',
   
-  // 卡槽
-  SLOT: 'slot',
+  // 卡槽 - 按花色分别定义
+  SLOT_HEART: 'slot-heart',
+  SLOT_DIAMOND: 'slot-diamond',
+  SLOT_CLUB: 'slot-club',
+  SLOT_SPADE: 'slot-spade',
   RESET: 'reset',
   
   // 计分板

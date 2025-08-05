@@ -14,6 +14,7 @@ import { generateTutorialLayout } from '../../config/tutorial-deck';
 import { TutorialManager } from '../tutorial/TutorialManager';
 import download from './constants/download';
 import { getTranslation } from '../i18n';
+import { AssetKeys } from '../../assets';
 
 // 游戏区域类型
 interface TableauColumn {
@@ -230,9 +231,16 @@ export class Game extends Scene {
         this.wasteZone.setDisplaySize(120, 164);
         this.wasteZone.setDepth(0);
 
-        // 创建4个基础牌堆区域
+        // 创建4个基础牌堆区域，使用对应花色的卡槽
+        const slotKeys = [
+            AssetKeys.SLOT_HEART,    // 索引0: 红桃
+            AssetKeys.SLOT_DIAMOND,  // 索引1: 方块
+            AssetKeys.SLOT_CLUB,     // 索引2: 梅花
+            AssetKeys.SLOT_SPADE     // 索引3: 黑桃
+        ];
+        
         for (let i = 0; i < 4; i++) {
-            const zone = this.add.sprite(0, 0, 'card-fill');
+            const zone = this.add.sprite(0, 0, slotKeys[i]);
             zone.setDisplaySize(120, 164);
             zone.setDepth(0);
             this.foundationZones.push(zone);
@@ -250,19 +258,21 @@ export class Game extends Scene {
 
         const t = getTranslation();
 
-        // 创建移动次数显示
+        // 创建移动次数显示（隐藏但保留计数功能）
         this.movesText = this.add.text(0, 0, `${t.moves}0`, textStyle);
         this.movesText.setScrollFactor(0);
         this.movesText.setDepth(1000);
+        this.movesText.setVisible(false); // 隐藏显示
 
-        // 创建分数显示
+        // 创建分数显示（隐藏但保留计数功能）
         this.scoreText = this.add.text(0, 0, `${t.score}0`, textStyle);
         this.scoreText.setScrollFactor(0);
         this.scoreText.setDepth(1000);
+        this.scoreText.setVisible(false); // 隐藏显示
     }
 
     private createPlayNowButton(): void {
-        // 创建按钮背景
+        // 创建按钮背景（图片本身带文案，不需要额外文本）
         this.playNowButton = this.add.image(0, 0, 'download');
         this.playNowButton.setScale(0.8);
         this.playNowButton.setInteractive();
@@ -271,35 +281,10 @@ export class Game extends Scene {
             download();
         });
 
-        // 创建文本样式
-        const textStyle = {
-            fontSize: '64px',
-            fontFamily: 'Arial',
-            color: '#ffffff'
-        };
-
-        // 获取当前语言的文本
-        const t = getTranslation();
-        
-        // 创建文本
-        this.playNowText = this.add.text(0, 0, t.playNow, textStyle);
-        this.playNowText.setOrigin(0.5, 0.5);
-        this.playNowText.setDepth(this.playNowButton.depth + 1);
-        this.playNowText.setScale(0.8);
-
-        // 添加按钮缩放动画
+        // 移除文本创建和文本动画，因为图片本身带文案
+        // 只保留按钮缩放动画
         this.tweens.add({
             targets: this.playNowButton,
-            scale: 0.8 * 1.1,
-            duration: 500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // 添加文本缩放动画
-        this.tweens.add({
-            targets: this.playNowText,
             scale: 0.8 * 1.1,
             duration: 500,
             yoyo: true,
@@ -357,10 +342,10 @@ export class Game extends Scene {
     }
 
     private updateFoundationPositions(): void {
-        // 更新4个基础牌堆的位置
+        // 更新4个基础牌堆的位置 - 水平排布
         this.foundationZones.forEach((zone, index) => {
-            const x = this.currentLayout.foundation.startX + (index % 2) * this.currentLayout.foundation.gap;
-            const y = this.currentLayout.foundation.startY + Math.floor(index / 2) * (this.currentLayout.cardHeight + 20);
+            const x = this.currentLayout.foundation.startX + index * this.currentLayout.foundation.gap;
+            const y = this.currentLayout.foundation.startY;
             zone.setPosition(x, y);
             
             // 更新基础牌堆中的卡牌位置
@@ -388,6 +373,7 @@ export class Game extends Scene {
     }
 
     private updateScoreboardPosition(): void {
+        // 计分板元素已隐藏，但保留位置更新逻辑以维持计数功能
         const isLandscape = window.innerWidth / window.innerHeight > 1;
         
         if (isLandscape) {
@@ -408,7 +394,7 @@ export class Game extends Scene {
 
     private updatePlayNowButtonPosition(): void {
         this.playNowButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
-        this.playNowText.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
+        // 移除文本位置更新，因为不再显示文本
     }
 
     private onResize(): void {

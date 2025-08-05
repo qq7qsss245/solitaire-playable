@@ -69,8 +69,11 @@ export class Preloader extends Scene {
         this.load.image(AssetKeys.PRODUCT_NAME, Assets.ui.productName);
         this.load.image(AssetKeys.FIVE_STARS, Assets.ui.fiveStars);
 
-        // 加载卡槽图片
-        this.load.image(AssetKeys.SLOT, Assets.ui.slots.slot);
+        // 加载卡槽图片 - 按花色分别加载
+        this.load.image(AssetKeys.SLOT_HEART, Assets.ui.slots.heart);
+        this.load.image(AssetKeys.SLOT_DIAMOND, Assets.ui.slots.diamond);
+        this.load.image(AssetKeys.SLOT_CLUB, Assets.ui.slots.club);
+        this.load.image(AssetKeys.SLOT_SPADE, Assets.ui.slots.spade);
         this.load.image(AssetKeys.RESET, Assets.ui.slots.reset);
 
         // 加载计分板图片
@@ -106,7 +109,7 @@ export class Preloader extends Scene {
         // 兼容性：保持原有的键名以确保现有代码正常工作
         // 这些可以在后续重构时逐步替换为新的键名
         this.load.image('card-back', Assets.cards.back);
-        this.load.image('card-fill', Assets.ui.slots.slot); // 用于空区域显示
+        this.load.image('card-fill', Assets.ui.slots.heart); // 用于空区域显示，使用红桃卡槽作为默认
         this.load.image('download', Assets.ui.playFree); // 下载按钮
         this.load.image('hand', Assets.ui.hand);
         this.load.image('icon', Assets.ui.icon);
