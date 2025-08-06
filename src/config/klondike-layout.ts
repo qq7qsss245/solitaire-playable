@@ -243,7 +243,7 @@ export const portraitLayout: LayoutPositions = {
     
     downloadButton: {
         x: 540,  // 居中
-        y: 1720, // 底部
+        y: 1840, // 底部
     },
 };
 
