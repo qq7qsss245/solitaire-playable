@@ -129,20 +129,20 @@ export const portraitLayout: LayoutPositions = {
     cardHeight: 230, // 更新为卡牌实际尺寸
     
     tableau: {
-        startX: 75,  // 左边距
+        startX: 95,  // 左边距
         startY: 530, // 向下移动50单位 (480 + 50 = 530)
         columnGap: 150, // 列间距保持不变
         cardGap: 35,    // 同列卡牌垂直间距
     },
     
     foundation: {
-        startX: 75,   // 左上角开始位置
+        startX: 95,   // 左上角开始位置
         startY: 230,  // 向下移动50单位 (180 + 50 = 230)
         gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
     },
     
     stock: {
-        x: 975,  // 与最右侧列对齐位置保持不变
+        x: 995,  // 与最右侧列对齐位置保持不变
         y: 230,  // 向下移动50单位 (180 + 50 = 230)
     },
     
@@ -158,7 +158,7 @@ export const portraitLayout: LayoutPositions = {
     
     downloadButton: {
         x: 540,  // 居中
-        y: 1720, // 底部
+        y: 1840, // 底部
     },
 };
 
@@ -198,7 +198,7 @@ export const landscapeLayout: LayoutPositions = {
     },
     
     downloadButton: {
-        x: 1620, // 右下角，向左移动100
-        y: 800,  // 向上移动100
+        x: 960,  // 水平居中 (1920 / 2)
+        y: 980, // 距离底部50单位 (1080 - 50)
     },
 };

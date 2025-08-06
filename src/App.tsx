@@ -53,10 +53,9 @@ function App() {
             width: '100vw',
             height: '100vh',
             backgroundImage: `url(${currentBgImage})`,
-            backgroundSize: 'cover',
+            backgroundSize: '100% 100%', // 强制拉伸覆盖整个页面
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            backgroundColor: '#006400', // 深绿色作为备用背景色
             display: 'flex',
             justifyContent: 'center'
         }}>

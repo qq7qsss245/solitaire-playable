@@ -20,19 +20,6 @@ canvas {
   justify-content: center;
 }
 
-.mask {
-  width: 100vw;
-  height: 100vh;
-  position: fixed;
-  background-color: rgba(0, 0, 0, .5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: 'font';
-  color: #fff;
-  flex-direction: column;
-  gap: 10vmin;
-}
 
 .fail {
   width: 60vmin;
