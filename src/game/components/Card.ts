@@ -109,7 +109,6 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
     // 设置阴影深度
     this.shadow.setDepth(y - 1); // 确保阴影在卡牌下方
     this.shadow.setAlpha(0.5); // 设置阴影透明度
-    
     // 设置交互区域
     this.setInteractive();
     
@@ -152,16 +151,18 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
         return this;
     }
 
+    // 阴影缩放比例常量
+    private static readonly SHADOW_SCALE_FACTOR = 1.01; // 阴影比卡牌大1%
+    
     // 重写setScale方法，确保阴影保持比卡牌略大的缩放比例
     setScale(x: number, y?: number): this {
         super.setScale(x, y);
         
-        // 更新阴影缩放比例，保持1.01的放大倍数
-        const shadowScale = 1.01; // 阴影比卡牌大1%
+        // 更新阴影缩放比例
         if (this.shadow) {
             this.shadow.setScale(
-                x * shadowScale,
-                (y === undefined ? x : y) * shadowScale
+                x * Card.SHADOW_SCALE_FACTOR,
+                (y === undefined ? x : y) * Card.SHADOW_SCALE_FACTOR
             );
         }
         
@@ -210,11 +211,21 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
 
                     // 第一阶段：缩放到0
                     await new Promise<void>((resolveFirst) => {
+                        // 第一阶段Tween：添加onUpdate回调以同步阴影缩放
                         this.scene.tweens.add({
                             targets: this,
                             scaleX: 0,
                             duration: 150,
                             ease: 'Power1',
+                            onUpdate: () => {
+                                // 确保阴影随卡牌缩放同步更新
+                                if (this.shadow) {
+                                    this.shadow.setScale(
+                                        this.scaleX * Card.SHADOW_SCALE_FACTOR,
+                                        this.scaleY * Card.SHADOW_SCALE_FACTOR
+                                    );
+                                }
+                            },
                             onComplete: () => {
                                 flipState.firstAnimationComplete = true;
                                 resolveFirst();
@@ -264,17 +275,35 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
                         flipState
                     });
                     await new Promise<void>((resolveSecond) => {
+                        // 第三阶段Tween：添加onUpdate回调以同步阴影缩放
                         this.scene.tweens.add({
                             targets: this,
                             scaleX: originalScaleX,
                             duration: 150,
                             ease: 'Power1',
+                            onUpdate: () => {
+                                // 确保阴影随卡牌缩放同步更新
+                                if (this.shadow) {
+                                    this.shadow.setScale(
+                                        this.scaleX * Card.SHADOW_SCALE_FACTOR,
+                                        this.scaleY * Card.SHADOW_SCALE_FACTOR
+                                    );
+                                }
+                            },
                             onComplete: () => {
                                 console.log('Second animation phase complete');
                                 flipState.secondAnimationComplete = true;
                                 
                                 // 更新最终状态 (音效已经在第二阶段触发，此处不再触发)
                                 this.isFlipping = false;  // 立即重置翻转状态
+                                
+                                // 确保最终阴影比例正确
+                                if (this.shadow) {
+                                    this.shadow.setScale(
+                                        originalScaleX * Card.SHADOW_SCALE_FACTOR,
+                                        this.scaleY * Card.SHADOW_SCALE_FACTOR
+                                    );
+                                }
                                 
                                 if (this._faceUp) {
                                     this.setInteractive();
@@ -674,7 +703,7 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
                     .filter(card => !([this, ...attachedCards].includes(card)) && card.faceUp);
 
                 for (const target of targets) {
-                    if (target.isRed !== this.isRed && target.numericValue === this.numericValue + 1) {
+                    if (target.numericValue === this.numericValue + 1) {
                         // 先检查是否可以移动到这个目标
                         const newColumnIndex = gameScene.getColumnIndex(target);
                         if (newColumnIndex !== -1) {
@@ -1010,11 +1039,7 @@ constructor(scene: Scene, x: number, y: number, suit: CardSuit, value: CardValue
                 dy < Card.CARD_HEIGHT * 2) {
                 
                 // 基本移动规则验证
-                // 1. 红黑交替
-                if (target.isRed === this.isRed) {
-                    return { canDrop: false };
-                }
-                // 2. 数字必须按降序排列
+                // 数字必须按降序排列且相差1
                 if (target.numericValue !== this.numericValue + 1) {
                     return { canDrop: false };
                 }
