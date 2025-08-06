@@ -74,6 +74,11 @@ export default defineConfig({
             format: {
                 comments: false
             }
+        },
+        rollupOptions: {
+            output: {
+                format: 'iife'
+            }
         }
     },
     assetsInclude: ['**/*.gltf', '**/*.glb', "**/*.mpeg"]
