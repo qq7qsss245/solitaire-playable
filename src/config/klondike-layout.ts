@@ -108,10 +108,54 @@ export interface LayoutPositions {
         y: number;
     };
     
-    // 计分板位置
+    // 计分板配置
     scoreboard: {
-        x: number;
-        y: number;
+        // 背景图片位置和尺寸
+        background: {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+        };
+        // 时间项目
+        time: {
+            title: {
+                x: number;
+                y: number;
+                fontSize: number;
+            };
+            value: {
+                x: number;
+                y: number;
+                fontSize: number;
+            };
+        };
+        // 分数项目
+        score: {
+            title: {
+                x: number;
+                y: number;
+                fontSize: number;
+            };
+            value: {
+                x: number;
+                y: number;
+                fontSize: number;
+            };
+        };
+        // 步数项目
+        moves: {
+            title: {
+                x: number;
+                y: number;
+                fontSize: number;
+            };
+            value: {
+                x: number;
+                y: number;
+                fontSize: number;
+            };
+        };
     };
     
     // 下载按钮位置
@@ -130,35 +174,76 @@ export const portraitLayout: LayoutPositions = {
     
     tableau: {
         startX: 95,  // 左边距
-        startY: 530, // 向下移动50单位 (480 + 50 = 530)
+        startY: 580, // 再向下移动50 (530 + 50 = 580)
         columnGap: 150, // 列间距保持不变
         cardGap: 35,    // 同列卡牌垂直间距
     },
     
     foundation: {
         startX: 95,   // 左上角开始位置
-        startY: 230,  // 向下移动50单位 (180 + 50 = 230)
+        startY: 280,  // 再向下移动50 (230 + 50 = 280)
         gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
     },
     
     stock: {
         x: 995,  // 与最右侧列对齐位置保持不变
-        y: 230,  // 向下移动50单位 (180 + 50 = 230)
+        y: 280,  // 再向下移动50 (230 + 50 = 280)
     },
     
     waste: {
         x: 815,  // stock左侧，间距调整为160 (975 - 160 = 815)
-        y: 230,  // 向下移动50单位 (180 + 50 = 230)
+        y: 280,  // 再向下移动50 (230 + 50 = 280)
     },
     
     scoreboard: {
-        x: 540,  // 居中
-        y: 50,
+        background: {
+            x: 540,  // 居中
+            y: 60,
+            width: 800,  // 竖屏计分板宽度
+            height: 120, // 竖屏计分板高度
+        },
+        // 竖屏模式：横向分布，时间-分数-步数
+        time: {
+            title: {
+                x: 240,  // 左侧位置
+                y: 30,
+                fontSize: 32,
+            },
+            value: {
+                x: 240,
+                y: 70,
+                fontSize: 48,
+            },
+        },
+        score: {
+            title: {
+                x: 540,  // 中间位置
+                y: 25,
+                fontSize: 32,
+            },
+            value: {
+                x: 540,
+                y: 65,
+                fontSize: 48,
+            },
+        },
+        moves: {
+            title: {
+                x: 840,  // 右侧位置
+                y: 30,
+                fontSize: 32,
+            },
+            value: {
+                x: 840,
+                y: 70,
+                fontSize: 48,
+            },
+        },
     },
     
     downloadButton: {
         x: 540,  // 居中
-        y: 1840, // 底部
+        y: 1720, // 底部
     },
 };
 
@@ -193,8 +278,49 @@ export const landscapeLayout: LayoutPositions = {
     },
     
     scoreboard: {
-        x: 100,  // 左侧
-        y: 500,
+        background: {
+            x: 1600, // 右侧位置
+            y: 300,
+            width: 280,  // 横屏计分板宽度
+            height: 400, // 横屏计分板高度
+        },
+        // 横屏模式：纵向排列，时间在上，分数中间，步数在下
+        time: {
+            title: {
+                x: 1600,
+                y: 130,
+                fontSize: 28,
+            },
+            value: {
+                x: 1600,
+                y: 180,
+                fontSize: 42,
+            },
+        },
+        score: {
+            title: {
+                x: 1600,
+                y: 270,
+                fontSize: 28,
+            },
+            value: {
+                x: 1600,
+                y: 320,
+                fontSize: 42,
+            },
+        },
+        moves: {
+            title: {
+                x: 1600,
+                y: 410,
+                fontSize: 28,
+            },
+            value: {
+                x: 1600,
+                y: 460,
+                fontSize: 42,
+            },
+        },
     },
     
     downloadButton: {
