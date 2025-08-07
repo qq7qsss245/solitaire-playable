@@ -11,6 +11,9 @@ export const DEBUG_SPACING = {
     // 其他间距（预留）
     COLUMN_GAP: 140,          // 列间距
     FOUNDATION_GAP: 140,      // 基础牌堆间距
+    
+    // 收牌区尺寸调整
+    SLOT_SCALE: 1.2,          // 收牌区相对于卡牌的缩放比例（1.0 = 相同大小，1.1 = 大10%）
 };
 
 // 定义卡牌接口
