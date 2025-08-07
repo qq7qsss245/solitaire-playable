@@ -141,9 +141,9 @@ export class TutorialManager {
                 break;
                 
             case TutorialState.STEP_STOCK_FLIP:
-                // 翻牌操作引导
+                // 翻牌操作引导 - 显示stock点击引导
                 this.isWaitingForAction = true;
-                this.setupStockFlipTarget();
+                this.guideSystem.showStockClickGuide();
                 break;
                 
             case TutorialState.STEP_PILE_TO_PILE:
@@ -262,6 +262,19 @@ export class TutorialManager {
             return;
         }
 
+        // 检查是否是红桃A拖拽到基础牌堆
+        if (data.card.suit === 'h' && data.card.value === 'A' && this.currentState === TutorialState.STEP_RULES) {
+            // 立即隐藏A牌引导
+            this.guideSystem.hideAceToFoundationGuide();
+            
+            // 立即显示stock点击引导
+            this.guideSystem.showStockClickGuide();
+            
+            // 进入下一步
+            this.nextStep();
+            return;
+        }
+
         if (this.checkStepCompletion('card-to-foundation', data)) {
             this.nextStep();
         }
@@ -271,6 +284,11 @@ export class TutorialManager {
         if (!this.isValidAction('stock-click')) {
             this.onInvalidAction();
             return;
+        }
+
+        // 如果是在stock引导步骤，隐藏引导
+        if (this.currentState === TutorialState.STEP_STOCK_FLIP) {
+            this.guideSystem.hideStockClickGuide();
         }
 
         if (this.checkStepCompletion('stock-click')) {

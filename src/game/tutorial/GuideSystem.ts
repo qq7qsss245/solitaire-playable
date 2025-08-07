@@ -179,10 +179,25 @@ export class GuideSystem {
         const layout = this.scene.currentLayout;
         if (!layout) return;
         
+        console.log('🔍 [DEBUG] updateSingleTextPosition - 当前文案类型:', this.currentGuideText);
+        
         // 根据当前显示的文案类型更新位置
         if (this.currentGuideText === 'aceToFoundation') {
             const acePos = layout.guideTexts.aceToFoundation;
+            console.log('🔍 [DEBUG] updateSingleTextPosition - aceToFoundation坐标:', acePos);
             this.guideTextImage1.setPosition(acePos.x, acePos.y);
+        } else if (this.currentGuideText === 'stockHint') {
+            const stockHintPos = layout.guideTexts.stockHint;
+            console.log('🔍 [DEBUG] updateSingleTextPosition - stockHint坐标:', {
+                配置坐标: stockHintPos,
+                orientation: this.getOrientation(),
+                gameSize: `${layout.gameWidth}x${layout.gameHeight}`
+            });
+            this.guideTextImage1.setPosition(stockHintPos.x, stockHintPos.y);
+            console.log('🔍 [DEBUG] updateSingleTextPosition - 更新后实际坐标:', {
+                x: this.guideTextImage1.x,
+                y: this.guideTextImage1.y
+            });
         }
     }
 
@@ -210,23 +225,37 @@ export class GuideSystem {
         this.guideTextImage1.setTexture(textureKey);
         this.guideTextImage1.setVisible(true);
         
-        // 计算文案位置（牌局下方中央）
-        const screenWidth = this.scene.scale.width;
-        const screenHeight = this.scene.scale.height;
-        
-        // 根据屏幕方向调整文案位置
-        const isLandscape = screenWidth > screenHeight;
-        let textY: number;
-        
-        if (isLandscape) {
-            // 横屏：放在牌局下方，约屏幕高度的85%位置
-            textY = screenHeight * 0.85;
+        // 使用配置文件中的坐标而不是计算位置
+        const layout = this.scene.currentLayout;
+        const guideTexts = layout?.guideTexts as any;
+        if (layout && guideTexts && guideTexts[textKey]) {
+            const textPos = guideTexts[textKey];
+            console.log('🔍 [DEBUG] showGuideText - 使用配置坐标:', {
+                textKey: textKey,
+                配置坐标: textPos,
+                orientation: this.getOrientation()
+            });
+            this.guideTextImage1.setPosition(textPos.x, textPos.y);
         } else {
-            // 竖屏：放在牌局下方，约屏幕高度的80%位置
-            textY = screenHeight * 0.80;
+            // 如果配置中没有对应的坐标，则使用计算的位置作为后备方案
+            console.warn('⚠️ [WARNING] showGuideText - 配置中未找到坐标，使用计算位置:', textKey);
+            const screenWidth = this.scene.scale.width;
+            const screenHeight = this.scene.scale.height;
+            
+            // 根据屏幕方向调整文案位置
+            const isLandscape = screenWidth > screenHeight;
+            let textY: number;
+            
+            if (isLandscape) {
+                // 横屏：放在牌局下方，约屏幕高度的85%位置
+                textY = screenHeight * 0.85;
+            } else {
+                // 竖屏：放在牌局下方，约屏幕高度的80%位置
+                textY = screenHeight * 0.80;
+            }
+            
+            this.guideTextImage1.setPosition(screenWidth / 2, textY);
         }
-        
-        this.guideTextImage1.setPosition(screenWidth / 2, textY);
         
         // 添加淡入动画
         this.guideTextImage1.setAlpha(0);
@@ -484,6 +513,62 @@ export class GuideSystem {
             this.textTween1 = null;
         }
         this.guideTextImage1.setVisible(false);
+    }
+
+    public showStockClickGuide(): void {
+        // 显示"Hmmm, now try to..."文案和stock点击引导
+        const layout = this.scene.currentLayout;
+        const stockHintPos = layout.guideTexts.stockHint;
+        
+        // 调试日志：打印配置的坐标和当前屏幕方向
+        console.log('🔍 [DEBUG] showStockClickGuide - 配置坐标:', {
+            stockHintPos: stockHintPos,
+            orientation: this.getOrientation(),
+            gameWidth: layout.gameWidth,
+            gameHeight: layout.gameHeight
+        });
+        
+        // 设置当前文案类型，用于横竖屏切换时的位置更新
+        this.currentGuideText = 'stockHint';
+        
+        // 显示文案
+        this.guideTextImage1.setTexture('guide-stock-hint'); // 需要对应的资源
+        this.guideTextImage1.setVisible(true);
+        this.guideTextImage1.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        this.guideTextImage1.setPosition(stockHintPos.x, stockHintPos.y);
+        
+        // 调试日志：打印实际设置的坐标
+        console.log('🔍 [DEBUG] showStockClickGuide - 实际设置坐标:', {
+            actualX: this.guideTextImage1.x,
+            actualY: this.guideTextImage1.y,
+            visible: this.guideTextImage1.visible,
+            scale: this.guideTextImage1.scaleX
+        });
+        
+        // 淡入动画
+        this.guideTextImage1.setAlpha(0);
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        // 在stock位置显示点击手势
+        const stockPos = layout.stock;
+        this.showHandGuide(stockPos.x, stockPos.y);
+    }
+
+    public hideStockClickGuide(): void {
+        // 隐藏文案
+        if (this.textTween1) {
+            this.textTween1.stop();
+            this.textTween1 = null;
+        }
+        this.guideTextImage1.setVisible(false);
+        
+        // 隐藏手势
+        this.hideHandGuide();
     }
 
     public getIsShowingAceGuide(): boolean {

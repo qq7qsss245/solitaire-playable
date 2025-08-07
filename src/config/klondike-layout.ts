@@ -197,6 +197,10 @@ export interface LayoutPositions {
             x: number;
             y: number;
         };
+        stockHint: {
+            x: number;
+            y: number;
+        };
     };
 }
 
@@ -292,6 +296,10 @@ export const portraitLayout: LayoutPositions = {
             y: 1280, // 第一个文案下方50单位
         },
         aceToFoundation: {
+            x: 540,  // 与intro位置相同
+            y: 1200, // 与intro位置相同
+        },
+        stockHint: {
             x: 540,  // 与intro位置相同
             y: 1200, // 与intro位置相同
         },
@@ -392,6 +400,10 @@ export const landscapeLayout: LayoutPositions = {
         aceToFoundation: {
             x: 606,  // 与牌局中心对齐 (200 + 3*140 + 132/2)
             y: 650,    // 与intro位置相同
+        },
+        stockHint: {
+            x: 606,  // 与intro位置相同
+            y: 650,   // 与intro位置相同
         },
     },
 };

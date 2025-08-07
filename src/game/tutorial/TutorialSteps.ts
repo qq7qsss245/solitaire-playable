@@ -33,7 +33,7 @@ export class TutorialSteps {
             guideText: 'objective', // 使用assets中的键名
             description: '规则说明',
             autoAdvanceTime: 5000, // 5秒自动进入下一步，或用户点击继续
-            allowedActions: ['screen-tap'],
+            allowedActions: ['screen-tap', 'card-to-foundation'],
             onStepStart: (scene: Game) => {
                 console.log('Tutorial Step 2: Rules Explanation');
             }
