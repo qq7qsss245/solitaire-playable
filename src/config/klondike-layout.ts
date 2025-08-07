@@ -169,8 +169,8 @@ export interface LayoutPositions {
 export const portraitLayout: LayoutPositions = {
     gameWidth: 1080,
     gameHeight: 1920,
-    cardWidth: 147,  // 更新为卡牌实际尺寸
-    cardHeight: 230, // 更新为卡牌实际尺寸
+    cardWidth: 147,  // 保持宽度不变
+    cardHeight: 216, // 根据实际图片宽高比调整 (161:237 = 147:216)
     
     tableau: {
         startX: 95,  // 左边距
@@ -181,18 +181,18 @@ export const portraitLayout: LayoutPositions = {
     
     foundation: {
         startX: 95,   // 左上角开始位置
-        startY: 280,  // 再向下移动50 (230 + 50 = 280)
+        startY: 280,  // 基础牌堆Y位置
         gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
     },
     
     stock: {
         x: 995,  // 与最右侧列对齐位置保持不变
-        y: 280,  // 再向下移动50 (230 + 50 = 280)
+        y: 280,  // 库存牌堆Y位置
     },
     
     waste: {
         x: 815,  // stock左侧，间距调整为160 (975 - 160 = 815)
-        y: 280,  // 再向下移动50 (230 + 50 = 280)
+        y: 280,  // 翻牌区域Y位置
     },
     
     scoreboard: {
@@ -251,8 +251,8 @@ export const portraitLayout: LayoutPositions = {
 export const landscapeLayout: LayoutPositions = {
     gameWidth: 1920,
     gameHeight: 1080,
-    cardWidth: 147,  // 更新为卡牌实际尺寸
-    cardHeight: 230, // 更新为卡牌实际尺寸
+    cardWidth: 147,  // 保持宽度不变
+    cardHeight: 216, // 根据实际图片宽高比调整 (161:237 = 147:216)
     
     tableau: {
         startX: 200,  // 左边距
@@ -263,18 +263,18 @@ export const landscapeLayout: LayoutPositions = {
     
     foundation: {
         startX: 200,  // 左上角开始位置
-        startY: 150,  // 向下移动50单位 (100 + 50 = 150)
+        startY: 150,  // 基础牌堆Y位置
         gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
     },
     
     stock: {
         x: 1100, // 与最右侧列对齐位置保持不变
-        y: 150,  // 向下移动50单位 (100 + 50 = 150)
+        y: 150,  // 库存牌堆Y位置
     },
     
     waste: {
         x: 940,  // stock左侧，间距调整为160 (1100 - 160 = 940)
-        y: 150,  // 向下移动50单位 (100 + 50 = 150)
+        y: 150,  // 翻牌区域Y位置
     },
     
     scoreboard: {
