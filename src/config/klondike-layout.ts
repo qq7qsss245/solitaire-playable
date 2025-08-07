@@ -9,8 +9,8 @@ export const DEBUG_SPACING = {
     LANDSCAPE_CARD_GAP: 20,   // 横屏模式卡牌间距（缩短）
     
     // 其他间距（预留）
-    COLUMN_GAP: 150,          // 列间距
-    FOUNDATION_GAP: 160,      // 基础牌堆间距
+    COLUMN_GAP: 140,          // 列间距
+    FOUNDATION_GAP: 140,      // 基础牌堆间距
 };
 
 // 定义卡牌接口
@@ -180,8 +180,8 @@ export interface LayoutPositions {
 export const portraitLayout: LayoutPositions = {
     gameWidth: 1080,
     gameHeight: 1920,
-    cardWidth: 147,  // 保持宽度不变
-    cardHeight: 216, // 根据实际图片宽高比调整 (161:237 = 147:216)
+    cardWidth: 106,  // 再缩小80% (132 × 0.8 = 106)
+    cardHeight: 155, // 再缩小80% (194 × 0.8 = 155)
     
     tableau: {
         startX: 95,  // 左边距
@@ -262,8 +262,8 @@ export const portraitLayout: LayoutPositions = {
 export const landscapeLayout: LayoutPositions = {
     gameWidth: 1920,
     gameHeight: 1080,
-    cardWidth: 147,  // 保持宽度不变
-    cardHeight: 216, // 根据实际图片宽高比调整 (161:237 = 147:216)
+    cardWidth: 132,  // 再缩小80% (132 × 0.8 = 106)
+    cardHeight: 194, // 再缩小80% (194 × 0.8 = 155)
     
     tableau: {
         startX: 200,  // 左边距

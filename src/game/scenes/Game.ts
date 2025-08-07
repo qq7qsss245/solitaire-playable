@@ -253,7 +253,9 @@ export class Game extends Scene {
     private createZones(): void {
         // 创建库存牌堆区域 - 初始显示牌背，无牌时显示重置图片
         this.stockZone = this.add.sprite(0, 0, AssetKeys.CARD_BACK);
-        this.stockZone.setDisplaySize(147, 230); // 使用与卡牌相同的尺寸
+        // 使用默认配置或当前布局配置
+        const layout = this.currentLayout || portraitLayout;
+        this.stockZone.setDisplaySize(layout.cardWidth, layout.cardHeight);
         this.stockZone.setDepth(0);
         this.stockZone.setInteractive();
         this.stockZone.on('pointerdown', () => this.onStockClick());
@@ -270,7 +272,9 @@ export class Game extends Scene {
         
         for (let i = 0; i < 4; i++) {
             const zone = this.add.sprite(0, 0, slotKeys[i]);
-            zone.setDisplaySize(147, 230); // 使用与卡牌相同的尺寸
+            // 使用默认配置或当前布局配置
+            const layout = this.currentLayout || portraitLayout;
+            zone.setDisplaySize(layout.cardWidth, layout.cardHeight);
             zone.setDepth(0);
             this.foundationZones.push(zone);
         }

@@ -60,11 +60,23 @@ export class GuideSystem {
         this.guideTextImage.setTexture(textureKey);
         this.guideTextImage.setVisible(true);
         
-        // 计算文案位置（屏幕上方中央）
+        // 计算文案位置（牌局下方中央）
         const screenWidth = this.scene.scale.width;
         const screenHeight = this.scene.scale.height;
         
-        this.guideTextImage.setPosition(screenWidth / 2, screenHeight * 0.15);
+        // 根据屏幕方向调整文案位置
+        const isLandscape = screenWidth > screenHeight;
+        let textY: number;
+        
+        if (isLandscape) {
+            // 横屏：放在牌局下方，约屏幕高度的85%位置
+            textY = screenHeight * 0.85;
+        } else {
+            // 竖屏：放在牌局下方，约屏幕高度的80%位置
+            textY = screenHeight * 0.80;
+        }
+        
+        this.guideTextImage.setPosition(screenWidth / 2, textY);
         
         // 添加淡入动画
         this.guideTextImage.setAlpha(0);
@@ -156,33 +168,26 @@ export class GuideSystem {
     }
 
     public highlightFoundationZones(): void {
-        // 高亮显示基础牌堆区域
+        // 移除遮罩效果，只保留基础牌堆的轻微高亮
         this.highlightOverlay.clear();
         this.highlightOverlay.setVisible(true);
         
-        // 绘制半透明遮罩
-        const screenWidth = this.scene.scale.width;
-        const screenHeight = this.scene.scale.height;
-        
-        this.highlightOverlay.fillStyle(0x000000, 0.5);
-        this.highlightOverlay.fillRect(0, 0, screenWidth, screenHeight);
-        
-        // 在基础牌堆位置挖洞（清除遮罩）
+        // 在基础牌堆位置绘制轻微的高亮边框
         this.scene.foundationZones.forEach((zone) => {
             const bounds = zone.getBounds();
-            this.highlightOverlay.fillStyle(0x000000, 0);
-            this.highlightOverlay.fillRect(
-                bounds.x - 10, 
-                bounds.y - 10, 
-                bounds.width + 20, 
-                bounds.height + 20
+            this.highlightOverlay.lineStyle(3, 0xffffff, 0.8);
+            this.highlightOverlay.strokeRect(
+                bounds.x - 5,
+                bounds.y - 5,
+                bounds.width + 10,
+                bounds.height + 10
             );
         });
         
-        // 添加闪烁动画
+        // 添加轻微的闪烁动画
         this.highlightTween = this.scene.tweens.add({
             targets: this.highlightOverlay,
-            alpha: 0.3,
+            alpha: 0.5,
             duration: 1000,
             yoyo: true,
             repeat: -1,

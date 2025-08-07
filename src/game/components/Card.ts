@@ -1,5 +1,5 @@
 import { GameObjects, Scene } from 'phaser';
-import { CardSuit, CardValue } from '../../config/klondike-layout';
+import { CardSuit, CardValue, portraitLayout, landscapeLayout } from '../../config/klondike-layout';
 import { Game } from '../scenes/Game';
 import { EventBus } from '../EventBus';
 import { AssetKeys } from '../../assets';
@@ -76,10 +76,23 @@ export class Card extends GameObjects.Container {
     private suitTopRight!: GameObjects.Image; // 新增：右上角花色装饰
     private centerSuit!: GameObjects.Image; // 新增：中心大花色
 
-    // 卡牌尺寸和布局常量
-    private static readonly CARD_WIDTH = 147;
-    private static readonly CARD_HEIGHT = 230;
-    private static readonly CARD_GAP_Y = Card.CARD_HEIGHT / 4;
+    // 卡牌尺寸和布局常量 - 从配置中获取
+    private static get CARD_WIDTH(): number {
+        // 根据当前屏幕方向获取卡牌宽度
+        const isLandscape = window.innerWidth > window.innerHeight;
+        return isLandscape ? landscapeLayout.cardWidth : portraitLayout.cardWidth;
+    }
+    
+    private static get CARD_HEIGHT(): number {
+        // 根据当前屏幕方向获取卡牌高度
+        const isLandscape = window.innerWidth > window.innerHeight;
+        return isLandscape ? landscapeLayout.cardHeight : portraitLayout.cardHeight;
+    }
+    
+    private static get CARD_GAP_Y(): number {
+        return Card.CARD_HEIGHT / 4;
+    }
+    
     private static readonly DRAG_DEPTH = 10000;
 
     // 优化后的布局位置常量（保持15px边距）
