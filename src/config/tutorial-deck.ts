@@ -8,93 +8,93 @@ export function generateTutorialLayout(): KlondikeLayout {
     const tableau: Card[][] = [
         // 第1列：黑桃K (正面朝上)
         [
-            { suit: 'spades' as CardSuit, value: 'K' as CardValue, faceUp: true }
+            { suit: 's' as CardSuit, value: 'K' as CardValue, faceUp: true }
         ],
         
         // 第2列：方块6 (背面) + 红桃Q (正面)
         [
-            { suit: 'diamonds' as CardSuit, value: '6' as CardValue, faceUp: false },
-            { suit: 'hearts' as CardSuit, value: 'Q' as CardValue, faceUp: true }
+            { suit: 'd' as CardSuit, value: '6' as CardValue, faceUp: false },
+            { suit: 'h' as CardSuit, value: 'Q' as CardValue, faceUp: true }
         ],
         
         // 第3列：梅花5 (背面) + 方块9 (背面) + 黑桃J (正面)
         [
-            { suit: 'clubs' as CardSuit, value: '5' as CardValue, faceUp: false },
-            { suit: 'diamonds' as CardSuit, value: '9' as CardValue, faceUp: false },
-            { suit: 'spades' as CardSuit, value: 'J' as CardValue, faceUp: true }
+            { suit: 'c' as CardSuit, value: '5' as CardValue, faceUp: false },
+            { suit: 'd' as CardSuit, value: '9' as CardValue, faceUp: false },
+            { suit: 's' as CardSuit, value: 'J' as CardValue, faceUp: true }
         ],
         
         // 第4列：红桃4 (背面) + 梅花8 (背面) + 方块K (背面) + 红桃10 (正面)
         [
-            { suit: 'hearts' as CardSuit, value: '4' as CardValue, faceUp: false },
-            { suit: 'clubs' as CardSuit, value: '8' as CardValue, faceUp: false },
-            { suit: 'diamonds' as CardSuit, value: 'K' as CardValue, faceUp: false },
-            { suit: 'hearts' as CardSuit, value: '10' as CardValue, faceUp: true }
+            { suit: 'h' as CardSuit, value: '4' as CardValue, faceUp: false },
+            { suit: 'c' as CardSuit, value: '8' as CardValue, faceUp: false },
+            { suit: 'd' as CardSuit, value: 'K' as CardValue, faceUp: false },
+            { suit: 'h' as CardSuit, value: '10' as CardValue, faceUp: true }
         ],
         
         // 第5列：黑桃3 (背面) + 红桃7 (背面) + 梅花J (背面) + 方块Q (背面) + 黑桃9 (正面)
         [
-            { suit: 'spades' as CardSuit, value: '3' as CardValue, faceUp: false },
-            { suit: 'hearts' as CardSuit, value: '7' as CardValue, faceUp: false },
-            { suit: 'clubs' as CardSuit, value: 'J' as CardValue, faceUp: false },
-            { suit: 'diamonds' as CardSuit, value: 'Q' as CardValue, faceUp: false },
-            { suit: 'spades' as CardSuit, value: '9' as CardValue, faceUp: true }
+            { suit: 's' as CardSuit, value: '3' as CardValue, faceUp: false },
+            { suit: 'h' as CardSuit, value: '7' as CardValue, faceUp: false },
+            { suit: 'c' as CardSuit, value: 'J' as CardValue, faceUp: false },
+            { suit: 'd' as CardSuit, value: 'Q' as CardValue, faceUp: false },
+            { suit: 's' as CardSuit, value: '9' as CardValue, faceUp: true }
         ],
         
         // 第6列：梅花2 (背面) + 黑桃6 (背面) + 红桃10 (背面) + 梅花K (背面) + 方块A (背面) + 红桃8 (正面)
         [
-            { suit: 'clubs' as CardSuit, value: '2' as CardValue, faceUp: false },
-            { suit: 'spades' as CardSuit, value: '6' as CardValue, faceUp: false },
-            { suit: 'hearts' as CardSuit, value: '10' as CardValue, faceUp: false },
-            { suit: 'clubs' as CardSuit, value: 'K' as CardValue, faceUp: false },
-            { suit: 'diamonds' as CardSuit, value: 'A' as CardValue, faceUp: false },
-            { suit: 'hearts' as CardSuit, value: '8' as CardValue, faceUp: true }
+            { suit: 'c' as CardSuit, value: '2' as CardValue, faceUp: false },
+            { suit: 's' as CardSuit, value: '6' as CardValue, faceUp: false },
+            { suit: 'h' as CardSuit, value: '10' as CardValue, faceUp: false },
+            { suit: 'c' as CardSuit, value: 'K' as CardValue, faceUp: false },
+            { suit: 'd' as CardSuit, value: 'A' as CardValue, faceUp: false },
+            { suit: 'h' as CardSuit, value: '8' as CardValue, faceUp: true }
         ],
         
         // 第7列：红桃A (背面) + 黑桃5 (背面) + 方块8 (背面) + 梅花Q (背面) + 黑桃K (背面) + 方块3 (背面) + 黑桃7 (正面)
         [
-            { suit: 'hearts' as CardSuit, value: 'A' as CardValue, faceUp: false },
-            { suit: 'spades' as CardSuit, value: '5' as CardValue, faceUp: false },
-            { suit: 'diamonds' as CardSuit, value: '8' as CardValue, faceUp: false },
-            { suit: 'clubs' as CardSuit, value: 'Q' as CardValue, faceUp: false },
-            { suit: 'spades' as CardSuit, value: 'K' as CardValue, faceUp: false },
-            { suit: 'diamonds' as CardSuit, value: '3' as CardValue, faceUp: false },
-            { suit: 'spades' as CardSuit, value: '7' as CardValue, faceUp: true }
+            { suit: 'h' as CardSuit, value: 'A' as CardValue, faceUp: false },
+            { suit: 's' as CardSuit, value: '5' as CardValue, faceUp: false },
+            { suit: 'd' as CardSuit, value: '8' as CardValue, faceUp: false },
+            { suit: 'c' as CardSuit, value: 'Q' as CardValue, faceUp: false },
+            { suit: 's' as CardSuit, value: 'K' as CardValue, faceUp: false },
+            { suit: 'd' as CardSuit, value: '3' as CardValue, faceUp: false },
+            { suit: 's' as CardSuit, value: '7' as CardValue, faceUp: true }
         ]
     ];
 
     // 库存牌堆：剩余24张牌，顶部是黑桃A
     const stock: Card[] = [
         // 黑桃A在顶部（最后翻出）
-        { suit: 'spades' as CardSuit, value: 'A' as CardValue, faceUp: false },
+        { suit: 's' as CardSuit, value: 'A' as CardValue, faceUp: false },
         
         // 其他剩余卡牌（按教学需要排列）
-        { suit: 'diamonds' as CardSuit, value: '2' as CardValue, faceUp: false },
-        { suit: 'clubs' as CardSuit, value: '3' as CardValue, faceUp: false },
-        { suit: 'hearts' as CardSuit, value: '5' as CardValue, faceUp: false },
-        { suit: 'diamonds' as CardSuit, value: '7' as CardValue, faceUp: false },
-        { suit: 'clubs' as CardSuit, value: '9' as CardValue, faceUp: false },
-        { suit: 'hearts' as CardSuit, value: 'J' as CardValue, faceUp: false },
+        { suit: 'd' as CardSuit, value: '2' as CardValue, faceUp: false },
+        { suit: 'c' as CardSuit, value: '3' as CardValue, faceUp: false },
+        { suit: 'h' as CardSuit, value: '5' as CardValue, faceUp: false },
+        { suit: 'd' as CardSuit, value: '7' as CardValue, faceUp: false },
+        { suit: 'c' as CardSuit, value: '9' as CardValue, faceUp: false },
+        { suit: 'h' as CardSuit, value: 'J' as CardValue, faceUp: false },
         
-        { suit: 'spades' as CardSuit, value: '2' as CardValue, faceUp: false },
-        { suit: 'diamonds' as CardSuit, value: '4' as CardValue, faceUp: false },
-        { suit: 'clubs' as CardSuit, value: '6' as CardValue, faceUp: false },
-        { suit: 'hearts' as CardSuit, value: '9' as CardValue, faceUp: false },
-        { suit: 'spades' as CardSuit, value: '8' as CardValue, faceUp: false },
-        { suit: 'diamonds' as CardSuit, value: '10' as CardValue, faceUp: false },
-        { suit: 'clubs' as CardSuit, value: 'A' as CardValue, faceUp: false },
+        { suit: 's' as CardSuit, value: '2' as CardValue, faceUp: false },
+        { suit: 'd' as CardSuit, value: '4' as CardValue, faceUp: false },
+        { suit: 'c' as CardSuit, value: '6' as CardValue, faceUp: false },
+        { suit: 'h' as CardSuit, value: '9' as CardValue, faceUp: false },
+        { suit: 's' as CardSuit, value: '8' as CardValue, faceUp: false },
+        { suit: 'd' as CardSuit, value: '10' as CardValue, faceUp: false },
+        { suit: 'c' as CardSuit, value: 'A' as CardValue, faceUp: false },
         
-        { suit: 'hearts' as CardSuit, value: '2' as CardValue, faceUp: false },
-        { suit: 'spades' as CardSuit, value: '4' as CardValue, faceUp: false },
-        { suit: 'diamonds' as CardSuit, value: '5' as CardValue, faceUp: false },
-        { suit: 'clubs' as CardSuit, value: '7' as CardValue, faceUp: false },
-        { suit: 'hearts' as CardSuit, value: '6' as CardValue, faceUp: false },
-        { suit: 'spades' as CardSuit, value: '10' as CardValue, faceUp: false },
-        { suit: 'diamonds' as CardSuit, value: 'J' as CardValue, faceUp: false },
+        { suit: 'h' as CardSuit, value: '2' as CardValue, faceUp: false },
+        { suit: 's' as CardSuit, value: '4' as CardValue, faceUp: false },
+        { suit: 'd' as CardSuit, value: '5' as CardValue, faceUp: false },
+        { suit: 'c' as CardSuit, value: '7' as CardValue, faceUp: false },
+        { suit: 'h' as CardSuit, value: '6' as CardValue, faceUp: false },
+        { suit: 's' as CardSuit, value: '10' as CardValue, faceUp: false },
+        { suit: 'd' as CardSuit, value: 'J' as CardValue, faceUp: false },
         
-        { suit: 'clubs' as CardSuit, value: '4' as CardValue, faceUp: false },
-        { suit: 'hearts' as CardSuit, value: '3' as CardValue, faceUp: false },
-        { suit: 'clubs' as CardSuit, value: '10' as CardValue, faceUp: false }
+        { suit: 'c' as CardSuit, value: '4' as CardValue, faceUp: false },
+        { suit: 'h' as CardSuit, value: '3' as CardValue, faceUp: false },
+        { suit: 'c' as CardSuit, value: '10' as CardValue, faceUp: false }
     ];
 
     return {
@@ -109,7 +109,7 @@ export function generateTutorialLayout(): KlondikeLayout {
 export const TUTORIAL_KEY_CARDS = {
     // 步骤3需要的黑桃A（在库存牌堆顶部）
     SPADE_ACE: {
-        suit: 'spades' as CardSuit,
+        suit: 's' as CardSuit,
         value: 'A' as CardValue,
         location: 'stock',
         position: 0 // 库存牌堆顶部
@@ -117,7 +117,7 @@ export const TUTORIAL_KEY_CARDS = {
     
     // 步骤4需要移动的红桃8（第6列顶部）
     HEART_8: {
-        suit: 'hearts' as CardSuit,
+        suit: 'h' as CardSuit,
         value: '8' as CardValue,
         location: 'tableau',
         column: 5, // 第6列（索引5）
@@ -126,7 +126,7 @@ export const TUTORIAL_KEY_CARDS = {
     
     // 步骤4的目标黑桃9（第5列顶部）
     SPADE_9: {
-        suit: 'spades' as CardSuit,
+        suit: 's' as CardSuit,
         value: '9' as CardValue,
         location: 'tableau',
         column: 4, // 第5列（索引4）
@@ -135,7 +135,7 @@ export const TUTORIAL_KEY_CARDS = {
     
     // 步骤6需要移动的黑桃7（第7列顶部）
     SPADE_7: {
-        suit: 'spades' as CardSuit,
+        suit: 's' as CardSuit,
         value: '7' as CardValue,
         location: 'tableau',
         column: 6, // 第7列（索引6）
@@ -147,30 +147,30 @@ export const TUTORIAL_KEY_CARDS = {
 export class TutorialValidator {
     // 验证步骤3：黑桃A放入基础牌堆
     static validateStep3(card: any, foundationIndex: number): boolean {
-        return card.suit === 'spades' && card.value === 'A';
+        return card.suit === 's' && card.value === 'A';
     }
     
     // 验证步骤4：红桃8移动到黑桃9上
     static validateStep4(movedCard: any, targetCard: any): boolean {
-        return movedCard.suit === 'hearts' && 
-               movedCard.value === '8' && 
-               targetCard.suit === 'spades' && 
+        return movedCard.suit === 'h' &&
+               movedCard.value === '8' &&
+               targetCard.suit === 's' &&
                targetCard.value === '9';
     }
     
     // 验证步骤6：黑桃7移动到红桃8上
     static validateStep6(movedCard: any, targetCard: any): boolean {
-        return movedCard.suit === 'spades' && 
-               movedCard.value === '7' && 
-               targetCard.suit === 'hearts' && 
+        return movedCard.suit === 's' &&
+               movedCard.value === '7' &&
+               targetCard.suit === 'h' &&
                targetCard.value === '8';
     }
     
     // 检查卡牌是否可以移动到目标位置（Klondike规则）
     static canMoveCard(sourceCard: any, targetCard: any): boolean {
         // 红黑交替，数值递减
-        const sourceIsRed = sourceCard.suit === 'hearts' || sourceCard.suit === 'diamonds';
-        const targetIsRed = targetCard.suit === 'hearts' || targetCard.suit === 'diamonds';
+        const sourceIsRed = sourceCard.suit === 'h' || sourceCard.suit === 'd';
+        const targetIsRed = targetCard.suit === 'h' || targetCard.suit === 'd';
         
         const sourceValue = this.getCardNumericValue(sourceCard.value);
         const targetValue = this.getCardNumericValue(targetCard.value);

@@ -12,6 +12,7 @@ import {
 } from '../../config/klondike-layout';
 import { generateTutorialLayout } from '../../config/tutorial-deck';
 import { TutorialManager } from '../tutorial/TutorialManager';
+import { TutorialTest } from '../tutorial/TutorialTest';
 import download from './constants/download';
 import { getTranslation } from '../i18n';
 import { AssetKeys } from '../../assets';
@@ -96,9 +97,10 @@ export class Game extends Scene {
         // 记录游戏开始时间
         this.startTime = Date.now();
 
-        // 检查是否启动教学模式（可以通过URL参数或其他方式控制）
+        // 检查是否启动教学模式（默认启用，可以通过URL参数关闭）
         const urlParams = new URLSearchParams(window.location.search);
-        const tutorialMode = urlParams.get('tutorial') === 'true';
+        const randomMode = urlParams.get('random') === 'true';
+        const tutorialMode = !randomMode; // 默认使用教学模式，除非明确指定随机模式
 
         // 初始化游戏布局
         this.initializeGame(tutorialMode);
@@ -135,8 +137,8 @@ export class Game extends Scene {
         });
     }
 
-    private initializeGame(tutorialMode: boolean = false): void {
-        // 根据模式生成布局
+    private initializeGame(tutorialMode: boolean = true): void {
+        // 默认使用教学牌局，除非明确指定使用随机牌局
         if (tutorialMode) {
             this.gameLayout = generateTutorialLayout();
             this.isTutorialMode = true;
@@ -157,6 +159,14 @@ export class Game extends Scene {
         // 初始化教学系统
         if (this.isTutorialMode) {
             this.initializeTutorial();
+            
+            // 在开发环境下运行教学牌局测试
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                this.time.delayedCall(500, () => {
+                    console.log('🎮 运行教学牌局测试...');
+                    TutorialTest.runAllTests();
+                });
+            }
         }
         
         // 确保在下一帧更新Stock Zone显示状态
