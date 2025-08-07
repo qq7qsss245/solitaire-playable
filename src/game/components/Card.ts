@@ -96,9 +96,9 @@ export class Card extends GameObjects.Container {
     private static readonly DRAG_DEPTH = 10000;
 
     // 优化后的布局位置常量（保持15px边距）
-    private static readonly TOP_LEFT_SUIT_POS = { x: -48, y: -30 };    // 距左边15px，距上边15px
-    private static readonly TOP_LEFT_VALUE_POS = { x: -50, y: -75 };    // 花色下方30px
-    private static readonly TOP_RIGHT_SUIT_POS = { x: 36, y: - 70 };     // 右上角花色装饰位置
+    private static readonly TOP_LEFT_SUIT_POS = { x: -40, y: -28 };    // 距左边15px，距上边15px
+    private static readonly TOP_LEFT_VALUE_POS = { x: -42, y: -70 };    // 花色下方30px
+    private static readonly TOP_RIGHT_SUIT_POS = { x: 36, y: - 65 };     // 右上角花色装饰位置
     private static readonly CENTER_SUIT_POS = { x: 0, y: 35 };           // 中心位置
     
     // 中心图标大小常量
