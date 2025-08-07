@@ -2,6 +2,17 @@
 export type CardSuit = 'h' | 'd' | 's' | 'c';  // h=hearts(红桃), d=diamonds(方块), s=spades(黑桃), c=clubs(梅花)
 export type CardValue = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K';
 
+// 调试变量 - 方便调整间距
+export const DEBUG_SPACING = {
+    // 卡牌纵向间距
+    PORTRAIT_CARD_GAP: 35,    // 竖屏模式卡牌间距
+    LANDSCAPE_CARD_GAP: 20,   // 横屏模式卡牌间距（缩短）
+    
+    // 其他间距（预留）
+    COLUMN_GAP: 150,          // 列间距
+    FOUNDATION_GAP: 160,      // 基础牌堆间距
+};
+
 // 定义卡牌接口
 export interface Card {
     suit: CardSuit;
@@ -175,14 +186,14 @@ export const portraitLayout: LayoutPositions = {
     tableau: {
         startX: 95,  // 左边距
         startY: 580, // 再向下移动50 (530 + 50 = 580)
-        columnGap: 150, // 列间距保持不变
-        cardGap: 35,    // 同列卡牌垂直间距
+        columnGap: DEBUG_SPACING.COLUMN_GAP, // 列间距
+        cardGap: DEBUG_SPACING.PORTRAIT_CARD_GAP,    // 同列卡牌垂直间距
     },
     
     foundation: {
         startX: 95,   // 左上角开始位置
         startY: 280,  // 基础牌堆Y位置
-        gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
+        gap: DEBUG_SPACING.FOUNDATION_GAP,     // 基础牌堆间距
     },
     
     stock: {
@@ -256,25 +267,25 @@ export const landscapeLayout: LayoutPositions = {
     
     tableau: {
         startX: 200,  // 左边距
-        startY: 430,  // 向下移动50单位 (380 + 50 = 430)
-        columnGap: 150, // 列间距保持不变
-        cardGap: 35,    // 同列卡牌垂直间距
+        startY: 380,  // 向上修正50像素 (430 - 50 = 380)
+        columnGap: DEBUG_SPACING.COLUMN_GAP, // 列间距
+        cardGap: DEBUG_SPACING.LANDSCAPE_CARD_GAP,    // 同列卡牌垂直间距（横屏缩短）
     },
     
     foundation: {
         startX: 200,  // 左上角开始位置
-        startY: 150,  // 基础牌堆Y位置
-        gap: 160,     // 基础牌堆间距增加30像素以适应更宽的卡槽
+        startY: 120,  // 向上修正50像素 (150 - 50 = 100)
+        gap: DEBUG_SPACING.FOUNDATION_GAP,     // 基础牌堆间距
     },
     
     stock: {
         x: 1100, // 与最右侧列对齐位置保持不变
-        y: 150,  // 库存牌堆Y位置
+        y: 120,  // 向上修正50像素 (150 - 50 = 100)
     },
     
     waste: {
         x: 940,  // stock左侧，间距调整为160 (1100 - 160 = 940)
-        y: 150,  // 翻牌区域Y位置
+        y: 120,  // 向上修正50像素 (150 - 50 = 100)
     },
     
     scoreboard: {
