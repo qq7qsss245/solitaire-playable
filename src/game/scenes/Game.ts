@@ -501,15 +501,8 @@ export class Game extends Scene {
 
     // 库存牌堆点击事件
     private onStockClick(): void {
-        // 检查教学模式下的交互权限
+        // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
         if (!this.canStockInteractInTutorial()) {
-            // 播放错误音效并显示提示
-            EventBus.emit('play-error');
-            EventBus.emit('tutorial-invalid-action', {
-                card: null,
-                action: 'stock-click',
-                position: { x: this.stockZone.x, y: this.stockZone.y }
-            });
             return;
         }
         

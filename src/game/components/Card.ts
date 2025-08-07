@@ -375,12 +375,9 @@ export class Card extends GameObjects.Container {
     private onDragStart(pointer: Phaser.Input.Pointer): void {
         if (!this.canInteract()) return;
         
-        // 检查教学模式下的交互权限
+        // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
         const gameScene = this.scene as Game;
         if (!this.canInteractInTutorial(gameScene)) {
-            // 播放错误音效并显示提示
-            EventBus.emit('play-error');
-            EventBus.emit('tutorial-invalid-action', { card: this, action: 'drag' });
             return;
         }
         
@@ -526,12 +523,9 @@ export class Card extends GameObjects.Container {
         
         const timeDiff = Date.now() - this.clickTimer;
         if (timeDiff < Card.DRAG_THRESHOLD && !this.isDragging) {
-            // 检查教学模式下的交互权限
+            // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
             const gameScene = this.scene as Game;
             if (!this.canInteractInTutorial(gameScene)) {
-                // 播放错误音效并显示提示
-                EventBus.emit('play-error');
-                EventBus.emit('tutorial-invalid-action', { card: this, action: 'click' });
                 return;
             }
             

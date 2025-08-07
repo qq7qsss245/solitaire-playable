@@ -407,20 +407,56 @@ export class GuideSystem {
             this.ghostCardTween.stop();
         }
         
-        // 创建幽灵卡牌和手势的同步拖拽动画（加快1倍速度）
+        // 创建循环拖拽动画：拖动到终点 → 淡出 → 瞬间回到起点 → 淡入 → 重复
+        this.startDragAnimationCycle(startPos, endPos);
+    }
+
+    private startDragAnimationCycle(startPos: { x: number; y: number }, endPos: { x: number; y: number }): void {
+        // 确保元素在起始位置且可见
+        this.ghostCard.setPosition(startPos.x, startPos.y);
+        this.dragHand.setPosition(startPos.x, startPos.y);
+        this.ghostCard.setAlpha(0.7);
+        this.dragHand.setAlpha(1);
+        
+        // 第一步：拖动到终点
         this.ghostCardTween = this.scene.tweens.add({
             targets: [this.ghostCard, this.dragHand],
             x: endPos.x,
             y: endPos.y,
-            duration: 1000, // 从2000ms减少到1000ms，加快1倍
+            duration: 1000,
             ease: 'Power2.easeInOut',
-            yoyo: true,
-            repeat: -1,
-            repeatDelay: 250, // 从500ms减少到250ms，加快间隔
-            onYoyo: () => {
-                // 回到起始位置时重置位置
-                this.ghostCard.setPosition(startPos.x, startPos.y);
-                this.dragHand.setPosition(startPos.x, startPos.y);
+            onComplete: () => {
+                // 第二步：淡出
+                this.scene.tweens.add({
+                    targets: [this.ghostCard, this.dragHand],
+                    alpha: 0,
+                    duration: 200,
+                    ease: 'Power2.easeOut',
+                    onComplete: () => {
+                        // 第三步：瞬间回到起始位置
+                        this.ghostCard.setPosition(startPos.x, startPos.y);
+                        this.dragHand.setPosition(startPos.x, startPos.y);
+                        
+                        // 第四步：淡入
+                        this.scene.tweens.add({
+                            targets: [this.ghostCard, this.dragHand],
+                            alpha: { from: 0, to: 0.7 }, // 幽灵卡牌透明度
+                            duration: 200,
+                            ease: 'Power2.easeIn',
+                            onComplete: () => {
+                                // 恢复手势的完全不透明
+                                this.dragHand.setAlpha(1);
+                                
+                                // 等待一段时间后重新开始循环
+                                this.scene.time.delayedCall(250, () => {
+                                    if (this.isShowingAceGuide) {
+                                        this.startDragAnimationCycle(startPos, endPos);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
             }
         });
     }
