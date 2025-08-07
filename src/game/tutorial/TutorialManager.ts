@@ -122,9 +122,9 @@ export class TutorialManager {
                 break;
                 
             case TutorialState.STEP_RULES:
-                // 规则说明，5秒后或用户点击继续
-                this.isWaitingForAction = false;
-                this.guideSystem.highlightFoundationZones();
+                // 直接显示A牌引导，不再单独显示规则说明
+                this.isWaitingForAction = true;
+                this.guideSystem.showAceToFoundationGuide();
                 break;
                 
             case TutorialState.STEP_ACE_TO_FOUNDATION:

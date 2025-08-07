@@ -3,6 +3,7 @@ import { Game } from '../scenes/Game';
 import { Card as CardComponent } from '../components/Card';
 import { TutorialTarget } from './TutorialManager';
 import { DEBUG_SPACING, portraitLayout, landscapeLayout } from '../../config/klondike-layout';
+import { AssetKeys } from '../../assets';
 
 export class GuideSystem {
     private scene: Game;
@@ -14,6 +15,8 @@ export class GuideSystem {
     private highlightOverlay: Phaser.GameObjects.Graphics;
     private errorFeedback: Phaser.GameObjects.Graphics;
     private clickArea: Phaser.GameObjects.Rectangle; // 点击区域
+    private ghostCard: CardComponent; // 幽灵卡牌
+    private dragHand: Phaser.GameObjects.Image; // 拖拽手势
     
     // 动画
     private handTween: Phaser.Tweens.Tween | null = null;
@@ -26,6 +29,8 @@ export class GuideSystem {
     private currentGuideText: string = '';
     private isShowingInitialTexts: boolean = false; // 是否正在显示开局文案
     private onInitialTextsComplete: (() => void) | null = null; // 开局文案完成回调
+    private ghostCardTween: Phaser.Tweens.Tween | null = null; // 幽灵卡牌动画
+    private isShowingAceGuide: boolean = false; // 是否正在显示A牌引导
     
     constructor(scene: Game) {
         this.scene = scene;
@@ -60,15 +65,40 @@ export class GuideSystem {
         this.clickArea.setInteractive();
         this.clickArea.setOrigin(0, 0);
         
+        // 创建幽灵卡牌（用于拖拽演示）
+        // 延迟创建，等待需要时再创建
+        this.ghostCard = null as any;
+        
+        // 创建拖拽手势
+        this.dragHand = this.scene.add.image(0, 0, 'hand');
+        this.dragHand.setVisible(false);
+        this.dragHand.setDepth(9998);
+        this.dragHand.setOrigin(0, 0); // 设置origin为左上角（手指位置）
+        this.dragHand.setScale(0.8);
+        
         // 创建高亮遮罩
         this.highlightOverlay = this.scene.add.graphics();
-        this.highlightOverlay.setDepth(9997);
+        this.highlightOverlay.setDepth(9996);
         this.highlightOverlay.setVisible(false);
         
         // 创建错误反馈图形
         this.errorFeedback = this.scene.add.graphics();
-        this.errorFeedback.setDepth(9996);
+        this.errorFeedback.setDepth(9995);
         this.errorFeedback.setVisible(false);
+    }
+
+    private createGhostCard(): void {
+        // 直接使用 Card 组件创建红桃A
+        this.ghostCard = new CardComponent(this.scene, 0, 0, 'h', 'A', true);
+        this.scene.add.existing(this.ghostCard);
+        
+        // 设置幽灵卡牌属性
+        this.ghostCard.setVisible(false);
+        this.ghostCard.setDepth(9997);
+        this.ghostCard.setAlpha(0.7);
+        
+        // 禁用交互，避免干扰正常游戏
+        this.ghostCard.disableInteractive();
     }
 
     public showGuideText(textKey: string): void {
@@ -182,6 +212,147 @@ export class GuideSystem {
             this.onInitialTextsComplete();
             this.onInitialTextsComplete = null;
         }
+    }
+
+    public showAceToFoundationGuide(): void {
+        // 显示"Let's put Ace to foundation"文案和幽灵卡牌拖拽动画
+        this.isShowingAceGuide = true;
+        
+        // 显示文案
+        const layout = this.scene.currentLayout;
+        const acePos = layout.guideTexts.aceToFoundation;
+        
+        this.guideTextImage1.setTexture('guide-ace-to-foundation');
+        this.guideTextImage1.setVisible(true);
+        this.guideTextImage1.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        this.guideTextImage1.setPosition(acePos.x, acePos.y);
+        
+        // 淡入动画
+        this.guideTextImage1.setAlpha(0);
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        // 创建幽灵卡牌（如果还未创建）
+        if (!this.ghostCard) {
+            this.createGhostCard();
+        }
+        
+        // 启动幽灵卡牌拖拽动画
+        this.startGhostCardDragAnimation();
+    }
+
+    private startGhostCardDragAnimation(): void {
+        // 找到红桃A的位置和目标基础牌堆位置
+        const aceCard = this.findHeartAceCard();
+        const targetFoundation = this.findHeartFoundationPosition();
+        
+        if (!aceCard || !targetFoundation) {
+            console.warn('无法找到红桃A或红桃基础牌堆位置');
+            return;
+        }
+        
+        // 设置幽灵卡牌位置
+        this.ghostCard.setPosition(aceCard.x, aceCard.y);
+        this.ghostCard.setVisible(true);
+        this.ghostCard.setAlpha(0.7);
+        
+        // 设置拖拽手势位置（在幽灵卡牌中心）
+        this.dragHand.setPosition(aceCard.x, aceCard.y);
+        this.dragHand.setVisible(true);
+        
+        // 创建循环拖拽动画
+        this.createDragAnimation(aceCard, targetFoundation);
+    }
+
+    private findHeartAceCard(): { x: number; y: number } | null {
+        // 在教学牌局中，红桃A应该在第5列（索引4）的顶部
+        // 直接从游戏场景中找到实际的红桃A卡牌位置
+        const game = this.scene as Game;
+        
+        // 检查第5列（索引4）是否有卡牌
+        if (game.tableau && game.tableau[4] && game.tableau[4].cards.length > 0) {
+            const topCard = game.tableau[4].cards[game.tableau[4].cards.length - 1];
+            return { x: topCard.x, y: topCard.y };
+        }
+        
+        // 如果找不到实际卡牌，使用布局计算作为后备
+        const layout = this.scene.currentLayout;
+        if (layout) {
+            const columnIndex = 4; // 第5列
+            const x = layout.tableau.startX + columnIndex * layout.tableau.columnGap;
+            const y = layout.tableau.startY;
+            return { x, y };
+        }
+        
+        return null;
+    }
+
+    private findHeartFoundationPosition(): { x: number; y: number } | null {
+        // 红桃基础牌堆应该是第2个基础牌堆（索引1）
+        const layout = this.scene.currentLayout;
+        const foundationIndex = 1; // 红桃基础牌堆
+        
+        const x = layout.foundation.startX + foundationIndex * layout.foundation.gap;
+        const y = layout.foundation.startY;
+        
+        return { x, y };
+    }
+
+    private createDragAnimation(startPos: { x: number; y: number }, endPos: { x: number; y: number }): void {
+        // 停止之前的动画
+        if (this.ghostCardTween) {
+            this.ghostCardTween.stop();
+        }
+        
+        // 创建幽灵卡牌和手势的同步拖拽动画
+        this.ghostCardTween = this.scene.tweens.add({
+            targets: [this.ghostCard, this.dragHand],
+            x: endPos.x,
+            y: endPos.y,
+            duration: 2000,
+            ease: 'Power2.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            repeatDelay: 500,
+            onYoyo: () => {
+                // 回到起始位置时重置位置
+                this.ghostCard.setPosition(startPos.x, startPos.y);
+                this.dragHand.setPosition(startPos.x, startPos.y);
+            }
+        });
+    }
+
+    public hideAceToFoundationGuide(): void {
+        this.isShowingAceGuide = false;
+        
+        // 停止幽灵卡牌动画
+        if (this.ghostCardTween) {
+            this.ghostCardTween.stop();
+            this.ghostCardTween = null;
+        }
+        
+        // 隐藏幽灵卡牌和拖拽手势（添加空值检查）
+        if (this.ghostCard) {
+            this.ghostCard.setVisible(false);
+        }
+        if (this.dragHand) {
+            this.dragHand.setVisible(false);
+        }
+        
+        // 隐藏文案
+        if (this.textTween1) {
+            this.textTween1.stop();
+            this.textTween1 = null;
+        }
+        this.guideTextImage1.setVisible(false);
+    }
+
+    public getIsShowingAceGuide(): boolean {
+        return this.isShowingAceGuide;
     }
 
     private mapTextKeyToTexture(textKey: string): string {
@@ -388,6 +559,7 @@ export class GuideSystem {
         this.hideGuideText();
         this.hideHandGuide();
         this.hideHighlight();
+        this.hideAceToFoundationGuide();
         
         // 隐藏点击区域
         this.clickArea.setVisible(false);
@@ -426,12 +598,17 @@ export class GuideSystem {
         if (this.highlightTween) {
             this.highlightTween.stop();
         }
+        if (this.ghostCardTween) {
+            this.ghostCardTween.stop();
+        }
         
         // 销毁游戏对象
         this.handGuide?.destroy();
         this.guideTextImage1?.destroy();
         this.guideTextImage2?.destroy();
         this.clickArea?.destroy();
+        this.ghostCard?.destroy();
+        this.dragHand?.destroy();
         this.highlightOverlay?.destroy();
         this.errorFeedback?.destroy();
     }
