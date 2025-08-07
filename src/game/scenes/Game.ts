@@ -501,6 +501,18 @@ export class Game extends Scene {
 
     // 库存牌堆点击事件
     private onStockClick(): void {
+        // 检查教学模式下的交互权限
+        if (!this.canStockInteractInTutorial()) {
+            // 播放错误音效并显示提示
+            EventBus.emit('play-error');
+            EventBus.emit('tutorial-invalid-action', {
+                card: null,
+                action: 'stock-click',
+                position: { x: this.stockZone.x, y: this.stockZone.y }
+            });
+            return;
+        }
+        
         // 触发教学事件
         EventBus.emit('stock-clicked');
         
@@ -882,6 +894,56 @@ export class Game extends Scene {
 
     public getTutorialState(): string {
         return this.tutorialManager ? this.tutorialManager.getCurrentState() : 'inactive';
+    }
+
+    public getTutorialManager(): TutorialManager | null {
+        return this.tutorialManager;
+    }
+
+    public getIsTutorialMode(): boolean {
+        return this.isTutorialMode;
+    }
+
+    // 检查库存牌堆在教学模式下是否可以交互
+    private canStockInteractInTutorial(): boolean {
+        // 如果不是教学模式，允许所有交互
+        if (!this.isTutorialMode) {
+            return true;
+        }
+        
+        // 获取教学管理器
+        if (!this.tutorialManager || !this.tutorialManager.isActive()) {
+            return true;
+        }
+        
+        // 获取当前教学状态
+        const currentState = this.tutorialManager.getCurrentState();
+        
+        // 根据教学步骤检查交互权限
+        switch (currentState) {
+            case 'step_intro':
+            case 'step_rules':
+            case 'step_ace_to_foundation':
+            case 'step_card_to_pile':
+                // 前几步不允许点击库存牌堆
+                return false;
+                
+            case 'step_stock_flip':
+                // 第五步：允许点击库存牌堆
+                return true;
+                
+            case 'step_pile_to_pile':
+                // 第六步：允许点击库存牌堆
+                return true;
+                
+            case 'step_free_play':
+                // 自由游戏模式：允许所有交互
+                return true;
+                
+            default:
+                // 默认不允许交互
+                return false;
+        }
     }
 
     // 智能提示系统（教学完成后启用）

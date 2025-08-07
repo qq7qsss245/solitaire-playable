@@ -3,6 +3,7 @@ import { CardSuit, CardValue, portraitLayout, landscapeLayout } from '../../conf
 import { Game } from '../scenes/Game';
 import { EventBus } from '../EventBus';
 import { AssetKeys } from '../../assets';
+import { TutorialState } from '../tutorial/TutorialState';
 
 // 卡牌数据接口
 export interface CardData {
@@ -374,13 +375,21 @@ export class Card extends GameObjects.Container {
     private onDragStart(pointer: Phaser.Input.Pointer): void {
         if (!this.canInteract()) return;
         
+        // 检查教学模式下的交互权限
+        const gameScene = this.scene as Game;
+        if (!this.canInteractInTutorial(gameScene)) {
+            // 播放错误音效并显示提示
+            EventBus.emit('play-error');
+            EventBus.emit('tutorial-invalid-action', { card: this, action: 'drag' });
+            return;
+        }
+        
         this.isDragging = true;
         this.startX = this.x;
         this.startY = this.y;
         this.normalDepth = this.depth;
         
         // 获取附属卡牌
-        const gameScene = this.scene as Game;
         this.attachedCards = gameScene.getAttachedCards(this);
         
         // 保存附属卡牌的起始位置
@@ -517,6 +526,15 @@ export class Card extends GameObjects.Container {
         
         const timeDiff = Date.now() - this.clickTimer;
         if (timeDiff < Card.DRAG_THRESHOLD && !this.isDragging) {
+            // 检查教学模式下的交互权限
+            const gameScene = this.scene as Game;
+            if (!this.canInteractInTutorial(gameScene)) {
+                // 播放错误音效并显示提示
+                EventBus.emit('play-error');
+                EventBus.emit('tutorial-invalid-action', { card: this, action: 'click' });
+                return;
+            }
+            
             EventBus.emit('play-card-flip');
             this.tryAutoMove();
         }
@@ -800,6 +818,58 @@ export class Card extends GameObjects.Container {
             case 'Q': return 12;
             case 'K': return 13;
             default: return parseInt(this._value);
+        }
+    }
+
+    // 检查在教学模式下是否可以交互
+    private canInteractInTutorial(gameScene: Game): boolean {
+        // 如果不是教学模式，允许所有交互
+        if (!gameScene.getIsTutorialMode()) {
+            return true;
+        }
+        
+        // 获取教学管理器
+        const tutorialManager = gameScene.getTutorialManager();
+        if (!tutorialManager || !tutorialManager.isActive()) {
+            return true;
+        }
+        
+        // 获取当前教学状态
+        const currentState = tutorialManager.getCurrentState();
+        
+        // 根据教学步骤检查交互权限
+        switch (currentState) {
+            case TutorialState.STEP_INTRO:
+                // 第一步：任何卡牌都不能交互
+                return false;
+                
+            case TutorialState.STEP_RULES:
+                // 第二步：只能拖拽红桃A
+                return this._suit === 'h' && this._value === 'A';
+                
+            case TutorialState.STEP_ACE_TO_FOUNDATION:
+                // 第三步：只能拖拽红桃A
+                return this._suit === 'h' && this._value === 'A';
+                
+            case TutorialState.STEP_CARD_TO_PILE:
+                // 第四步：允许特定卡牌移动（这里可以根据具体需求调整）
+                return this._faceUp; // 暂时允许所有正面朝上的卡牌
+                
+            case TutorialState.STEP_STOCK_FLIP:
+                // 第五步：不允许卡牌交互，只能点击库存牌堆
+                return false;
+                
+            case TutorialState.STEP_PILE_TO_PILE:
+                // 第六步：允许特定卡牌移动
+                return this._faceUp; // 暂时允许所有正面朝上的卡牌
+                
+            case TutorialState.STEP_FREE_PLAY:
+                // 自由游戏模式：允许所有交互
+                return true;
+                
+            default:
+                // 默认不允许交互
+                return false;
         }
     }
 

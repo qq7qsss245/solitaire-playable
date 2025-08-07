@@ -46,6 +46,7 @@ export class TutorialManager {
         // 监听用户交互
         EventBus.on('user-action', this.onUserAction, this);
         EventBus.on('invalid-action', this.onInvalidAction, this);
+        EventBus.on('tutorial-invalid-action', this.onTutorialInvalidAction, this);
     }
 
     public startTutorial(): void {
@@ -297,6 +298,21 @@ export class TutorialManager {
         }
     }
 
+    private onTutorialInvalidAction(data: { card: CardComponent | null, action: string, position?: { x: number; y: number } }): void {
+        if (data.card) {
+            console.log(`Tutorial invalid action: ${data.action} on card ${data.card.suit}${data.card.value}`);
+        } else {
+            console.log(`Tutorial invalid action: ${data.action}`);
+        }
+        
+        // 显示错误提示
+        const target: TutorialTarget = {
+            card: data.card || undefined,
+            position: data.position || (data.card ? { x: data.card.x, y: data.card.y } : undefined)
+        };
+        this.guideSystem.showErrorFeedback(target);
+    }
+
     private isValidAction(actionType: string, data?: any): boolean {
         if (this.currentState === TutorialState.STEP_FREE_PLAY) {
             return true; // 自由游戏模式允许所有操作
@@ -389,6 +405,7 @@ export class TutorialManager {
         EventBus.off('card-flipped', this.onCardFlipped, this);
         EventBus.off('user-action', this.onUserAction, this);
         EventBus.off('invalid-action', this.onInvalidAction, this);
+        EventBus.off('tutorial-invalid-action', this.onTutorialInvalidAction, this);
         
         // 销毁引导系统
         this.guideSystem.destroy();
