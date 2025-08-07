@@ -111,8 +111,14 @@ export class TutorialManager {
     private executeStepLogic(step: TutorialStep): void {
         switch (step.id) {
             case TutorialState.STEP_INTRO:
-                // 游戏介绍，3秒后自动进入下一步
-                this.isWaitingForAction = false;
+                // 游戏介绍，显示开局两个文案，等待用户点击
+                this.isWaitingForAction = true;
+                // 隐藏默认的单个文案，显示开局双文案
+                this.guideSystem.hideGuideText();
+                this.guideSystem.showInitialGuideTexts(() => {
+                    // 用户点击后进入下一步
+                    this.nextStep();
+                });
                 break;
                 
             case TutorialState.STEP_RULES:

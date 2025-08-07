@@ -2,24 +2,30 @@ import { Scene } from 'phaser';
 import { Game } from '../scenes/Game';
 import { Card as CardComponent } from '../components/Card';
 import { TutorialTarget } from './TutorialManager';
+import { DEBUG_SPACING, portraitLayout, landscapeLayout } from '../../config/klondike-layout';
 
 export class GuideSystem {
     private scene: Game;
     
     // UI组件
     private handGuide: Phaser.GameObjects.Image;
-    private guideTextImage: Phaser.GameObjects.Image;
+    private guideTextImage1: Phaser.GameObjects.Image; // 第一个文案图片
+    private guideTextImage2: Phaser.GameObjects.Image; // 第二个文案图片
     private highlightOverlay: Phaser.GameObjects.Graphics;
     private errorFeedback: Phaser.GameObjects.Graphics;
+    private clickArea: Phaser.GameObjects.Rectangle; // 点击区域
     
     // 动画
     private handTween: Phaser.Tweens.Tween | null = null;
-    private textTween: Phaser.Tweens.Tween | null = null;
+    private textTween1: Phaser.Tweens.Tween | null = null;
+    private textTween2: Phaser.Tweens.Tween | null = null;
     private highlightTween: Phaser.Tweens.Tween | null = null;
     
     // 状态
     private isVisible: boolean = false;
     private currentGuideText: string = '';
+    private isShowingInitialTexts: boolean = false; // 是否正在显示开局文案
+    private onInitialTextsComplete: (() => void) | null = null; // 开局文案完成回调
     
     constructor(scene: Game) {
         this.scene = scene;
@@ -33,20 +39,35 @@ export class GuideSystem {
         this.handGuide.setDepth(10000);
         this.handGuide.setScale(0.8);
         
-        // 创建引导文案图片容器
-        this.guideTextImage = this.scene.add.image(0, 0, '');
-        this.guideTextImage.setVisible(false);
-        this.guideTextImage.setDepth(9999);
-        this.guideTextImage.setOrigin(0.5, 0.5);
+        // 创建第一个引导文案图片
+        this.guideTextImage1 = this.scene.add.image(0, 0, '');
+        this.guideTextImage1.setVisible(false);
+        this.guideTextImage1.setDepth(9999);
+        this.guideTextImage1.setOrigin(0.5, 0.5);
+        this.guideTextImage1.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        
+        // 创建第二个引导文案图片
+        this.guideTextImage2 = this.scene.add.image(0, 0, '');
+        this.guideTextImage2.setVisible(false);
+        this.guideTextImage2.setDepth(9999);
+        this.guideTextImage2.setOrigin(0.5, 0.5);
+        this.guideTextImage2.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        
+        // 创建点击区域（全屏透明矩形）
+        this.clickArea = this.scene.add.rectangle(0, 0, this.scene.scale.width, this.scene.scale.height, 0x000000, 0);
+        this.clickArea.setVisible(false);
+        this.clickArea.setDepth(9998);
+        this.clickArea.setInteractive();
+        this.clickArea.setOrigin(0, 0);
         
         // 创建高亮遮罩
         this.highlightOverlay = this.scene.add.graphics();
-        this.highlightOverlay.setDepth(9998);
+        this.highlightOverlay.setDepth(9997);
         this.highlightOverlay.setVisible(false);
         
         // 创建错误反馈图形
         this.errorFeedback = this.scene.add.graphics();
-        this.errorFeedback.setDepth(9997);
+        this.errorFeedback.setDepth(9996);
         this.errorFeedback.setVisible(false);
     }
 
@@ -57,8 +78,8 @@ export class GuideSystem {
         const textureKey = this.mapTextKeyToTexture(textKey);
         
         // 设置引导文案图片
-        this.guideTextImage.setTexture(textureKey);
-        this.guideTextImage.setVisible(true);
+        this.guideTextImage1.setTexture(textureKey);
+        this.guideTextImage1.setVisible(true);
         
         // 计算文案位置（牌局下方中央）
         const screenWidth = this.scene.scale.width;
@@ -76,16 +97,91 @@ export class GuideSystem {
             textY = screenHeight * 0.80;
         }
         
-        this.guideTextImage.setPosition(screenWidth / 2, textY);
+        this.guideTextImage1.setPosition(screenWidth / 2, textY);
         
         // 添加淡入动画
-        this.guideTextImage.setAlpha(0);
-        this.textTween = this.scene.tweens.add({
-            targets: this.guideTextImage,
+        this.guideTextImage1.setAlpha(0);
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
             alpha: 1,
             duration: 500,
             ease: 'Power2'
         });
+    }
+
+    public showInitialGuideTexts(onComplete?: () => void): void {
+        // 显示开局的两个文案：intro 和 objective
+        this.isShowingInitialTexts = true;
+        this.onInitialTextsComplete = onComplete || null;
+        
+        // 从配置中获取文案位置
+        const layout = this.scene.currentLayout;
+        const introPos = layout.guideTexts.intro;
+        const objectivePos = layout.guideTexts.objective;
+        
+        // 设置第一个文案 (intro)
+        this.guideTextImage1.setTexture('guide-intro');
+        this.guideTextImage1.setVisible(true);
+        this.guideTextImage1.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        this.guideTextImage1.setPosition(introPos.x, introPos.y);
+        
+        // 设置第二个文案 (objective)
+        this.guideTextImage2.setTexture('guide-objective');
+        this.guideTextImage2.setVisible(true);
+        this.guideTextImage2.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        this.guideTextImage2.setPosition(objectivePos.x, objectivePos.y);
+        
+        // 添加淡入动画
+        this.guideTextImage1.setAlpha(0);
+        this.guideTextImage2.setAlpha(0);
+        
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        this.textTween2 = this.scene.tweens.add({
+            targets: this.guideTextImage2,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        // 启用点击区域
+        this.clickArea.setVisible(true);
+        this.clickArea.once('pointerdown', () => {
+            this.hideInitialGuideTexts();
+        });
+    }
+
+
+    private hideInitialGuideTexts(): void {
+        this.isShowingInitialTexts = false;
+        
+        // 停止动画
+        if (this.textTween1) {
+            this.textTween1.stop();
+            this.textTween1 = null;
+        }
+        if (this.textTween2) {
+            this.textTween2.stop();
+            this.textTween2 = null;
+        }
+        
+        // 隐藏文案
+        this.guideTextImage1.setVisible(false);
+        this.guideTextImage2.setVisible(false);
+        
+        // 隐藏点击区域
+        this.clickArea.setVisible(false);
+        
+        // 触发完成回调
+        if (this.onInitialTextsComplete) {
+            this.onInitialTextsComplete();
+            this.onInitialTextsComplete = null;
+        }
     }
 
     private mapTextKeyToTexture(textKey: string): string {
@@ -104,12 +200,17 @@ export class GuideSystem {
     }
 
     public hideGuideText(): void {
-        if (this.textTween) {
-            this.textTween.stop();
-            this.textTween = null;
+        if (this.textTween1) {
+            this.textTween1.stop();
+            this.textTween1 = null;
+        }
+        if (this.textTween2) {
+            this.textTween2.stop();
+            this.textTween2 = null;
         }
         
-        this.guideTextImage.setVisible(false);
+        this.guideTextImage1.setVisible(false);
+        this.guideTextImage2.setVisible(false);
         this.currentGuideText = '';
     }
 
@@ -288,9 +389,14 @@ export class GuideSystem {
         this.hideHandGuide();
         this.hideHighlight();
         
+        // 隐藏点击区域
+        this.clickArea.setVisible(false);
+        
         // 清除错误反馈
         this.errorFeedback.setVisible(false);
         this.errorFeedback.clear();
+        
+        this.isShowingInitialTexts = false;
     }
 
     public update(time: number, delta: number): void {
@@ -311,8 +417,11 @@ export class GuideSystem {
         if (this.handTween) {
             this.handTween.stop();
         }
-        if (this.textTween) {
-            this.textTween.stop();
+        if (this.textTween1) {
+            this.textTween1.stop();
+        }
+        if (this.textTween2) {
+            this.textTween2.stop();
         }
         if (this.highlightTween) {
             this.highlightTween.stop();
@@ -320,8 +429,14 @@ export class GuideSystem {
         
         // 销毁游戏对象
         this.handGuide?.destroy();
-        this.guideTextImage?.destroy();
+        this.guideTextImage1?.destroy();
+        this.guideTextImage2?.destroy();
+        this.clickArea?.destroy();
         this.highlightOverlay?.destroy();
         this.errorFeedback?.destroy();
+    }
+
+    public getIsShowingInitialTexts(): boolean {
+        return this.isShowingInitialTexts;
     }
 }

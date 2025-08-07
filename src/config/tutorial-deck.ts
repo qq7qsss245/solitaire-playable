@@ -11,55 +11,55 @@ export function generateTutorialLayout(): KlondikeLayout {
             { suit: 's' as CardSuit, value: 'K' as CardValue, faceUp: true }
         ],
         
-        // 第2列：方块6 (背面) + 红桃Q (正面)
+        // 第2列：方块6 (背面) + 方块7 (正面)
         [
             { suit: 'd' as CardSuit, value: '6' as CardValue, faceUp: false },
-            { suit: 'h' as CardSuit, value: 'Q' as CardValue, faceUp: true }
+            { suit: 'd' as CardSuit, value: '7' as CardValue, faceUp: true }
         ],
         
-        // 第3列：梅花5 (背面) + 方块9 (背面) + 黑桃J (正面)
+        // 第3列：梅花5 (背面) + 方块9 (背面) + 黑桃4 (正面)
         [
             { suit: 'c' as CardSuit, value: '5' as CardValue, faceUp: false },
             { suit: 'd' as CardSuit, value: '9' as CardValue, faceUp: false },
-            { suit: 's' as CardSuit, value: 'J' as CardValue, faceUp: true }
+            { suit: 's' as CardSuit, value: '4' as CardValue, faceUp: true }
         ],
         
-        // 第4列：红桃4 (背面) + 梅花8 (背面) + 方块K (背面) + 红桃10 (正面)
+        // 第4列：红桃4 (背面) + 梅花8 (背面) + 方块K (背面) + 黑桃Q (正面)
         [
             { suit: 'h' as CardSuit, value: '4' as CardValue, faceUp: false },
             { suit: 'c' as CardSuit, value: '8' as CardValue, faceUp: false },
             { suit: 'd' as CardSuit, value: 'K' as CardValue, faceUp: false },
-            { suit: 'h' as CardSuit, value: '10' as CardValue, faceUp: true }
+            { suit: 's' as CardSuit, value: 'Q' as CardValue, faceUp: true }
         ],
         
-        // 第5列：黑桃3 (背面) + 红桃7 (背面) + 梅花J (背面) + 方块Q (背面) + 黑桃9 (正面)
+        // 第5列：黑桃3 (背面) + 红桃7 (背面) + 梅花J (背面) + 方块Q (背面) + 红桃A (正面)
         [
             { suit: 's' as CardSuit, value: '3' as CardValue, faceUp: false },
             { suit: 'h' as CardSuit, value: '7' as CardValue, faceUp: false },
             { suit: 'c' as CardSuit, value: 'J' as CardValue, faceUp: false },
             { suit: 'd' as CardSuit, value: 'Q' as CardValue, faceUp: false },
-            { suit: 's' as CardSuit, value: '9' as CardValue, faceUp: true }
+            { suit: 'h' as CardSuit, value: 'A' as CardValue, faceUp: true }
         ],
         
-        // 第6列：梅花2 (背面) + 黑桃6 (背面) + 红桃10 (背面) + 梅花K (背面) + 方块A (背面) + 红桃8 (正面)
+        // 第6列：梅花2 (背面) + 黑桃6 (背面) + 红桃10 (背面) + 梅花K (背面) + 方块A (背面) + 梅花A (正面)
         [
             { suit: 'c' as CardSuit, value: '2' as CardValue, faceUp: false },
             { suit: 's' as CardSuit, value: '6' as CardValue, faceUp: false },
             { suit: 'h' as CardSuit, value: '10' as CardValue, faceUp: false },
             { suit: 'c' as CardSuit, value: 'K' as CardValue, faceUp: false },
             { suit: 'd' as CardSuit, value: 'A' as CardValue, faceUp: false },
-            { suit: 'h' as CardSuit, value: '8' as CardValue, faceUp: true }
+            { suit: 'c' as CardSuit, value: 'A' as CardValue, faceUp: true }
         ],
         
-        // 第7列：红桃A (背面) + 黑桃5 (背面) + 方块8 (背面) + 梅花Q (背面) + 黑桃K (背面) + 方块3 (背面) + 黑桃7 (正面)
+        // 第7列：红桃8 (背面) + 黑桃5 (背面) + 方块8 (背面) + 红桃Q (背面) + 黑桃K (背面) + 方块3 (背面) + 梅花5 (正面)
         [
-            { suit: 'h' as CardSuit, value: 'A' as CardValue, faceUp: false },
+            { suit: 'h' as CardSuit, value: '8' as CardValue, faceUp: false },
             { suit: 's' as CardSuit, value: '5' as CardValue, faceUp: false },
             { suit: 'd' as CardSuit, value: '8' as CardValue, faceUp: false },
-            { suit: 'c' as CardSuit, value: 'Q' as CardValue, faceUp: false },
+            { suit: 'h' as CardSuit, value: 'Q' as CardValue, faceUp: false },
             { suit: 's' as CardSuit, value: 'K' as CardValue, faceUp: false },
             { suit: 'd' as CardSuit, value: '3' as CardValue, faceUp: false },
-            { suit: 's' as CardSuit, value: '7' as CardValue, faceUp: true }
+            { suit: 'c' as CardSuit, value: '5' as CardValue, faceUp: true }
         ]
     ];
 

@@ -14,6 +14,11 @@ export const DEBUG_SPACING = {
     
     // 收牌区尺寸调整
     SLOT_SCALE: 1.2,          // 收牌区相对于卡牌的缩放比例（1.0 = 相同大小，1.1 = 大10%）
+    
+    // 教学文案配置
+    GUIDE_TEXT_SCALE: 0.8,    // 教学文案缩放比例
+    GUIDE_TEXT_GAP: 50,       // 两个文案之间的间距（已弃用，改用具体坐标配置）
+    GUIDE_TEXT_OFFSET: 50,    // 文案距离牌局下方的距离（已弃用，改用具体坐标配置）
 };
 
 // 定义卡牌接口
@@ -177,6 +182,18 @@ export interface LayoutPositions {
         x: number;
         y: number;
     };
+    
+    // 教学文案位置配置
+    guideTexts: {
+        intro: {
+            x: number;
+            y: number;
+        };
+        objective: {
+            x: number;
+            y: number;
+        };
+    };
 }
 
 // 竖屏布局位置
@@ -200,12 +217,12 @@ export const portraitLayout: LayoutPositions = {
     },
     
     stock: {
-        x: 995,  // 与最右侧列对齐位置保持不变
+        x: 935,  // 与第7列对齐 (95 + 6 × 140 = 935)
         y: 280,  // 库存牌堆Y位置
     },
     
     waste: {
-        x: 815,  // stock左侧，间距调整为160 (975 - 160 = 815)
+        x: 795,  // 与第6列对齐 (95 + 5 × 140 = 795)
         y: 280,  // 翻牌区域Y位置
     },
     
@@ -259,6 +276,18 @@ export const portraitLayout: LayoutPositions = {
         x: 540,  // 居中
         y: 1840, // 底部
     },
+    
+    // 教学文案位置配置
+    guideTexts: {
+        intro: {
+            x: 540,  // 与牌局中心对齐
+            y: 1200, // 牌局下方
+        },
+        objective: {
+            x: 540,  // 与牌局中心对齐
+            y: 1280, // 第一个文案下方50单位
+        },
+    },
 };
 
 // 横屏布局位置
@@ -282,12 +311,12 @@ export const landscapeLayout: LayoutPositions = {
     },
     
     stock: {
-        x: 1100, // 与最右侧列对齐位置保持不变
+        x: 1040, // 与第7列对齐 (200 + 6 × 140 = 1040)
         y: 120,  // 向上修正50像素 (150 - 50 = 100)
     },
     
     waste: {
-        x: 940,  // stock左侧，间距调整为160 (1100 - 160 = 940)
+        x: 900,  // 与第6列对齐 (200 + 5 × 140 = 900)
         y: 120,  // 向上修正50像素 (150 - 50 = 100)
     },
     
@@ -340,5 +369,17 @@ export const landscapeLayout: LayoutPositions = {
     downloadButton: {
         x: 960,  // 水平居中 (1920 / 2)
         y: 980, // 距离底部50单位 (1080 - 50)
+    },
+    
+    // 教学文案位置配置
+    guideTexts: {
+        intro: {
+            x: 606,  // 与牌局中心对齐 (200 + 3*140 + 132/2)
+            y: 650,  // 牌局下方
+        },
+        objective: {
+            x: 606,  // 与牌局中心对齐
+            y: 780,  // 第一个文案下方80单位
+        },
     },
 };
