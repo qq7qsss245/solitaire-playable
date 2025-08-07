@@ -4,6 +4,7 @@ import { Card as CardComponent } from '../components/Card';
 import { TutorialTarget } from './TutorialManager';
 import { DEBUG_SPACING, portraitLayout, landscapeLayout } from '../../config/klondike-layout';
 import { AssetKeys } from '../../assets';
+import { EventBus } from '../EventBus';
 
 export class GuideSystem {
     private scene: Game;
@@ -31,10 +32,13 @@ export class GuideSystem {
     private onInitialTextsComplete: (() => void) | null = null; // 开局文案完成回调
     private ghostCardTween: Phaser.Tweens.Tween | null = null; // 幽灵卡牌动画
     private isShowingAceGuide: boolean = false; // 是否正在显示A牌引导
+    private currentOrientation: string = ''; // 当前屏幕方向
     
     constructor(scene: Game) {
         this.scene = scene;
         this.createGuideElements();
+        this.setupOrientationListener();
+        this.setupEventListeners();
     }
 
     private createGuideElements(): void {
@@ -85,6 +89,101 @@ export class GuideSystem {
         this.errorFeedback = this.scene.add.graphics();
         this.errorFeedback.setDepth(9995);
         this.errorFeedback.setVisible(false);
+    }
+
+    private setupOrientationListener(): void {
+        // 记录初始方向
+        this.currentOrientation = this.getOrientation();
+        
+        // 监听窗口大小变化（包括方向变化）
+        window.addEventListener('resize', () => {
+            const newOrientation = this.getOrientation();
+            if (newOrientation !== this.currentOrientation) {
+                this.currentOrientation = newOrientation;
+                this.onOrientationChange();
+            }
+        });
+    }
+
+    private setupEventListeners(): void {
+        // 监听红桃A开始拖拽事件
+        EventBus.on('heart-ace-drag-started', this.onHeartAceDragStarted, this);
+    }
+
+    private onHeartAceDragStarted(): void {
+        // 当用户开始拖拽红桃A时，立即隐藏引导效果
+        if (this.isShowingAceGuide) {
+            this.hideAceToFoundationGuide();
+        }
+    }
+
+    private getOrientation(): string {
+        return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    }
+
+    private onOrientationChange(): void {
+        // 如果正在显示A牌引导，需要重新初始化
+        if (this.isShowingAceGuide) {
+            this.restartAceGuideAnimation();
+        }
+        
+        // 如果正在显示开局文案，需要更新位置
+        if (this.isShowingInitialTexts) {
+            this.updateInitialTextsPosition();
+        }
+        
+        // 如果正在显示单个文案，需要更新位置
+        if (this.guideTextImage1.visible) {
+            this.updateSingleTextPosition();
+        }
+    }
+
+    private restartAceGuideAnimation(): void {
+        // 停止当前动画
+        if (this.ghostCardTween) {
+            this.ghostCardTween.stop();
+            this.ghostCardTween = null;
+        }
+        
+        // 重新获取位置并启动动画
+        const aceCard = this.findHeartAceCard();
+        const targetFoundation = this.findHeartFoundationPosition();
+        
+        if (aceCard && targetFoundation && this.ghostCard) {
+            // 更新幽灵卡牌和手势位置
+            this.ghostCard.setPosition(aceCard.x, aceCard.y);
+            if (this.dragHand) {
+                this.dragHand.setPosition(aceCard.x, aceCard.y);
+            }
+            
+            // 重新创建动画
+            this.createDragAnimation(aceCard, targetFoundation);
+        }
+    }
+
+    private updateInitialTextsPosition(): void {
+        // 获取新的布局配置
+        const layout = this.scene.currentLayout;
+        if (!layout) return;
+        
+        const introPos = layout.guideTexts.intro;
+        const objectivePos = layout.guideTexts.objective;
+        
+        // 更新文案位置
+        this.guideTextImage1.setPosition(introPos.x, introPos.y);
+        this.guideTextImage2.setPosition(objectivePos.x, objectivePos.y);
+    }
+
+    private updateSingleTextPosition(): void {
+        // 获取新的布局配置
+        const layout = this.scene.currentLayout;
+        if (!layout) return;
+        
+        // 根据当前显示的文案类型更新位置
+        if (this.currentGuideText === 'aceToFoundation') {
+            const acePos = layout.guideTexts.aceToFoundation;
+            this.guideTextImage1.setPosition(acePos.x, acePos.y);
+        }
     }
 
     private createGhostCard(): void {
@@ -308,16 +407,16 @@ export class GuideSystem {
             this.ghostCardTween.stop();
         }
         
-        // 创建幽灵卡牌和手势的同步拖拽动画
+        // 创建幽灵卡牌和手势的同步拖拽动画（加快1倍速度）
         this.ghostCardTween = this.scene.tweens.add({
             targets: [this.ghostCard, this.dragHand],
             x: endPos.x,
             y: endPos.y,
-            duration: 2000,
+            duration: 1000, // 从2000ms减少到1000ms，加快1倍
             ease: 'Power2.easeInOut',
             yoyo: true,
             repeat: -1,
-            repeatDelay: 500,
+            repeatDelay: 250, // 从500ms减少到250ms，加快间隔
             onYoyo: () => {
                 // 回到起始位置时重置位置
                 this.ghostCard.setPosition(startPos.x, startPos.y);
@@ -601,6 +700,9 @@ export class GuideSystem {
         if (this.ghostCardTween) {
             this.ghostCardTween.stop();
         }
+        
+        // 清理事件监听器
+        EventBus.off('heart-ace-drag-started', this.onHeartAceDragStarted, this);
         
         // 销毁游戏对象
         this.handGuide?.destroy();

@@ -13,7 +13,7 @@ export const DEBUG_SPACING = {
     FOUNDATION_GAP: 140,      // 基础牌堆间距
     
     // 收牌区尺寸调整
-    SLOT_SCALE: 1.2,          // 收牌区相对于卡牌的缩放比例（1.0 = 相同大小，1.1 = 大10%）
+    SLOT_SCALE: 1,          // 收牌区相对于卡牌的缩放比例（1.0 = 相同大小，1.1 = 大10%）
     
     // 教学文案配置
     GUIDE_TEXT_SCALE: 0.8,    // 教学文案缩放比例
@@ -204,8 +204,8 @@ export interface LayoutPositions {
 export const portraitLayout: LayoutPositions = {
     gameWidth: 1080,
     gameHeight: 1920,
-    cardWidth: 106,  // 再缩小80% (132 × 0.8 = 106)
-    cardHeight: 155, // 再缩小80% (194 × 0.8 = 155)
+    cardWidth: 132,  // 再缩小80% (132 × 0.8 = 106)
+    cardHeight: 194, // 再缩小80% (194 × 0.8 = 155)
     
     tableau: {
         startX: 95,  // 左边距

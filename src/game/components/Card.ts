@@ -394,6 +394,11 @@ export class Card extends GameObjects.Container {
             EventBus.emit('play-card-flip');
         }
         
+        // 检查是否为红桃A，如果是则通知隐藏引导效果
+        if (this._suit === 'h' && this._value === 'A') {
+            EventBus.emit('heart-ace-drag-started');
+        }
+        
         // 设置深度
         this.setDepth(Card.DRAG_DEPTH);
         this.attachedCards.forEach((card, index) => {
