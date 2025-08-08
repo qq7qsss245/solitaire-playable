@@ -586,88 +586,230 @@ export class Game extends Scene {
         this.updateGameSize();
     }
 
-    // 库存牌堆点击事件
+    // 动画状态管理
+    private isStockAnimating: boolean = false;
+    private animationCard: Phaser.GameObjects.Sprite | null = null;
+
+    // 库存牌堆点击事件 - 优化的200ms动画版本
     private onStockClick(): void {
         console.log('🔍 [DEBUG] onStockClick - 库存牌堆被点击');
         
-        // 检查基本数据结构
-        console.log('🔍 [DEBUG] onStockClick - 数据结构检查:', {
-            stockCards: this.stock?.cards?.length || 0,
-            wasteCards: this.waste?.cards?.length || 0,
-            stockZoneExists: !!this.stockZone,
-            currentLayout: !!this.currentLayout,
-            debugMode: this.debugMode,
-            stockZoneInteractive: this.stockZone?.input?.enabled,
-            stockZoneVisible: this.stockZone?.visible,
-            stockZoneDepth: this.stockZone?.depth,
-            stockZonePosition: this.stockZone ? { x: this.stockZone.x, y: this.stockZone.y } : null,
-            isTutorialMode: this.isTutorialMode,
-            tutorialManagerExists: !!this.tutorialManager,
-            tutorialManagerActive: this.tutorialManager?.isActive()
-        });
-        
-        // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
-        const canInteract = this.canStockInteractInTutorial();
-        console.log('🔍 [DEBUG] onStockClick - 交互权限检查:', {
-            isTutorialMode: this.isTutorialMode,
-            debugMode: this.debugMode,
-            canInteract: canInteract,
-            currentState: this.tutorialManager?.getCurrentState()
-        });
-        
-        if (!canInteract) {
-            console.log('🔍 [DEBUG] onStockClick - 交互被阻止:', {
-                debugMode: this.debugMode,
-                canInteract: canInteract,
-                isTutorialMode: this.isTutorialMode
-            });
+        // 防止重复点击
+        if (this.isStockAnimating) {
+            console.log('🔍 [DEBUG] onStockClick - 动画进行中，忽略点击');
             return;
         }
         
-        if (this.debugMode) {
-            console.log('🐛 [DEBUG MODE] onStockClick - 调试模式下允许交互');
+        // 检查教学模式下的交互权限
+        const canInteract = this.canStockInteractInTutorial();
+        if (!canInteract) {
+            console.log('🔍 [DEBUG] onStockClick - 交互被阻止');
+            return;
         }
         
         // 触发教学事件
-        console.log('🔍 [DEBUG] onStockClick - 触发stock-clicked事件');
         EventBus.emit('stock-clicked');
         
         if (this.stock.cards.length > 0) {
-            // 从库存牌堆翻出一张牌到翻牌区域
-            const card = this.stock.cards.pop()!;
-            console.log('🔍 [DEBUG] onStockClick - 准备翻牌:', {
-                cardExists: !!card,
-                cardFaceUp: card?.faceUp,
-                cardIsFlipping: (card as any)?.isFlipping
-            });
-            
-            card.flip().then(() => {
-                console.log('🔍 [DEBUG] onStockClick - 翻牌完成，添加到waste');
-                this.waste.cards.push(card);
-                this.updateStockWastePositions();
-                this.incrementMoves();
-                
-                // 触发卡牌翻转事件
-                EventBus.emit('card-flipped', { card });
-                console.log('🔍 [DEBUG] onStockClick - 翻牌流程完成');
-            }).catch((error) => {
-                console.error('❌ [ERROR] onStockClick - 翻牌失败:', error);
-            });
+            // 执行翻牌动画序列
+            this.playStockFlipAnimation();
         } else if (this.waste.cards.length > 0) {
-            console.log('🔍 [DEBUG] onStockClick - 重置waste到stock');
-            // 如果库存牌堆为空，将翻牌区域的牌重新放回库存牌堆
-            while (this.waste.cards.length > 0) {
-                const card = this.waste.cards.pop()!;
-                card.flip().then(() => {
-                    this.stock.cards.push(card);
-                }).catch((error) => {
-                    console.error('❌ [ERROR] onStockClick - 重置翻牌失败:', error);
-                });
-            }
-            this.updateStockWastePositions();
+            // 重置waste到stock
+            this.resetWasteToStock();
         } else {
             console.log('🔍 [DEBUG] onStockClick - 无牌可翻，stock和waste都为空');
         }
+    }
+
+    // 执行优化的翻牌动画序列（总计200ms）
+    private async playStockFlipAnimation(): Promise<void> {
+        this.isStockAnimating = true;
+        
+        try {
+            // 阶段1：点击反馈（0-50ms）
+            await this.playClickFeedback();
+            
+            // 阶段2：卡牌翻出动画（50-150ms）
+            await this.playCardFlipAnimation();
+            
+            // 阶段3：移动到waste（150-200ms）
+            await this.playMoveToWasteAnimation();
+            
+            // 完成处理
+            this.completeStockAnimation();
+            
+        } catch (error) {
+            console.error('❌ [ERROR] playStockFlipAnimation - 动画失败:', error);
+            this.cleanupAnimation();
+        }
+    }
+
+    // 阶段1：点击反馈动画（0-50ms）
+    private playClickFeedback(): Promise<void> {
+        return new Promise((resolve) => {
+            // 播放点击音效
+            EventBus.emit('play-card-place');
+            
+            // stock区域缩放反馈
+            this.tweens.add({
+                targets: this.stockZone,
+                scaleX: 0.95,
+                scaleY: 0.95,
+                duration: 25,
+                ease: 'Power2',
+                yoyo: true,
+                onComplete: () => {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    // 阶段2：卡牌翻出动画（50-150ms）
+    private playCardFlipAnimation(): Promise<void> {
+        return new Promise((resolve) => {
+            // 获取要翻的卡牌
+            const card = this.stock.cards.pop()!;
+            
+            // 创建临时动画卡牌
+            this.animationCard = this.add.sprite(
+                this.currentLayout.stock.x,
+                this.currentLayout.stock.y,
+                AssetKeys.CARD_BACK
+            );
+            this.animationCard.setDepth(100); // 确保在最上层
+            this.animationCard.setScale(0.8); // 与游戏卡牌相同的缩放
+            
+            // 确保动画卡牌可见
+            this.animationCard.setVisible(true);
+            this.animationCard.setAlpha(1);
+            
+            // 使用连续的tween动画来替代Timeline
+            // 向上弹跳 + 第一阶段翻转（0-50ms）
+            this.tweens.add({
+                targets: this.animationCard,
+                y: this.currentLayout.stock.y - 12,
+                scaleX: 0,
+                duration: 50,
+                ease: 'Power2',
+                onComplete: () => {
+                    // 更新卡牌状态
+                    card.setFaceUp(true);
+                    
+                    // 切换到牌面纹理
+                    this.animationCard!.setTexture(AssetKeys.CARD_FACE);
+                    
+                    // 第二阶段翻转（50-100ms）
+                    this.tweens.add({
+                        targets: this.animationCard,
+                        scaleX: 0.8,
+                        duration: 50,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            // 将卡牌添加到waste
+                            this.waste.cards.push(card);
+                            resolve();
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    // 阶段3：移动到waste动画（150-200ms）
+    private playMoveToWasteAnimation(): Promise<void> {
+        return new Promise((resolve) => {
+            if (!this.animationCard) {
+                resolve();
+                return;
+            }
+            
+            // 平滑移动到waste位置
+            this.tweens.add({
+                targets: this.animationCard,
+                x: this.currentLayout.waste.x,
+                y: this.currentLayout.waste.y,
+                duration: 50,
+                ease: 'Power2.easeOut',
+                onComplete: () => {
+                    // 轻微弹跳效果
+                    this.tweens.add({
+                        targets: this.animationCard,
+                        y: this.currentLayout.waste.y - 3,
+                        duration: 15,
+                        ease: 'Power1',
+                        yoyo: true,
+                        onComplete: () => {
+                            resolve();
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    // 完成动画处理
+    private completeStockAnimation(): void {
+        // 播放翻牌音效
+        EventBus.emit('play-card-flip');
+        
+        // 更新游戏状态
+        this.updateStockWastePositions();
+        this.incrementMoves();
+        
+        // 触发卡牌翻转事件
+        if (this.waste.cards.length > 0) {
+            const flippedCard = this.waste.cards[this.waste.cards.length - 1];
+            EventBus.emit('card-flipped', { card: flippedCard });
+        }
+        
+        // 清理动画
+        this.cleanupAnimation();
+        
+        console.log('🔍 [DEBUG] completeStockAnimation - 翻牌流程完成');
+    }
+
+    // 清理动画资源
+    private cleanupAnimation(): void {
+        try {
+            if (this.animationCard && this.animationCard.scene) {
+                this.animationCard.destroy();
+            }
+        } catch (error) {
+            console.warn('⚠️ [WARN] cleanupAnimation - 清理动画卡牌时出错:', error);
+        } finally {
+            this.animationCard = null;
+            this.isStockAnimating = false;
+        }
+    }
+
+    // 重置waste到stock（保持原有逻辑）
+    private resetWasteToStock(): void {
+        console.log('🔍 [DEBUG] resetWasteToStock - 重置waste到stock');
+        
+        // 简单的重置动画，不需要复杂的200ms序列
+        this.isStockAnimating = true;
+        
+        // 点击反馈
+        this.tweens.add({
+            targets: this.stockZone,
+            scaleX: 0.95,
+            scaleY: 0.95,
+            duration: 25,
+            ease: 'Power2',
+            yoyo: true,
+            onComplete: () => {
+                // 重置卡牌
+                while (this.waste.cards.length > 0) {
+                    const card = this.waste.cards.pop()!;
+                    card.setFaceUp(false);
+                    this.stock.cards.push(card);
+                }
+                
+                this.updateStockWastePositions();
+                this.isStockAnimating = false;
+            }
+        });
     }
 
     // 增加移动次数

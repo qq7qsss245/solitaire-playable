@@ -827,6 +827,12 @@ export class Card extends GameObjects.Container {
         return this._faceUp;
     }
 
+    // 设置卡牌正面/背面状态的公共方法
+    public setFaceUp(faceUp: boolean): void {
+        this._faceUp = faceUp;
+        this.updateCardDisplay();
+    }
+
     // 判断卡牌颜色
     get isRed(): boolean {
         return this._suit === 'h' || this._suit === 'd';
