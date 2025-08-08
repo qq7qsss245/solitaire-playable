@@ -549,7 +549,12 @@ export class Card extends GameObjects.Container {
             // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
             const gameScene = this.scene as Game;
             if (!this.canInteractInTutorial(gameScene)) {
-                return;
+                if (gameScene.getDebugMode()) {
+                    console.log(`🐛 [DEBUG MODE] Card.onPointerUp - 调试模式下忽略教学限制 (${this._suit}${this._value})`);
+                } else {
+                    console.log(`🔍 [DEBUG] Card.onPointerUp - 教学模式下点击被阻止 (${this._suit}${this._value})`);
+                    return;
+                }
             }
             
             EventBus.emit('play-card-flip');
@@ -840,6 +845,11 @@ export class Card extends GameObjects.Container {
 
     // 检查在教学模式下是否可以交互
     private canInteractInTutorial(gameScene: Game): boolean {
+        // 调试模式下允许所有交互
+        if (gameScene.getDebugMode()) {
+            return true;
+        }
+        
         // 如果不是教学模式，允许所有交互
         if (!gameScene.getIsTutorialMode()) {
             return true;

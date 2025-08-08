@@ -76,6 +76,9 @@ export class Game extends Scene {
     private tutorialManager: TutorialManager | null = null;
     private isTutorialMode: boolean = false;
     
+    // 调试模式
+    private debugMode: boolean = false;
+    
     // 引导系统
     private handGuide: Phaser.GameObjects.Image;
     private guideTimer: number = 0;
@@ -98,10 +101,18 @@ export class Game extends Scene {
         // 记录游戏开始时间
         this.startTime = Date.now();
 
-        // 检查是否启动教学模式（默认启用，可以通过URL参数关闭）
+        // 检查URL参数
         const urlParams = new URLSearchParams(window.location.search);
+        this.debugMode = urlParams.get('debug') === 'true';
         const randomMode = urlParams.get('random') === 'true';
-        const tutorialMode = !randomMode; // 默认使用教学模式，除非明确指定随机模式
+        
+        // 调试模式下强制使用随机牌局并禁用教学
+        const tutorialMode = this.debugMode ? false : !randomMode;
+        
+        // 调试日志
+        if (this.debugMode) {
+            console.log('🐛 [DEBUG MODE] 调试模式已启用 - 教学系统已禁用，使用随机牌局');
+        }
 
         // 初始化游戏布局
         this.initializeGame(tutorialMode);
@@ -214,6 +225,14 @@ export class Game extends Scene {
     }
 
     private createCards(): void {
+        console.log('🔍 [DEBUG] createCards - 开始创建卡牌:', {
+            gameLayoutExists: !!this.gameLayout,
+            stockDataLength: this.gameLayout?.stock?.length || 0,
+            tableauDataLength: this.gameLayout?.tableau?.length || 0,
+            debugMode: this.debugMode,
+            isTutorialMode: this.isTutorialMode
+        });
+
         // 创建Tableau区域的卡牌
         this.gameLayout.tableau.forEach((column, columnIndex) => {
             column.forEach((cardData, cardIndex) => {
@@ -231,7 +250,12 @@ export class Game extends Scene {
         });
 
         // 创建Stock区域的卡牌
-        this.gameLayout.stock.forEach((cardData) => {
+        console.log('🔍 [DEBUG] createCards - 创建Stock卡牌:', {
+            stockDataCount: this.gameLayout.stock.length,
+            stockData: this.gameLayout.stock.map(card => `${card.suit}-${card.value}`)
+        });
+        
+        this.gameLayout.stock.forEach((cardData, index) => {
             const card = new CardComponent(
                 this,
                 0, 0, // 位置稍后设置
@@ -242,6 +266,18 @@ export class Game extends Scene {
             
             this.add.existing(card);
             this.stock.cards.push(card);
+            
+            console.log(`🔍 [DEBUG] createCards - Stock卡牌${index + 1}创建:`, {
+                suit: cardData.suit,
+                value: cardData.value,
+                faceUp: cardData.faceUp,
+                cardCreated: !!card
+            });
+        });
+        
+        console.log('🔍 [DEBUG] createCards - Stock卡牌创建完成:', {
+            finalStockCount: this.stock.cards.length,
+            expectedCount: this.gameLayout.stock.length
         });
     }
 
@@ -257,15 +293,45 @@ export class Game extends Scene {
         // 库存牌堆使用与卡牌相同的尺寸
         const layout = this.currentLayout || portraitLayout;
         this.stockZone.setDisplaySize(layout.cardWidth, layout.cardHeight);
-        this.stockZone.setDepth(0);
+        // 修复：将stockZone的深度设置为较高值，确保不被遮挡
+        this.stockZone.setDepth(100);
         this.stockZone.setInteractive();
+        
+        // 添加详细的stockZone创建日志
+        console.log('🔍 [DEBUG] createZones - stockZone创建完成:', {
+            position: { x: this.stockZone.x, y: this.stockZone.y },
+            size: { width: this.stockZone.displayWidth, height: this.stockZone.displayHeight },
+            interactive: this.stockZone.input?.enabled,
+            depth: this.stockZone.depth,
+            visible: this.stockZone.visible,
+            alpha: this.stockZone.alpha,
+            debugMode: this.debugMode,
+            stockCardsLength: this.stock?.cards?.length || 0,
+            inputEnabled: this.stockZone.input?.enabled,
+            inputHitArea: this.stockZone.input?.hitArea
+        });
+        
+        // 添加多种事件监听来诊断交互问题
         this.stockZone.on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
             console.log('🔍 [DEBUG] stockZone pointerdown - 事件触发:', {
                 localX, localY,
                 stockZonePosition: { x: this.stockZone.x, y: this.stockZone.y },
-                stockZoneSize: { width: this.stockZone.displayWidth, height: this.stockZone.displayHeight }
+                stockZoneSize: { width: this.stockZone.displayWidth, height: this.stockZone.displayHeight },
+                debugMode: this.debugMode,
+                stockCardsCount: this.stock?.cards?.length || 0,
+                pointerWorldX: pointer.worldX,
+                pointerWorldY: pointer.worldY
             });
             this.onStockClick();
+        });
+        
+        // 添加hover事件来测试交互区域
+        this.stockZone.on('pointerover', () => {
+            console.log('🔍 [DEBUG] stockZone pointerover - 鼠标悬停');
+        });
+        
+        this.stockZone.on('pointerout', () => {
+            console.log('🔍 [DEBUG] stockZone pointerout - 鼠标离开');
         });
 
         // 不创建翻牌区域的卡槽背景 - 翻出的牌会直接显示，不需要背景卡槽
@@ -448,7 +514,13 @@ export class Game extends Scene {
             size: { width: this.stockZone.displayWidth, height: this.stockZone.displayHeight },
             interactive: this.stockZone.input?.enabled,
             depth: this.stockZone.depth,
-            stockCardsCount: this.stock.cards.length
+            visible: this.stockZone.visible,
+            alpha: this.stockZone.alpha,
+            stockCardsCount: this.stock.cards.length,
+            wasteCardsCount: this.waste.cards.length,
+            debugMode: this.debugMode,
+            stockZoneExists: !!this.stockZone,
+            currentLayoutExists: !!this.currentLayout
         });
         
         // 根据库存牌堆是否有牌来决定显示内容
@@ -523,20 +595,37 @@ export class Game extends Scene {
             stockCards: this.stock?.cards?.length || 0,
             wasteCards: this.waste?.cards?.length || 0,
             stockZoneExists: !!this.stockZone,
-            currentLayout: !!this.currentLayout
+            currentLayout: !!this.currentLayout,
+            debugMode: this.debugMode,
+            stockZoneInteractive: this.stockZone?.input?.enabled,
+            stockZoneVisible: this.stockZone?.visible,
+            stockZoneDepth: this.stockZone?.depth,
+            stockZonePosition: this.stockZone ? { x: this.stockZone.x, y: this.stockZone.y } : null,
+            isTutorialMode: this.isTutorialMode,
+            tutorialManagerExists: !!this.tutorialManager,
+            tutorialManagerActive: this.tutorialManager?.isActive()
         });
         
         // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
         const canInteract = this.canStockInteractInTutorial();
         console.log('🔍 [DEBUG] onStockClick - 交互权限检查:', {
             isTutorialMode: this.isTutorialMode,
+            debugMode: this.debugMode,
             canInteract: canInteract,
             currentState: this.tutorialManager?.getCurrentState()
         });
         
         if (!canInteract) {
-            console.log('🔍 [DEBUG] onStockClick - 交互被阻止，直接返回');
+            console.log('🔍 [DEBUG] onStockClick - 交互被阻止:', {
+                debugMode: this.debugMode,
+                canInteract: canInteract,
+                isTutorialMode: this.isTutorialMode
+            });
             return;
+        }
+        
+        if (this.debugMode) {
+            console.log('🐛 [DEBUG MODE] onStockClick - 调试模式下允许交互');
         }
         
         // 触发教学事件
@@ -945,21 +1034,42 @@ export class Game extends Scene {
     public getIsTutorialMode(): boolean {
         return this.isTutorialMode;
     }
+    
+    public getDebugMode(): boolean {
+        return this.debugMode;
+    }
 
     // 检查库存牌堆在教学模式下是否可以交互
     private canStockInteractInTutorial(): boolean {
+        console.log('🔍 [DEBUG] canStockInteractInTutorial - 权限检查:', {
+            debugMode: this.debugMode,
+            isTutorialMode: this.isTutorialMode,
+            tutorialManagerExists: !!this.tutorialManager,
+            tutorialManagerActive: this.tutorialManager?.isActive(),
+            currentState: this.tutorialManager?.getCurrentState()
+        });
+        
+        // 调试模式下允许所有交互
+        if (this.debugMode) {
+            console.log('🐛 [DEBUG MODE] canStockInteractInTutorial - 调试模式，允许交互');
+            return true;
+        }
+        
         // 如果不是教学模式，允许所有交互
         if (!this.isTutorialMode) {
+            console.log('🔍 [DEBUG] canStockInteractInTutorial - 非教学模式，允许交互');
             return true;
         }
         
         // 获取教学管理器
         if (!this.tutorialManager || !this.tutorialManager.isActive()) {
+            console.log('🔍 [DEBUG] canStockInteractInTutorial - 教学管理器未激活，允许交互');
             return true;
         }
         
         // 获取当前教学状态
         const currentState = this.tutorialManager.getCurrentState();
+        console.log('🔍 [DEBUG] canStockInteractInTutorial - 当前教学状态:', currentState);
         
         // 根据教学步骤检查交互权限
         switch (currentState) {
@@ -968,22 +1078,27 @@ export class Game extends Scene {
             case 'step_ace_to_foundation':
             case 'step_card_to_pile':
                 // 前几步不允许点击库存牌堆
+                console.log('🔍 [DEBUG] canStockInteractInTutorial - 教学前期步骤，禁止交互');
                 return false;
                 
             case 'step_stock_flip':
                 // 第五步：允许点击库存牌堆
+                console.log('🔍 [DEBUG] canStockInteractInTutorial - stock翻牌步骤，允许交互');
                 return true;
                 
             case 'step_pile_to_pile':
                 // 第六步：允许点击库存牌堆
+                console.log('🔍 [DEBUG] canStockInteractInTutorial - pile间移动步骤，允许交互');
                 return true;
                 
             case 'step_free_play':
                 // 自由游戏模式：允许所有交互
+                console.log('🔍 [DEBUG] canStockInteractInTutorial - 自由游戏模式，允许交互');
                 return true;
                 
             default:
                 // 默认不允许交互
+                console.log('🔍 [DEBUG] canStockInteractInTutorial - 未知状态，禁止交互');
                 return false;
         }
     }
@@ -1023,6 +1138,11 @@ export class Game extends Scene {
 
     // 检查操作是否被教学系统允许
     public isActionAllowed(actionType: string): boolean {
+        // 调试模式下允许所有操作
+        if (this.debugMode) {
+            return true;
+        }
+        
         if (!this.isTutorialMode || !this.tutorialManager) {
             return true; // 非教学模式允许所有操作
         }
