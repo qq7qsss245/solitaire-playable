@@ -110,6 +110,9 @@ export class TutorialManager {
     }
 
     private executeStepLogic(step: TutorialStep): void {
+        // 每个步骤开始前，先清理所有之前的引导效果
+        this.guideSystem.hideAllGuides();
+        
         switch (step.id) {
             case TutorialState.STEP_INTRO:
                 // 游戏介绍，显示开局两个文案，等待用户点击
@@ -123,13 +126,13 @@ export class TutorialManager {
                 break;
                 
             case TutorialState.STEP_RULES:
-                // 直接显示A牌引导，不再单独显示规则说明
+                // 第二步：显示"Let's put Ace to foundation"文案和幽灵卡牌引导
                 this.isWaitingForAction = true;
                 this.guideSystem.showAceToFoundationGuide();
                 break;
                 
             case TutorialState.STEP_ACE_TO_FOUNDATION:
-                // A牌入槽引导
+                // A牌入槽引导（这个步骤实际上已经在STEP_RULES中处理了）
                 this.isWaitingForAction = true;
                 this.setupAceToFoundationTarget();
                 break;
@@ -141,7 +144,7 @@ export class TutorialManager {
                 break;
                 
             case TutorialState.STEP_STOCK_FLIP:
-                // 翻牌操作引导 - 显示stock点击引导
+                // 第三步：显示"Hmmm, now try to look in the stock"文案和stock点击引导
                 this.isWaitingForAction = true;
                 this.guideSystem.showStockClickGuide();
                 break;
@@ -267,11 +270,8 @@ export class TutorialManager {
             // 立即隐藏A牌引导
             this.guideSystem.hideAceToFoundationGuide();
             
-            // 立即显示stock点击引导
-            this.guideSystem.showStockClickGuide();
-            
-            // 进入下一步
-            this.nextStep();
+            // 直接跳到STEP_STOCK_FLIP步骤（跳过STEP_ACE_TO_FOUNDATION和STEP_CARD_TO_PILE）
+            this.jumpToStepById(TutorialState.STEP_STOCK_FLIP);
             return;
         }
 
@@ -281,18 +281,30 @@ export class TutorialManager {
     }
 
     private onStockClicked(): void {
+        console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 收到stock-clicked事件', {
+            currentState: this.currentState,
+            isActive: this.isActive()
+        });
+        
         if (!this.isValidAction('stock-click')) {
+            console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 无效操作，触发错误处理');
             this.onInvalidAction();
             return;
         }
 
+        console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 操作有效，继续处理');
+
         // 如果是在stock引导步骤，隐藏引导
         if (this.currentState === TutorialState.STEP_STOCK_FLIP) {
+            console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 隐藏stock引导');
             this.guideSystem.hideStockClickGuide();
         }
 
         if (this.checkStepCompletion('stock-click')) {
+            console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 步骤完成，进入下一步');
             this.nextStep();
+        } else {
+            console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 步骤未完成');
         }
     }
 
@@ -365,6 +377,36 @@ export class TutorialManager {
             this.completeTutorial();
         } else {
             // 短暂延迟后执行下一步
+            this.scene.time.delayedCall(1000, () => {
+                this.executeCurrentStep();
+            });
+        }
+    }
+
+    private jumpToStepById(targetStepId: TutorialState): void {
+        console.log(`Jumping to step: ${targetStepId}`);
+        
+        // 播放步骤完成音效
+        EventBus.emit('play-card-place');
+        
+        // 清除当前引导
+        this.guideSystem.hideAllGuides();
+        this.clearCurrentTarget();
+        
+        // 找到目标步骤的索引
+        const targetIndex = this.steps.findIndex(step => step.id === targetStepId);
+        if (targetIndex === -1) {
+            console.error(`Target step ${targetStepId} not found`);
+            return;
+        }
+        
+        // 跳转到目标步骤
+        this.currentStepIndex = targetIndex;
+        
+        if (this.currentStepIndex >= this.steps.length) {
+            this.completeTutorial();
+        } else {
+            // 短暂延迟后执行目标步骤
             this.scene.time.delayedCall(1000, () => {
                 this.executeCurrentStep();
             });

@@ -192,6 +192,7 @@ export const Assets = {
       cardToPile: guideText4,
       moveCard: guideText5,
       checkStock: guideText6,
+      stockHint: guideText6, // 添加stockHint映射到"Hmmm..."图片
       complete: guideText7,
     },
   },
@@ -290,6 +291,7 @@ export const AssetKeys = {
   GUIDE_CARD_TO_PILE: 'guide-card-to-pile',
   GUIDE_MOVE_CARD: 'guide-move-card',
   GUIDE_CHECK_STOCK: 'guide-check-stock',
+  GUIDE_STOCK_HINT: 'guide-stock-hint', // 添加stockHint的键名
   GUIDE_COMPLETE: 'guide-complete',
   
   // 音频

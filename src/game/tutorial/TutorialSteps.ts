@@ -82,7 +82,7 @@ export class TutorialSteps {
         // 第五步：库存牌堆引导
         {
             id: TutorialState.STEP_STOCK_FLIP,
-            guideText: 'checkStock', // 使用assets中的键名
+            guideText: 'stockHint', // 使用stockHint配置，对应"Hmmm..."文案
             description: '翻开库存牌堆',
             autoAdvanceTime: 0,
             allowedActions: ['stock-click'],

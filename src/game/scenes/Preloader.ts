@@ -102,6 +102,7 @@ export class Preloader extends Scene {
         this.load.image(AssetKeys.GUIDE_CARD_TO_PILE, Assets.tutorial.guideTexts.cardToPile);
         this.load.image(AssetKeys.GUIDE_MOVE_CARD, Assets.tutorial.guideTexts.moveCard);
         this.load.image(AssetKeys.GUIDE_CHECK_STOCK, Assets.tutorial.guideTexts.checkStock);
+        this.load.image(AssetKeys.GUIDE_STOCK_HINT, Assets.tutorial.guideTexts.stockHint); // 加载"Hmmm..."文案
         this.load.image(AssetKeys.GUIDE_COMPLETE, Assets.tutorial.guideTexts.complete);
 
         // 音频文件现在通过React组件(src/sound.tsx)直接导入，不需要在Phaser中加载

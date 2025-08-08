@@ -11,8 +11,9 @@ export class GuideSystem {
     
     // UI组件
     private handGuide: Phaser.GameObjects.Image;
-    private guideTextImage1: Phaser.GameObjects.Image; // 第一个文案图片
-    private guideTextImage2: Phaser.GameObjects.Image; // 第二个文案图片
+    private currentGuideTextImage: Phaser.GameObjects.Image | null = null; // 当前显示的文案图片
+    private guideTextImage1: Phaser.GameObjects.Image; // 第一个文案图片（用于开局双文案）
+    private guideTextImage2: Phaser.GameObjects.Image; // 第二个文案图片（用于开局双文案）
     private highlightOverlay: Phaser.GameObjects.Graphics;
     private errorFeedback: Phaser.GameObjects.Graphics;
     private clickArea: Phaser.GameObjects.Rectangle; // 点击区域
@@ -23,6 +24,7 @@ export class GuideSystem {
     private handTween: Phaser.Tweens.Tween | null = null;
     private textTween1: Phaser.Tweens.Tween | null = null;
     private textTween2: Phaser.Tweens.Tween | null = null;
+    private currentTextTween: Phaser.Tweens.Tween | null = null; // 当前文案的动画
     private highlightTween: Phaser.Tweens.Tween | null = null;
     
     // 状态
@@ -133,7 +135,7 @@ export class GuideSystem {
         }
         
         // 如果正在显示单个文案，需要更新位置
-        if (this.guideTextImage1.visible) {
+        if (this.currentGuideTextImage && this.currentGuideTextImage.visible) {
             this.updateSingleTextPosition();
         }
     }
@@ -177,27 +179,27 @@ export class GuideSystem {
     private updateSingleTextPosition(): void {
         // 获取新的布局配置
         const layout = this.scene.currentLayout;
-        if (!layout) return;
+        if (!layout || !this.currentGuideTextImage) return;
         
         console.log('🔍 [DEBUG] updateSingleTextPosition - 当前文案类型:', this.currentGuideText);
         
-        // 根据当前显示的文案类型更新位置
-        if (this.currentGuideText === 'aceToFoundation') {
-            const acePos = layout.guideTexts.aceToFoundation;
-            console.log('🔍 [DEBUG] updateSingleTextPosition - aceToFoundation坐标:', acePos);
-            this.guideTextImage1.setPosition(acePos.x, acePos.y);
-        } else if (this.currentGuideText === 'stockHint') {
-            const stockHintPos = layout.guideTexts.stockHint;
-            console.log('🔍 [DEBUG] updateSingleTextPosition - stockHint坐标:', {
-                配置坐标: stockHintPos,
+        // 从配置中获取对应文案的位置
+        const guideTexts = layout.guideTexts as any;
+        if (guideTexts && guideTexts[this.currentGuideText]) {
+            const textPos = guideTexts[this.currentGuideText];
+            console.log('🔍 [DEBUG] updateSingleTextPosition - 更新坐标:', {
+                textKey: this.currentGuideText,
+                配置坐标: textPos,
                 orientation: this.getOrientation(),
                 gameSize: `${layout.gameWidth}x${layout.gameHeight}`
             });
-            this.guideTextImage1.setPosition(stockHintPos.x, stockHintPos.y);
+            this.currentGuideTextImage.setPosition(textPos.x, textPos.y);
             console.log('🔍 [DEBUG] updateSingleTextPosition - 更新后实际坐标:', {
-                x: this.guideTextImage1.x,
-                y: this.guideTextImage1.y
+                x: this.currentGuideTextImage.x,
+                y: this.currentGuideTextImage.y
             });
+        } else {
+            console.warn('⚠️ [WARNING] updateSingleTextPosition - 配置中未找到坐标:', this.currentGuideText);
         }
     }
 
@@ -218,12 +220,18 @@ export class GuideSystem {
     public showGuideText(textKey: string): void {
         this.currentGuideText = textKey;
         
+        // 先隐藏之前的文案图片
+        this.hideCurrentGuideText();
+        
         // 映射教学步骤键名到资源键名
         const textureKey = this.mapTextKeyToTexture(textKey);
         
-        // 设置引导文案图片
-        this.guideTextImage1.setTexture(textureKey);
-        this.guideTextImage1.setVisible(true);
+        // 为每个文案创建新的图片对象
+        this.currentGuideTextImage = this.scene.add.image(0, 0, textureKey);
+        this.currentGuideTextImage.setDepth(9999);
+        this.currentGuideTextImage.setOrigin(0.5, 0.5);
+        this.currentGuideTextImage.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        this.currentGuideTextImage.setVisible(true);
         
         // 使用配置文件中的坐标而不是计算位置
         const layout = this.scene.currentLayout;
@@ -232,10 +240,11 @@ export class GuideSystem {
             const textPos = guideTexts[textKey];
             console.log('🔍 [DEBUG] showGuideText - 使用配置坐标:', {
                 textKey: textKey,
+                textureKey: textureKey,
                 配置坐标: textPos,
                 orientation: this.getOrientation()
             });
-            this.guideTextImage1.setPosition(textPos.x, textPos.y);
+            this.currentGuideTextImage.setPosition(textPos.x, textPos.y);
         } else {
             // 如果配置中没有对应的坐标，则使用计算的位置作为后备方案
             console.warn('⚠️ [WARNING] showGuideText - 配置中未找到坐标，使用计算位置:', textKey);
@@ -254,16 +263,47 @@ export class GuideSystem {
                 textY = screenHeight * 0.80;
             }
             
-            this.guideTextImage1.setPosition(screenWidth / 2, textY);
+            this.currentGuideTextImage.setPosition(screenWidth / 2, textY);
         }
         
         // 添加淡入动画
-        this.guideTextImage1.setAlpha(0);
-        this.textTween1 = this.scene.tweens.add({
-            targets: this.guideTextImage1,
+        this.currentGuideTextImage.setAlpha(0);
+        this.currentTextTween = this.scene.tweens.add({
+            targets: this.currentGuideTextImage,
             alpha: 1,
             duration: 500,
-            ease: 'Power2'
+            ease: 'Power2',
+            onComplete: () => {
+                // 动画完成后延时打印调试信息
+                this.scene.time.delayedCall(100, () => {
+                    if (this.currentGuideTextImage) {
+                        console.log('🔍 [DEBUG] showGuideText - 动画完成后状态:', {
+                            textKey: textKey,
+                            textureKey: textureKey,
+                            x: this.currentGuideTextImage.x,
+                            y: this.currentGuideTextImage.y,
+                            alpha: this.currentGuideTextImage.alpha,
+                            visible: this.currentGuideTextImage.visible,
+                            scale: this.currentGuideTextImage.scaleX,
+                            depth: this.currentGuideTextImage.depth,
+                            texture: this.currentGuideTextImage.texture?.key
+                        });
+                    }
+                });
+            }
+        });
+        
+        // 立即打印初始状态
+        console.log('🔍 [DEBUG] showGuideText - 创建后初始状态:', {
+            textKey: textKey,
+            textureKey: textureKey,
+            x: this.currentGuideTextImage.x,
+            y: this.currentGuideTextImage.y,
+            alpha: this.currentGuideTextImage.alpha,
+            visible: this.currentGuideTextImage.visible,
+            scale: this.currentGuideTextImage.scaleX,
+            depth: this.currentGuideTextImage.depth,
+            texture: this.currentGuideTextImage.texture?.key
         });
     }
 
@@ -518,45 +558,19 @@ export class GuideSystem {
     public showStockClickGuide(): void {
         // 显示"Hmmm, now try to..."文案和stock点击引导
         const layout = this.scene.currentLayout;
-        const stockHintPos = layout.guideTexts.stockHint;
+        if (!layout) {
+            console.error('❌ [ERROR] showStockClickGuide - currentLayout未定义');
+            return;
+        }
         
-        // 调试日志：打印配置的坐标和当前屏幕方向
-        console.log('🔍 [DEBUG] showStockClickGuide - 配置坐标:', {
-            stockHintPos: stockHintPos,
-            orientation: this.getOrientation(),
-            gameWidth: layout.gameWidth,
-            gameHeight: layout.gameHeight
-        });
-        
-        // 设置当前文案类型，用于横竖屏切换时的位置更新
-        this.currentGuideText = 'stockHint';
-        
-        // 显示文案
-        this.guideTextImage1.setTexture('guide-stock-hint'); // 需要对应的资源
-        this.guideTextImage1.setVisible(true);
-        this.guideTextImage1.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
-        this.guideTextImage1.setPosition(stockHintPos.x, stockHintPos.y);
-        
-        // 调试日志：打印实际设置的坐标
-        console.log('🔍 [DEBUG] showStockClickGuide - 实际设置坐标:', {
-            actualX: this.guideTextImage1.x,
-            actualY: this.guideTextImage1.y,
-            visible: this.guideTextImage1.visible,
-            scale: this.guideTextImage1.scaleX
-        });
-        
-        // 淡入动画
-        this.guideTextImage1.setAlpha(0);
-        this.textTween1 = this.scene.tweens.add({
-            targets: this.guideTextImage1,
-            alpha: 1,
-            duration: 500,
-            ease: 'Power2'
-        });
+        // 使用新的showGuideText方法显示stockHint文案
+        this.showGuideText('stockHint');
         
         // 在stock位置显示点击手势
         const stockPos = layout.stock;
         this.showHandGuide(stockPos.x, stockPos.y);
+        
+        console.log('🔍 [DEBUG] showStockClickGuide - 已调用showGuideText和showHandGuide');
     }
 
     public hideStockClickGuide(): void {
@@ -583,6 +597,7 @@ export class GuideSystem {
             'aceToFoundation': 'guide-ace-to-foundation',
             'cardToPile': 'guide-card-to-pile',
             'checkStock': 'guide-check-stock',
+            'stockHint': 'guide-stock-hint', // 映射到"Hmmm..."文案
             'moveCard': 'guide-move-card',
             'complete': 'guide-complete'
         };
@@ -590,7 +605,25 @@ export class GuideSystem {
         return keyMap[textKey] || textKey;
     }
 
+    private hideCurrentGuideText(): void {
+        // 停止当前文案的动画
+        if (this.currentTextTween) {
+            this.currentTextTween.stop();
+            this.currentTextTween = null;
+        }
+        
+        // 销毁当前文案图片对象
+        if (this.currentGuideTextImage) {
+            this.currentGuideTextImage.destroy();
+            this.currentGuideTextImage = null;
+        }
+    }
+
     public hideGuideText(): void {
+        // 隐藏当前单个文案
+        this.hideCurrentGuideText();
+        
+        // 隐藏开局双文案
         if (this.textTween1) {
             this.textTween1.stop();
             this.textTween1 = null;

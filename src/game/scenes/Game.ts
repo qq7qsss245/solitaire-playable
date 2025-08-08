@@ -259,7 +259,14 @@ export class Game extends Scene {
         this.stockZone.setDisplaySize(layout.cardWidth, layout.cardHeight);
         this.stockZone.setDepth(0);
         this.stockZone.setInteractive();
-        this.stockZone.on('pointerdown', () => this.onStockClick());
+        this.stockZone.on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+            console.log('🔍 [DEBUG] stockZone pointerdown - 事件触发:', {
+                localX, localY,
+                stockZonePosition: { x: this.stockZone.x, y: this.stockZone.y },
+                stockZoneSize: { width: this.stockZone.displayWidth, height: this.stockZone.displayHeight }
+            });
+            this.onStockClick();
+        });
 
         // 不创建翻牌区域的卡槽背景 - 翻出的牌会直接显示，不需要背景卡槽
 
@@ -436,6 +443,14 @@ export class Game extends Scene {
         // 更新库存牌堆位置和显示状态
         this.stockZone.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
         
+        console.log('🔍 [DEBUG] updateStockWastePositions - stock区域更新:', {
+            position: { x: this.currentLayout.stock.x, y: this.currentLayout.stock.y },
+            size: { width: this.stockZone.displayWidth, height: this.stockZone.displayHeight },
+            interactive: this.stockZone.input?.enabled,
+            depth: this.stockZone.depth,
+            stockCardsCount: this.stock.cards.length
+        });
+        
         // 根据库存牌堆是否有牌来决定显示内容
         if (this.stock.cards.length > 0) {
             // 有牌时显示牌背
@@ -501,34 +516,68 @@ export class Game extends Scene {
 
     // 库存牌堆点击事件
     private onStockClick(): void {
+        console.log('🔍 [DEBUG] onStockClick - 库存牌堆被点击');
+        
+        // 检查基本数据结构
+        console.log('🔍 [DEBUG] onStockClick - 数据结构检查:', {
+            stockCards: this.stock?.cards?.length || 0,
+            wasteCards: this.waste?.cards?.length || 0,
+            stockZoneExists: !!this.stockZone,
+            currentLayout: !!this.currentLayout
+        });
+        
         // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
-        if (!this.canStockInteractInTutorial()) {
+        const canInteract = this.canStockInteractInTutorial();
+        console.log('🔍 [DEBUG] onStockClick - 交互权限检查:', {
+            isTutorialMode: this.isTutorialMode,
+            canInteract: canInteract,
+            currentState: this.tutorialManager?.getCurrentState()
+        });
+        
+        if (!canInteract) {
+            console.log('🔍 [DEBUG] onStockClick - 交互被阻止，直接返回');
             return;
         }
         
         // 触发教学事件
+        console.log('🔍 [DEBUG] onStockClick - 触发stock-clicked事件');
         EventBus.emit('stock-clicked');
         
         if (this.stock.cards.length > 0) {
             // 从库存牌堆翻出一张牌到翻牌区域
             const card = this.stock.cards.pop()!;
+            console.log('🔍 [DEBUG] onStockClick - 准备翻牌:', {
+                cardExists: !!card,
+                cardFaceUp: card?.faceUp,
+                cardIsFlipping: (card as any)?.isFlipping
+            });
+            
             card.flip().then(() => {
+                console.log('🔍 [DEBUG] onStockClick - 翻牌完成，添加到waste');
                 this.waste.cards.push(card);
                 this.updateStockWastePositions();
                 this.incrementMoves();
                 
                 // 触发卡牌翻转事件
                 EventBus.emit('card-flipped', { card });
+                console.log('🔍 [DEBUG] onStockClick - 翻牌流程完成');
+            }).catch((error) => {
+                console.error('❌ [ERROR] onStockClick - 翻牌失败:', error);
             });
         } else if (this.waste.cards.length > 0) {
+            console.log('🔍 [DEBUG] onStockClick - 重置waste到stock');
             // 如果库存牌堆为空，将翻牌区域的牌重新放回库存牌堆
             while (this.waste.cards.length > 0) {
                 const card = this.waste.cards.pop()!;
                 card.flip().then(() => {
                     this.stock.cards.push(card);
+                }).catch((error) => {
+                    console.error('❌ [ERROR] onStockClick - 重置翻牌失败:', error);
                 });
             }
             this.updateStockWastePositions();
+        } else {
+            console.log('🔍 [DEBUG] onStockClick - 无牌可翻，stock和waste都为空');
         }
     }
 

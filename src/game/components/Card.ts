@@ -274,38 +274,59 @@ export class Card extends GameObjects.Container {
 
     // 翻牌动画
     flip(): Promise<void> {
-        if (!this.canInteract(true)) return Promise.resolve();
+        console.log('🔍 [DEBUG] Card.flip - 开始翻牌:', {
+            suit: this.suit,
+            value: this.value,
+            faceUp: this._faceUp,
+            canInteract: this.canInteract(true),
+            isFlipping: this.isFlipping
+        });
+        
+        if (!this.canInteract(true)) {
+            console.log('🔍 [DEBUG] Card.flip - canInteract检查失败，直接返回');
+            return Promise.resolve();
+        }
 
         return new Promise<void>((resolve, reject) => {
             this.addToQueue(async () => {
                 try {
+                    console.log('🔍 [DEBUG] Card.flip - 进入队列执行');
+                    
                     if (this.isFlipping) {
+                        console.log('🔍 [DEBUG] Card.flip - 卡牌正在翻转，等待50ms');
                         await new Promise(r => setTimeout(r, 50));
                         if (this.isFlipping) {
                             throw new Error('Card is still flipping');
                         }
                     }
 
+                    console.log('🔍 [DEBUG] Card.flip - 开始翻转动画');
                     this.isFlipping = true;
                     const originalScaleX = this.scaleX;
                     this.disableInteractive();
 
                     // 第一阶段：缩放到0
+                    console.log('🔍 [DEBUG] Card.flip - 第一阶段：缩放到0');
                     await new Promise<void>((resolveFirst) => {
                         this.scene.tweens.add({
                             targets: this,
                             scaleX: 0,
                             duration: 150,
                             ease: 'Power1',
-                            onComplete: () => resolveFirst()
+                            onComplete: () => {
+                                console.log('🔍 [DEBUG] Card.flip - 第一阶段完成');
+                                resolveFirst();
+                            }
                         });
                     });
 
                     // 第二阶段：切换状态和纹理
+                    console.log('🔍 [DEBUG] Card.flip - 第二阶段：切换状态和纹理');
                     this._faceUp = !this._faceUp;
                     this.updateCardDisplay();
 
                     // 第三阶段：恢复缩放
+                    console.log('🔍 [DEBUG] Card.flip - 第三阶段：恢复缩放');
                     await new Promise<void>((resolveSecond) => {
                         this.scene.tweens.add({
                             targets: this,
@@ -313,6 +334,7 @@ export class Card extends GameObjects.Container {
                             duration: 150,
                             ease: 'Power1',
                             onComplete: () => {
+                                console.log('🔍 [DEBUG] Card.flip - 翻转动画完成');
                                 EventBus.emit('play-card-deal');
                                 this.isFlipping = false;
                                 
@@ -328,9 +350,10 @@ export class Card extends GameObjects.Container {
                         });
                     });
 
+                    console.log('🔍 [DEBUG] Card.flip - 翻转完成，resolve Promise');
                     resolve();
                 } catch (error) {
-                    console.error('Flip error:', error);
+                    console.error('❌ [ERROR] Card.flip - 翻转失败:', error);
                     this.isFlipping = false;
                     reject(error);
                 }
