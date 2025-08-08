@@ -725,30 +725,47 @@ export class Card extends GameObjects.Container {
     private checkDropTarget(): { canDrop: boolean; x?: number; y?: number; onDrop?: () => void } {
         const gameScene = this.scene as Game;
         
-        // 检查基础牌堆（Foundation）
+        // 检查基础牌堆（Foundation）- 实现智能吸附
+        // 首先检查是否在任何收牌区范围内
+        let isInAnyFoundationZone = false;
         for (let i = 0; i < gameScene.foundationZones.length; i++) {
             const zone = gameScene.foundationZones[i];
             const bounds = zone.getBounds();
 
             if (this.x >= bounds.left && this.x <= bounds.right &&
                 this.y >= bounds.top && this.y <= bounds.bottom) {
-                // 基础牌堆不允许放置多张卡牌
-                if (this.attachedCards.length > 0) {
-                    return { canDrop: false };
-                }
-                
-                if (gameScene.canAddToFoundation(this, i)) {
-                    return {
-                        canDrop: true,
-                        x: bounds.centerX,
-                        y: bounds.centerY,
-                        onDrop: () => {
-                            gameScene.addToFoundation(this, i, false);
-                        }
-                    };
-                }
+                isInAnyFoundationZone = true;
+                break;
+            }
+        }
+
+        // 如果在收牌区范围内，实现智能吸附
+        if (isInAnyFoundationZone) {
+            // 基础牌堆不允许放置多张卡牌
+            if (this.attachedCards.length > 0) {
                 return { canDrop: false };
             }
+
+            // 获取正确的花色位置
+            const correctFoundationIndex = (gameScene as any).getCorrectFoundationIndex(this._suit);
+            
+            // 检查正确的花色位置是否可以放置
+            if (gameScene.canAddToFoundation(this, correctFoundationIndex)) {
+                const correctZone = gameScene.foundationZones[correctFoundationIndex];
+                const correctBounds = correctZone.getBounds();
+                
+                return {
+                    canDrop: true,
+                    x: correctBounds.centerX,
+                    y: correctBounds.centerY,
+                    onDrop: () => {
+                        gameScene.addToFoundation(this, correctFoundationIndex, false);
+                    }
+                };
+            }
+            
+            // 如果正确位置不能放置，则拒绝
+            return { canDrop: false };
         }
 
         // 检查Tableau列

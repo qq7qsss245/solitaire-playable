@@ -209,11 +209,33 @@ export class Game extends Scene {
     }
 
     private initializeFoundation(): void {
-        // 初始化4个基础牌堆
+        // 初始化4个基础牌堆，预先绑定花色
+        // 索引0=红桃(h)，索引1=方块(d)，索引2=梅花(c)，索引3=黑桃(s)
         this.foundation = [];
+        const suitOrder: CardSuit[] = ['h', 'd', 'c', 's'];
+        
         for (let i = 0; i < 4; i++) {
-            this.foundation.push({ cards: [] });
+            this.foundation.push({
+                cards: [],
+                suit: suitOrder[i]  // 预先绑定花色
+            });
         }
+    }
+
+    // 花色到收牌区索引的映射
+    private getSuitFoundationIndex(suit: CardSuit): number {
+        const suitToIndex: Record<CardSuit, number> = {
+            'h': 0,  // 红桃
+            'd': 1,  // 方块
+            'c': 2,  // 梅花
+            's': 3   // 黑桃
+        };
+        return suitToIndex[suit];
+    }
+
+    // 根据花色获取正确的收牌区
+    private getCorrectFoundationIndex(suit: CardSuit): number {
+        return this.getSuitFoundationIndex(suit);
     }
 
     private initializeStock(): void {
@@ -954,9 +976,14 @@ export class Game extends Scene {
     public canAddToFoundation(card: CardComponent, foundationIndex: number): boolean {
         const foundation = this.foundation[foundationIndex];
         
+        // 检查花色是否匹配预设的位置
+        if (foundation.suit && foundation.suit !== card.suit) {
+            return false;
+        }
+        
         if (foundation.cards.length === 0) {
-            // 空的基础牌堆只能放A
-            return card.numericValue === 1; // A
+            // 空的基础牌堆只能放A，且必须是对应花色
+            return card.numericValue === 1 && foundation.suit === card.suit;
         }
         
         const topCard = foundation.cards[foundation.cards.length - 1];
@@ -979,10 +1006,7 @@ export class Game extends Scene {
         // 添加到基础牌堆
         foundation.cards.push(card);
         
-        // 设置花色（如果是第一张牌）
-        if (foundation.cards.length === 1) {
-            foundation.suit = card.suit;
-        }
+        // 花色已经预先绑定，无需设置
         
         // 更新分数
         this.updateScore(10);
