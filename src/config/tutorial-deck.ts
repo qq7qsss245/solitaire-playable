@@ -63,11 +63,8 @@ export function generateTutorialLayout(): KlondikeLayout {
         ]
     ];
 
-    // 库存牌堆：剩余24张牌，顶部是黑桃A
+    // 库存牌堆：剩余24张牌，红桃Q在末尾（第一张翻出）
     const stock: Card[] = [
-        // 黑桃A在顶部（最后翻出）
-        { suit: 's' as CardSuit, value: 'A' as CardValue, faceUp: false },
-        
         // 其他剩余卡牌（按教学需要排列）
         { suit: 'd' as CardSuit, value: '2' as CardValue, faceUp: false },
         { suit: 'c' as CardSuit, value: '3' as CardValue, faceUp: false },
@@ -84,6 +81,8 @@ export function generateTutorialLayout(): KlondikeLayout {
         { suit: 'd' as CardSuit, value: '10' as CardValue, faceUp: false },
         { suit: 'c' as CardSuit, value: 'A' as CardValue, faceUp: false },
         
+        // 黑桃A放在第3步教学需要的位置（第14张）
+        { suit: 's' as CardSuit, value: 'A' as CardValue, faceUp: false },
         { suit: 'h' as CardSuit, value: '2' as CardValue, faceUp: false },
         { suit: 's' as CardSuit, value: '4' as CardValue, faceUp: false },
         { suit: 'd' as CardSuit, value: '5' as CardValue, faceUp: false },
@@ -94,7 +93,10 @@ export function generateTutorialLayout(): KlondikeLayout {
         
         { suit: 'c' as CardSuit, value: '4' as CardValue, faceUp: false },
         { suit: 'h' as CardSuit, value: '3' as CardValue, faceUp: false },
-        { suit: 'c' as CardSuit, value: '10' as CardValue, faceUp: false }
+        { suit: 'c' as CardSuit, value: '10' as CardValue, faceUp: false },
+        
+        // 红桃Q在末尾位置（第一张翻出，因为使用pop()从末尾取牌）
+        { suit: 'h' as CardSuit, value: 'Q' as CardValue, faceUp: false }
     ];
 
     return {
@@ -107,12 +109,20 @@ export function generateTutorialLayout(): KlondikeLayout {
 
 // 教学关卡中的关键卡牌位置映射
 export const TUTORIAL_KEY_CARDS = {
-    // 步骤3需要的黑桃A（在库存牌堆顶部）
+    // 步骤2需要的红桃Q（在库存牌堆末尾，第一张翻出）
+    HEART_Q: {
+        suit: 'h' as CardSuit,
+        value: 'Q' as CardValue,
+        location: 'stock',
+        position: 23 // 库存牌堆末尾位置（索引23，第一张翻出）
+    },
+    
+    // 步骤3需要的黑桃A（在库存牌堆第14位）
     SPADE_ACE: {
         suit: 's' as CardSuit,
         value: 'A' as CardValue,
         location: 'stock',
-        position: 0 // 库存牌堆顶部
+        position: 13 // 库存牌堆第14位（索引13，从末尾数第10张）
     },
     
     // 步骤4需要移动的红桃8（第6列顶部）
