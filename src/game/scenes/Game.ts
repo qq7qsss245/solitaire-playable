@@ -838,6 +838,12 @@ export class Game extends Scene {
     private incrementMoves(): void {
         this.moves++;
         
+        // 添加调试日志
+        console.log('🔍 [DEBUG] incrementMoves - 移动次数增加:', {
+            currentMoves: this.moves,
+            debugMode: this.debugMode
+        });
+        
         // 更新新的计分板显示
         this.movesValue.setText(this.moves.toString());
         

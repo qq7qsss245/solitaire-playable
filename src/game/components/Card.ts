@@ -769,7 +769,7 @@ export class Card extends GameObjects.Container {
                     x: correctBounds.centerX,
                     y: correctBounds.centerY,
                     onDrop: () => {
-                        gameScene.addToFoundation(this, correctFoundationIndex, false);
+                        gameScene.addToFoundation(this, correctFoundationIndex, true);
                     }
                 };
             }
@@ -796,7 +796,7 @@ export class Card extends GameObjects.Container {
                         x: target.x,
                         y: target.y + Card.CARD_GAP_Y,
                         onDrop: () => {
-                            gameScene.moveCardToColumn(this, targetColumnIndex, false);
+                            gameScene.moveCardToColumn(this, targetColumnIndex, true);
                         }
                     };
                 }
@@ -830,7 +830,7 @@ export class Card extends GameObjects.Container {
                             x: targetX,
                             y: targetY,
                             onDrop: () => {
-                                gameScene.moveCardToColumn(this, columnIndex, false);
+                                gameScene.moveCardToColumn(this, columnIndex, true);
                             }
                         };
                     }
