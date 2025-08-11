@@ -183,6 +183,13 @@ export interface LayoutPositions {
         y: number;
     };
     
+    // 厂商信息组件位置配置
+    vendorInfo: {
+        icon: { x: number, y: number, scale: number };
+        productName: { x: number, y: number, scale: number };
+        fiveStars: { x: number, y: number, scale: number };
+    };
+    
     // 教学文案位置配置
     guideTexts: {
         intro: {
@@ -297,6 +304,13 @@ export const portraitLayout: LayoutPositions = {
         y: 1840, // 底部
     },
     
+    // 厂商信息组件位置配置 - 竖屏模式：右下角
+    vendorInfo: {
+        icon: { x: 750, y: 1700, scale: 0.9 },
+        productName: { x: 900, y: 1650, scale: 0.8 },
+        fiveStars: { x: 900, y: 1750, scale: 0.8 }
+    },
+    
     // 教学文案位置配置
     guideTexts: {
         intro: {
@@ -409,6 +423,13 @@ export const landscapeLayout: LayoutPositions = {
     downloadButton: {
         x: 960,  // 水平居中 (1920 / 2)
         y: 980, // 距离底部50单位 (1080 - 50)
+    },
+    
+    // 厂商信息组件位置配置 - 横屏模式：右下角，避免与计分板重叠
+    vendorInfo: {
+        icon: { x: 1500, y: 800, scale: 0.6 },
+        productName: { x: 1720, y: 750, scale: 0.5 },
+        fiveStars: { x: 1720, y: 840, scale: 0.5 }
     },
     
     // 教学文案位置配置

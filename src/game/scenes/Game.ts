@@ -1,6 +1,7 @@
 import { EventBus } from '../EventBus';
 import { GameObjects, Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
+import { VendorInfo } from '../components/VendorInfo';
 import {
     generateKlondikeLayout,
     KlondikeLayout,
@@ -53,6 +54,7 @@ export class Game extends Scene {
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 基础牌堆区域
     private playNowButton: Phaser.GameObjects.Image;
     private playNowText: Phaser.GameObjects.Text;
+    private vendorInfo: VendorInfo; // 厂商信息组件
     
     // 游戏统计
     private score: number = 0;
@@ -306,6 +308,7 @@ export class Game extends Scene {
         this.createZones();
         this.createScoreboard();
         this.createPlayNowButton();
+        this.createVendorInfo();
     }
 
     private createZones(): void {
@@ -471,6 +474,15 @@ export class Game extends Scene {
         this.handGuide.setScale(0.8);
     }
 
+    private createVendorInfo(): void {
+        // 创建厂商信息组件
+        const layout = this.currentLayout || portraitLayout;
+        this.vendorInfo = new VendorInfo(this, layout.vendorInfo);
+        
+        // 设置深度确保在其他UI元素之上
+        this.vendorInfo.setDepth(200);
+    }
+
     private updateGameSize(): void {
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -501,6 +513,7 @@ export class Game extends Scene {
         this.updateStockWastePositions();
         this.updateScoreboardPosition();
         this.updatePlayNowButtonPosition();
+        this.updateVendorInfoPosition();
     }
 
     private updateTableauPositions(): void {
@@ -606,6 +619,14 @@ export class Game extends Scene {
     private updatePlayNowButtonPosition(): void {
         this.playNowButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
         // 移除文本位置更新，因为不再显示文本
+    }
+
+    private updateVendorInfoPosition(): void {
+        if (this.vendorInfo) {
+            // 销毁旧的厂商信息组件并重新创建，以使用新的布局配置
+            this.vendorInfo.destroy();
+            this.createVendorInfo();
+        }
     }
 
     private onResize(): void {
