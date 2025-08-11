@@ -503,23 +503,25 @@ export class TutorialManager {
         // 播放步骤完成音效
         EventBus.emit('play-card-place');
         
-        // 清除当前引导
-        this.guideSystem.hideAllGuides();
-        this.clearCurrentTarget();
-        
-        // 进入下一步
-        this.currentStepIndex++;
-        
-        if (this.currentStepIndex >= this.steps.length) {
-            console.log(`🔍 [DEBUG] All steps completed, calling completeTutorial()`);
-            this.completeTutorial();
-        } else {
-            // 短暂延迟后执行下一步
-            console.log(`🔍 [DEBUG] Moving to next step: ${this.currentStepIndex + 1}`);
-            this.scene.time.delayedCall(1000, () => {
-                this.executeCurrentStep();
-            });
-        }
+        // 清除当前引导，等待淡出动画完成
+        this.guideSystem.hideAllGuides(() => {
+            // 淡出动画完成后的回调
+            this.clearCurrentTarget();
+            
+            // 进入下一步
+            this.currentStepIndex++;
+            
+            if (this.currentStepIndex >= this.steps.length) {
+                console.log(`🔍 [DEBUG] All steps completed, calling completeTutorial()`);
+                this.completeTutorial();
+            } else {
+                // 短暂延迟后执行下一步
+                console.log(`🔍 [DEBUG] Moving to next step: ${this.currentStepIndex + 1}`);
+                this.scene.time.delayedCall(500, () => {
+                    this.executeCurrentStep();
+                });
+            }
+        });
     }
 
     private jumpToStepById(targetStepId: TutorialState): void {
@@ -528,28 +530,30 @@ export class TutorialManager {
         // 播放步骤完成音效
         EventBus.emit('play-card-place');
         
-        // 清除当前引导
-        this.guideSystem.hideAllGuides();
-        this.clearCurrentTarget();
-        
-        // 找到目标步骤的索引
-        const targetIndex = this.steps.findIndex(step => step.id === targetStepId);
-        if (targetIndex === -1) {
-            console.error(`Target step ${targetStepId} not found`);
-            return;
-        }
-        
-        // 跳转到目标步骤
-        this.currentStepIndex = targetIndex;
-        
-        if (this.currentStepIndex >= this.steps.length) {
-            this.completeTutorial();
-        } else {
-            // 短暂延迟后执行目标步骤
-            this.scene.time.delayedCall(1000, () => {
-                this.executeCurrentStep();
-            });
-        }
+        // 清除当前引导，等待淡出动画完成
+        this.guideSystem.hideAllGuides(() => {
+            // 淡出动画完成后的回调
+            this.clearCurrentTarget();
+            
+            // 找到目标步骤的索引
+            const targetIndex = this.steps.findIndex(step => step.id === targetStepId);
+            if (targetIndex === -1) {
+                console.error(`Target step ${targetStepId} not found`);
+                return;
+            }
+            
+            // 跳转到目标步骤
+            this.currentStepIndex = targetIndex;
+            
+            if (this.currentStepIndex >= this.steps.length) {
+                this.completeTutorial();
+            } else {
+                // 短暂延迟后执行目标步骤
+                this.scene.time.delayedCall(500, () => {
+                    this.executeCurrentStep();
+                });
+            }
+        });
     }
 
     private completeTutorial(): void {

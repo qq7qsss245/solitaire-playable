@@ -378,7 +378,7 @@ export class GuideSystem {
     private hideInitialGuideTexts(): void {
         this.isShowingInitialTexts = false;
         
-        // 停止动画
+        // 停止之前的淡入动画
         if (this.textTween1) {
             this.textTween1.stop();
             this.textTween1 = null;
@@ -388,18 +388,46 @@ export class GuideSystem {
             this.textTween2 = null;
         }
         
-        // 隐藏文案
-        this.guideTextImage1.setVisible(false);
-        this.guideTextImage2.setVisible(false);
-        
         // 隐藏点击区域
         this.clickArea.setVisible(false);
         
-        // 触发完成回调
-        if (this.onInitialTextsComplete) {
-            this.onInitialTextsComplete();
-            this.onInitialTextsComplete = null;
-        }
+        // 添加淡出动画
+        let fadeOutCount = 0;
+        const onFadeOutComplete = () => {
+            fadeOutCount++;
+            if (fadeOutCount === 2) {
+                // 两个文案都淡出完成后，触发完成回调
+                if (this.onInitialTextsComplete) {
+                    this.onInitialTextsComplete();
+                    this.onInitialTextsComplete = null;
+                }
+            }
+        };
+        
+        // 为两个文案添加淡出动画
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.guideTextImage1.setVisible(false);
+                this.textTween1 = null;
+                onFadeOutComplete();
+            }
+        });
+        
+        this.textTween2 = this.scene.tweens.add({
+            targets: this.guideTextImage2,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.guideTextImage2.setVisible(false);
+                this.textTween2 = null;
+                onFadeOutComplete();
+            }
+        });
     }
 
     public showAceToFoundationGuide(): void {
@@ -653,7 +681,31 @@ export class GuideSystem {
         // 隐藏当前单个文案
         this.hideCurrentGuideText();
         
-        // 隐藏开局双文案
+        // 如果正在显示开局双文案，使用淡出动画隐藏
+        if (this.isShowingInitialTexts) {
+            this.hideInitialGuideTextsWithFadeOut();
+        } else {
+            // 如果不是开局双文案，直接隐藏
+            if (this.textTween1) {
+                this.textTween1.stop();
+                this.textTween1 = null;
+            }
+            if (this.textTween2) {
+                this.textTween2.stop();
+                this.textTween2 = null;
+            }
+            
+            this.guideTextImage1.setVisible(false);
+            this.guideTextImage2.setVisible(false);
+        }
+        
+        this.currentGuideText = '';
+    }
+
+    private hideInitialGuideTextsWithFadeOut(): void {
+        this.isShowingInitialTexts = false;
+        
+        // 停止之前的淡入动画
         if (this.textTween1) {
             this.textTween1.stop();
             this.textTween1 = null;
@@ -663,9 +715,31 @@ export class GuideSystem {
             this.textTween2 = null;
         }
         
-        this.guideTextImage1.setVisible(false);
-        this.guideTextImage2.setVisible(false);
-        this.currentGuideText = '';
+        // 隐藏点击区域
+        this.clickArea.setVisible(false);
+        
+        // 添加淡出动画
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.guideTextImage1.setVisible(false);
+                this.textTween1 = null;
+            }
+        });
+        
+        this.textTween2 = this.scene.tweens.add({
+            targets: this.guideTextImage2,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.guideTextImage2.setVisible(false);
+                this.textTween2 = null;
+            }
+        });
     }
 
     public showHandGuide(x: number, y: number): void {
@@ -838,8 +912,48 @@ export class GuideSystem {
         }
     }
 
-    public hideAllGuides(): void {
-        this.hideGuideText();
+    public hideAllGuides(onComplete?: () => void): void {
+        // 如果正在显示开局双文案，需要等待淡出动画完成
+        if (this.isShowingInitialTexts) {
+            this.hideAllGuidesWithFadeOut(onComplete);
+        } else {
+            // 如果没有双文案，直接隐藏
+            this.hideGuideText();
+            this.hideHandGuide();
+            this.hideHighlight();
+            this.hideAceToFoundationGuide();
+            this.hideWasteToTableauGuide();
+            
+            // 隐藏点击区域
+            this.clickArea.setVisible(false);
+            
+            // 清除错误反馈
+            this.errorFeedback.setVisible(false);
+            this.errorFeedback.clear();
+            
+            this.isShowingInitialTexts = false;
+            
+            // 立即调用完成回调
+            if (onComplete) {
+                onComplete();
+            }
+        }
+    }
+
+    private hideAllGuidesWithFadeOut(onComplete?: () => void): void {
+        this.isShowingInitialTexts = false;
+        
+        // 停止之前的淡入动画
+        if (this.textTween1) {
+            this.textTween1.stop();
+            this.textTween1 = null;
+        }
+        if (this.textTween2) {
+            this.textTween2.stop();
+            this.textTween2 = null;
+        }
+        
+        // 隐藏其他引导元素
         this.hideHandGuide();
         this.hideHighlight();
         this.hideAceToFoundationGuide();
@@ -852,7 +966,42 @@ export class GuideSystem {
         this.errorFeedback.setVisible(false);
         this.errorFeedback.clear();
         
-        this.isShowingInitialTexts = false;
+        // 添加淡出动画
+        let fadeOutCount = 0;
+        const onFadeOutComplete = () => {
+            fadeOutCount++;
+            if (fadeOutCount === 2) {
+                // 两个文案都淡出完成后，调用完成回调
+                if (onComplete) {
+                    onComplete();
+                }
+            }
+        };
+        
+        // 为两个文案添加淡出动画
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.guideTextImage1.setVisible(false);
+                this.textTween1 = null;
+                onFadeOutComplete();
+            }
+        });
+        
+        this.textTween2 = this.scene.tweens.add({
+            targets: this.guideTextImage2,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.guideTextImage2.setVisible(false);
+                this.textTween2 = null;
+                onFadeOutComplete();
+            }
+        });
     }
 
     public update(time: number, delta: number): void {
