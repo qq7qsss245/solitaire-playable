@@ -909,6 +909,15 @@ export class Card extends GameObjects.Container {
                 // 第五步：不允许卡牌交互，只能点击库存牌堆
                 return false;
                 
+            case TutorialState.STEP_STOCK_TO_PILE:
+                // 只允许waste区域的红桃Q进行交互
+                if (this._suit === 'h' && this._value === 'Q') {
+                    // 检查这张卡是否在waste区域（通过检查是否是waste的顶部卡牌）
+                    const wasteTopCard = gameScene.getWasteTopCard();
+                    return wasteTopCard === this;
+                }
+                return false;
+                
             case TutorialState.STEP_PILE_TO_PILE:
                 // 第六步：允许特定卡牌移动
                 return this._faceUp; // 暂时允许所有正面朝上的卡牌

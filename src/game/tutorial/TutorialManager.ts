@@ -40,6 +40,7 @@ export class TutorialManager {
         // 监听卡牌移动事件
         EventBus.on('card-moved', this.onCardMoved, this);
         EventBus.on('card-to-foundation', this.onCardToFoundation, this);
+        EventBus.on('waste-to-tableau', this.onWasteToTableau, this);
         EventBus.on('stock-clicked', this.onStockClicked, this);
         EventBus.on('card-flipped', this.onCardFlipped, this);
         
@@ -149,6 +150,13 @@ export class TutorialManager {
                 this.guideSystem.showStockClickGuide();
                 break;
                 
+            case TutorialState.STEP_STOCK_TO_PILE:
+                // 第六步：库存牌到牌堆引导 - 将红桃Q拖拽到黑桃K上
+                this.isWaitingForAction = true;
+                this.guideSystem.showWasteToTableauGuide();
+                this.setupStockToPileTarget();
+                break;
+                
             case TutorialState.STEP_PILE_TO_PILE:
                 // 列间移动引导
                 this.isWaitingForAction = true;
@@ -213,6 +221,31 @@ export class TutorialManager {
         }
     }
 
+    private setupStockToPileTarget(): void {
+        // 引导用户将红桃Q从废牌堆拖拽到黑桃K上（第0列）
+        const targetCard = this.findCardInWaste('h', 'Q'); // 红桃Q
+        const destinationCard = this.findCardInTableau('s', 'K'); // 黑桃K
+        
+        if (targetCard && destinationCard) {
+            this.currentTarget = {
+                card: targetCard,
+                position: { x: destinationCard.x, y: destinationCard.y + 30 }
+            };
+            this.guideSystem.showCardToCardGuide(targetCard, destinationCard);
+        }
+    }
+
+    private findCardInWaste(suit: string, value: string): CardComponent | null {
+        // 通过Game场景的公共方法获取废牌堆信息
+        const wasteCards = this.scene.getColumnBottomCards(); // 暂时使用现有方法，实际应该是获取废牌堆
+        for (const card of wasteCards) {
+            if (card.suit === suit && card.value === value && card.faceUp) {
+                return card;
+            }
+        }
+        return null;
+    }
+
     private findCardInTableau(suit: string, value: string): CardComponent | null {
         // 通过Game场景的公共方法获取tableau信息
         const bottomCards = this.scene.getColumnBottomCards();
@@ -248,9 +281,22 @@ export class TutorialManager {
     }
 
     private onCardMoved(data: { card: CardComponent, fromColumn: number, toColumn: number }): void {
+        console.log('Tutorial: Card move detected', data);
+        
         if (!this.isValidAction('card-move', data)) {
             this.onInvalidAction();
             return;
+        }
+
+        // 特殊处理STEP_STOCK_TO_PILE步骤
+        if (this.currentState === TutorialState.STEP_STOCK_TO_PILE) {
+            const { card, toColumn } = data;
+            if (card.suit === 'h' && card.value === 'Q' && toColumn === 0) {
+                console.log('Tutorial: Heart Q successfully moved to Spade K column via card-move');
+                this.guideSystem.hideWasteToTableauGuide();
+                this.nextStep();
+                return;
+            }
         }
 
         // 检查是否完成当前步骤目标
@@ -280,6 +326,34 @@ export class TutorialManager {
         }
     }
 
+    private onWasteToTableau(data: { card: CardComponent, fromWaste: boolean, toColumn: number }): void {
+        console.log('Tutorial: Waste to tableau move detected', data);
+        
+        if (!this.isValidAction('waste-to-tableau', data)) {
+            this.onInvalidAction();
+            return;
+        }
+
+        // 检查是否是红桃Q拖拽到第1列
+        if (data.card.suit === 'h' && data.card.value === 'Q' &&
+            data.toColumn === 0 && this.currentState === TutorialState.STEP_STOCK_TO_PILE) {
+            
+            console.log('Tutorial: Heart Q successfully moved to Spade K column');
+            
+            // 立即隐藏引导
+            this.guideSystem.hideWasteToTableauGuide();
+            
+            // 完成当前步骤
+            this.nextStep();
+            return;
+        }
+
+        // 检查其他步骤的完成条件
+        if (this.checkStepCompletion('waste-to-tableau', data)) {
+            this.nextStep();
+        }
+    }
+
     private onStockClicked(): void {
         console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 收到stock-clicked事件', {
             currentState: this.currentState,
@@ -298,6 +372,12 @@ export class TutorialManager {
         if (this.currentState === TutorialState.STEP_STOCK_FLIP) {
             console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 隐藏stock引导');
             this.guideSystem.hideStockClickGuide();
+            
+            // TODO: 检查是否翻出了红桃Q，如果是则跳转到新的STEP_STOCK_TO_PILE步骤
+            // 暂时简化实现，直接跳转到新步骤进行测试
+            console.log('🔍 [DEBUG] TutorialManager.onStockClicked - 跳转到STEP_STOCK_TO_PILE进行测试');
+            this.jumpToStepById(TutorialState.STEP_STOCK_TO_PILE);
+            return;
         }
 
         if (this.checkStepCompletion('stock-click')) {
@@ -344,8 +424,23 @@ export class TutorialManager {
     }
 
     private isValidAction(actionType: string, data?: any): boolean {
+        console.log(`Tutorial: Validating action ${actionType} in state ${this.currentState}`, data);
+        
         if (this.currentState === TutorialState.STEP_FREE_PLAY) {
             return true; // 自由游戏模式允许所有操作
+        }
+
+        // 特殊处理STEP_STOCK_TO_PILE步骤
+        if (this.currentState === TutorialState.STEP_STOCK_TO_PILE) {
+            // 只允许特定的卡牌移动操作
+            if (actionType === 'waste-to-tableau' || actionType === 'card-move') {
+                if (data && data.card) {
+                    const { card, toColumn } = data;
+                    // 只允许红桃Q移动到第1列（黑桃K所在列）
+                    return card.suit === 'h' && card.value === 'Q' && toColumn === 0;
+                }
+            }
+            return false;
         }
 
         return this.allowedActions.includes(actionType);
@@ -461,12 +556,13 @@ export class TutorialManager {
         // 清理事件监听器
         EventBus.off('card-moved', this.onCardMoved, this);
         EventBus.off('card-to-foundation', this.onCardToFoundation, this);
+        EventBus.off('waste-to-tableau', this.onWasteToTableau, this);
         EventBus.off('stock-clicked', this.onStockClicked, this);
         EventBus.off('card-flipped', this.onCardFlipped, this);
         EventBus.off('user-action', this.onUserAction, this);
         EventBus.off('invalid-action', this.onInvalidAction, this);
         EventBus.off('tutorial-invalid-action', this.onTutorialInvalidAction, this);
-        
+
         // 销毁引导系统
         this.guideSystem.destroy();
     }

@@ -970,6 +970,14 @@ export class Game extends Scene {
         return bottomCards;
     }
 
+    // 获取waste区域的顶部卡牌（用于教学系统检查）
+    public getWasteTopCard(): CardComponent | null {
+        if (this.waste.cards.length > 0) {
+            return this.waste.cards[this.waste.cards.length - 1];
+        }
+        return null;
+    }
+
     // Klondike游戏逻辑方法
 
     // 检查是否可以添加到基础牌堆
@@ -1251,6 +1259,11 @@ export class Game extends Scene {
                 // 第五步：允许点击库存牌堆
                 console.log('🔍 [DEBUG] canStockInteractInTutorial - stock翻牌步骤，允许交互');
                 return true;
+                
+            case 'step_stock_to_pile':
+                // 在这个步骤中禁止stock交互
+                console.log('🔍 [DEBUG] canStockInteractInTutorial - stock到pile步骤，禁止stock交互');
+                return false;
                 
             case 'step_pile_to_pile':
                 // 第六步：允许点击库存牌堆

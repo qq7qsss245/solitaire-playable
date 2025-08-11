@@ -94,7 +94,26 @@ export class TutorialSteps {
             }
         },
 
-        // 第六步：牌堆间移动引导
+        // 第六步：库存牌到牌堆引导
+        {
+            id: TutorialState.STEP_STOCK_TO_PILE,
+            guideText: 'cardToPile', // 使用正确的图片键名
+            description: '将红桃Q拖拽到黑桃K上',
+            autoAdvanceTime: 0,
+            allowedActions: ['card-move', 'waste-to-tableau'],
+            completionCondition: (actionType: string, data: any, scene: Game) => {
+                if (actionType === 'card-move' || actionType === 'waste-to-tableau') {
+                    const { card, toColumn } = data;
+                    return card.suit === 'h' && card.value === 'Q' && toColumn === 0;
+                }
+                return false;
+            },
+            onStepStart: (scene: Game) => {
+                console.log('Tutorial Step: Stock to Pile - Heart Q to Spade K');
+            }
+        },
+
+        // 第七步：牌堆间移动引导
         {
             id: TutorialState.STEP_PILE_TO_PILE,
             guideText: 'moveCard', // 使用assets中的键名
@@ -110,11 +129,11 @@ export class TutorialSteps {
                 return false;
             },
             onStepStart: (scene: Game) => {
-                console.log('Tutorial Step 6: Pile to Pile');
+                console.log('Tutorial Step 7: Pile to Pile');
             }
         },
 
-        // 第七步：自由游戏
+        // 第八步：自由游戏
         {
             id: TutorialState.STEP_FREE_PLAY,
             guideText: 'complete', // 使用assets中的键名
@@ -122,7 +141,7 @@ export class TutorialSteps {
             autoAdvanceTime: 3000, // 3秒后隐藏文案，进入完全自由模式
             allowedActions: [], // 空数组表示允许所有操作
             onStepStart: (scene: Game) => {
-                console.log('Tutorial Step 7: Free Play');
+                console.log('Tutorial Step 8: Free Play');
             },
             onStepComplete: (scene: Game) => {
                 console.log('Tutorial completed! Free play mode enabled.');

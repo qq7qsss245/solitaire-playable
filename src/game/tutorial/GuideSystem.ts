@@ -34,6 +34,7 @@ export class GuideSystem {
     private onInitialTextsComplete: (() => void) | null = null; // 开局文案完成回调
     private ghostCardTween: Phaser.Tweens.Tween | null = null; // 幽灵卡牌动画
     private isShowingAceGuide: boolean = false; // 是否正在显示A牌引导
+    private isShowingWasteToTableauGuide: boolean = false; // 是否正在显示waste到tableau引导
     private currentOrientation: string = ''; // 当前屏幕方向
     
     constructor(scene: Game) {
@@ -129,6 +130,11 @@ export class GuideSystem {
             this.restartAceGuideAnimation();
         }
         
+        // 如果正在显示waste到tableau引导，需要重新初始化
+        if (this.isShowingWasteToTableauGuide) {
+            this.restartWasteToTableauAnimation();
+        }
+        
         // 如果正在显示开局文案，需要更新位置
         if (this.isShowingInitialTexts) {
             this.updateInitialTextsPosition();
@@ -206,6 +212,20 @@ export class GuideSystem {
     private createGhostCard(): void {
         // 直接使用 Card 组件创建红桃A
         this.ghostCard = new CardComponent(this.scene, 0, 0, 'h', 'A', true);
+        this.scene.add.existing(this.ghostCard);
+        
+        // 设置幽灵卡牌属性
+        this.ghostCard.setVisible(false);
+        this.ghostCard.setDepth(9997);
+        this.ghostCard.setAlpha(0.7);
+        
+        // 禁用交互，避免干扰正常游戏
+        this.ghostCard.disableInteractive();
+    }
+
+    private createGhostCardForWasteGuide(): void {
+        // 为waste到tableau引导创建红桃Q幽灵卡牌
+        this.ghostCard = new CardComponent(this.scene, 0, 0, 'h', 'Q', true);
         this.scene.add.existing(this.ghostCard);
         
         // 设置幽灵卡牌属性
@@ -813,6 +833,7 @@ export class GuideSystem {
         this.hideHandGuide();
         this.hideHighlight();
         this.hideAceToFoundationGuide();
+        this.hideWasteToTableauGuide();
         
         // 隐藏点击区域
         this.clickArea.setVisible(false);
@@ -835,6 +856,171 @@ export class GuideSystem {
 
     public getCurrentGuideText(): string {
         return this.currentGuideText;
+    }
+
+    public showWasteToTableauGuide(): void {
+        // 显示引导文案（已在前面步骤实现）
+        // 启动幽灵拖拽动画
+        this.isShowingWasteToTableauGuide = true;
+        this.startWasteToTableauDragAnimation();
+    }
+
+    public hideWasteToTableauGuide(): void {
+        this.isShowingWasteToTableauGuide = false;
+        
+        // 隐藏引导文案
+        this.hideCurrentGuideText();
+        
+        // 隐藏幽灵卡牌和手势
+        if (this.ghostCard) {
+            this.ghostCard.setVisible(false);
+        }
+        if (this.dragHand) {
+            this.dragHand.setVisible(false);
+        }
+        
+        // 停止动画
+        if (this.ghostCardTween) {
+            this.ghostCardTween.stop();
+            this.ghostCardTween = null;
+        }
+    }
+
+    private findWasteHeartQ(): { x: number; y: number } | null {
+        const game = this.scene as Game;
+        
+        // 检查waste区域是否有卡牌
+        if (game.waste && game.waste.cards.length > 0) {
+            // 获取waste区域的顶部卡牌
+            const wasteTopCard = game.waste.cards[game.waste.cards.length - 1];
+            
+            if (wasteTopCard && wasteTopCard.suit === 'h' && wasteTopCard.value === 'Q') {
+                return { x: wasteTopCard.x, y: wasteTopCard.y };
+            }
+        }
+        return null;
+    }
+
+    private findSpadeKPosition(): { x: number; y: number } | null {
+        const game = this.scene as Game;
+        
+        // 第1列（索引0）的黑桃K位置
+        if (game.tableau && game.tableau[0] && game.tableau[0].cards.length > 0) {
+            const spadeK = game.tableau[0].cards[game.tableau[0].cards.length - 1];
+            if (spadeK.suit === 's' && spadeK.value === 'K') {
+                // 返回黑桃K下方的位置（考虑卡牌间距）
+                const layout = this.scene.currentLayout;
+                const cardGap = layout.tableau.cardGap || DEBUG_SPACING.PORTRAIT_CARD_GAP;
+                return { x: spadeK.x, y: spadeK.y + cardGap };
+            }
+        }
+        return null;
+    }
+
+    private startWasteToTableauDragAnimation(): void {
+        // 找到waste区域的红桃Q位置
+        const wasteCard = this.findWasteHeartQ();
+        // 找到第1列黑桃K的位置
+        const targetPosition = this.findSpadeKPosition();
+        
+        if (wasteCard && targetPosition) {
+            // 创建或重用幽灵卡牌
+            if (!this.ghostCard) {
+                this.createGhostCardForWasteGuide();
+            }
+            
+            // 设置幽灵卡牌位置和可见性
+            this.ghostCard.setPosition(wasteCard.x, wasteCard.y);
+            this.ghostCard.setVisible(true);
+            
+            // 创建循环拖拽动画
+            this.createWasteToTableauDragAnimation(wasteCard, targetPosition);
+        }
+    }
+
+    private createWasteToTableauDragAnimation(startPos: { x: number; y: number }, endPos: { x: number; y: number }): void {
+        if (!this.ghostCard) return;
+
+        // 创建手势图标（如果不存在）
+        if (!this.dragHand) {
+            this.dragHand = this.scene.add.image(0, 0, 'hand');
+            this.dragHand.setDepth(10001);
+            this.dragHand.setScale(0.8);
+        }
+
+        // 设置初始位置
+        this.ghostCard.setPosition(startPos.x, startPos.y);
+        this.ghostCard.setAlpha(0.7);
+        this.dragHand.setPosition(startPos.x, startPos.y);
+        this.dragHand.setVisible(true);
+
+        // 创建循环动画
+        this.createDragAnimationLoop(startPos, endPos);
+    }
+
+    private createDragAnimationLoop(startPos: { x: number; y: number }, endPos: { x: number; y: number }): void {
+        if (!this.ghostCard || !this.dragHand) return;
+
+        // 拖动到终点
+        this.ghostCardTween = this.scene.tweens.add({
+            targets: [this.ghostCard, this.dragHand],
+            x: endPos.x,
+            y: endPos.y,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                // 淡出效果
+                this.scene.tweens.add({
+                    targets: [this.ghostCard, this.dragHand],
+                    alpha: 0,
+                    duration: 300,
+                    onComplete: () => {
+                        // 瞬间回到起点
+                        if (this.ghostCard && this.dragHand) {
+                            this.ghostCard.setPosition(startPos.x, startPos.y);
+                            this.dragHand.setPosition(startPos.x, startPos.y);
+                            
+                            // 淡入效果
+                            this.scene.tweens.add({
+                                targets: [this.ghostCard, this.dragHand],
+                                alpha: { from: 0, to: 0.7 },
+                                duration: 300,
+                                onComplete: () => {
+                                    // 恢复手势的完全不透明
+                                    if (this.dragHand) {
+                                        this.dragHand.setAlpha(1);
+                                    }
+                                    
+                                    // 延迟后重复动画
+                                    this.scene.time.delayedCall(250, () => {
+                                        if (this.isShowingWasteToTableauGuide && this.ghostCard && this.dragHand) {
+                                            this.createDragAnimationLoop(startPos, endPos);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    private restartWasteToTableauAnimation(): void {
+        // 停止当前动画
+        if (this.ghostCardTween) {
+            this.ghostCardTween.stop();
+        }
+        
+        // 重新获取位置
+        const wasteCard = this.findWasteHeartQ();
+        const targetPosition = this.findSpadeKPosition();
+        
+        if (wasteCard && targetPosition && this.ghostCard) {
+            // 更新位置并重启动画
+            this.ghostCard.setPosition(wasteCard.x, wasteCard.y);
+            this.createWasteToTableauDragAnimation(wasteCard, targetPosition);
+        }
     }
 
     public destroy(): void {
