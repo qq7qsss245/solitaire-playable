@@ -325,8 +325,8 @@ export class TutorialManager {
             return;
         }
 
-        // 检查是否是红桃A拖拽到基础牌堆
-        if (data.card.suit === 'h' && data.card.value === 'A' && this.currentState === TutorialState.STEP_RULES) {
+        // 检查是否是红桃A拖拽到正确的基础牌堆（索引0）
+        if (data.card.suit === 'h' && data.card.value === 'A' && data.foundationIndex === 0 && this.currentState === TutorialState.STEP_RULES) {
             // 立即隐藏A牌引导
             this.guideSystem.hideAceToFoundationGuide();
             

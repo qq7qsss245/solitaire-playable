@@ -489,9 +489,10 @@ export class GuideSystem {
     }
 
     private findHeartFoundationPosition(): { x: number; y: number } | null {
-        // 红桃基础牌堆应该是第2个基础牌堆（索引1）
+        // 红桃基础牌堆是第1个基础牌堆（索引0）
+        // 基础牌堆顺序：索引0=红桃(h)，索引1=方块(d)，索引2=梅花(c)，索引3=黑桃(s)
         const layout = this.scene.currentLayout;
-        const foundationIndex = 1; // 红桃基础牌堆
+        const foundationIndex = 0; // 红桃基础牌堆
         
         const x = layout.foundation.startX + foundationIndex * layout.foundation.gap;
         const y = layout.foundation.startY;

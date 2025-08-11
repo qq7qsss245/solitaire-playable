@@ -47,10 +47,10 @@ export class TutorialSteps {
             autoAdvanceTime: 0, // 需要用户操作
             allowedActions: ['stock-click', 'card-to-foundation'],
             completionCondition: (actionType: string, data: any, scene: Game) => {
-                // 检查是否有A牌被放入基础牌堆
+                // 检查是否有红桃A被放入正确的基础牌堆（索引0）
                 if (actionType === 'card-to-foundation') {
-                    const { card } = data;
-                    return card && card.numericValue === 1; // A牌的数值是1
+                    const { card, foundationIndex } = data;
+                    return card && card.suit === 'h' && card.numericValue === 1 && foundationIndex === 0;
                 }
                 return false;
             },
