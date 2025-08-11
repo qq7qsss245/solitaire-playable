@@ -427,9 +427,9 @@ export const landscapeLayout: LayoutPositions = {
     
     // 厂商信息组件位置配置 - 横屏模式：右下角，避免与计分板重叠
     vendorInfo: {
-        icon: { x: 1500, y: 800, scale: 0.6 },
-        productName: { x: 1720, y: 750, scale: 0.5 },
-        fiveStars: { x: 1720, y: 840, scale: 0.5 }
+        icon: { x: 1450, y: 800, scale: 0.6 },
+        productName: { x: 1680, y: 760, scale: 0.5 },
+        fiveStars: { x: 1680, y: 835, scale: 0.5 }
     },
     
     // 教学文案位置配置
