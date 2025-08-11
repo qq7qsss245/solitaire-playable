@@ -875,23 +875,45 @@ export class GuideSystem {
     }
 
     public hideWasteToTableauGuide(): void {
+        console.log('🔍 [DEBUG] hideWasteToTableauGuide - 开始隐藏waste到tableau的引导');
+        
         this.isShowingWasteToTableauGuide = false;
         
         // 隐藏引导文案
         this.hideCurrentGuideText();
         
-        // 隐藏幽灵卡牌和手势
-        if (this.ghostCard) {
-            this.ghostCard.setVisible(false);
-        }
-        if (this.dragHand) {
-            this.dragHand.setVisible(false);
-        }
-        
         // 停止动画
         if (this.ghostCardTween) {
             this.ghostCardTween.stop();
             this.ghostCardTween = null;
+        }
+        
+        // 平滑淡出幽灵卡牌和手势
+        if (this.ghostCard && this.ghostCard.visible) {
+            this.scene.tweens.add({
+                targets: [this.ghostCard, this.dragHand],
+                alpha: 0,
+                duration: 200, // 快速淡出
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.ghostCard) {
+                        this.ghostCard.setVisible(false);
+                        this.ghostCard.setAlpha(0.7); // 重置透明度以备下次使用
+                    }
+                    if (this.dragHand) {
+                        this.dragHand.setVisible(false);
+                        this.dragHand.setAlpha(1); // 重置透明度以备下次使用
+                    }
+                }
+            });
+        } else {
+            // 如果已经不可见，直接隐藏
+            if (this.ghostCard) {
+                this.ghostCard.setVisible(false);
+            }
+            if (this.dragHand) {
+                this.dragHand.setVisible(false);
+            }
         }
     }
 

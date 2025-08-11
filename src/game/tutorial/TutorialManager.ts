@@ -44,6 +44,9 @@ export class TutorialManager {
         EventBus.on('stock-clicked', this.onStockClicked, this);
         EventBus.on('card-flipped', this.onCardFlipped, this);
         
+        // 监听拖拽开始事件
+        EventBus.on('card-drag-start', this.onCardDragStart, this);
+        
         // 监听用户交互
         EventBus.on('user-action', this.onUserAction, this);
         EventBus.on('invalid-action', this.onInvalidAction, this);
@@ -393,6 +396,20 @@ export class TutorialManager {
         this.checkStepCompletion('card-flip', data);
     }
 
+    private onCardDragStart(data: { card: CardComponent }): void {
+        console.log('Tutorial: Card drag start detected', data);
+        
+        // 如果是在 STEP_STOCK_TO_PILE 步骤中，且拖拽的是红桃Q
+        if (this.currentState === TutorialState.STEP_STOCK_TO_PILE) {
+            const { card } = data;
+            if (card.suit === 'h' && card.value === 'Q') {
+                console.log('Tutorial: User started dragging Heart Q, hiding guide');
+                // 立即隐藏引导
+                this.guideSystem.hideWasteToTableauGuide();
+            }
+        }
+    }
+
     private onUserAction(data: any): void {
         // 重置超时计时器
         this.stepTimer = 0;
@@ -559,6 +576,7 @@ export class TutorialManager {
         EventBus.off('waste-to-tableau', this.onWasteToTableau, this);
         EventBus.off('stock-clicked', this.onStockClicked, this);
         EventBus.off('card-flipped', this.onCardFlipped, this);
+        EventBus.off('card-drag-start', this.onCardDragStart, this);
         EventBus.off('user-action', this.onUserAction, this);
         EventBus.off('invalid-action', this.onInvalidAction, this);
         EventBus.off('tutorial-invalid-action', this.onTutorialInvalidAction, this);

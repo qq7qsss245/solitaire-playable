@@ -428,6 +428,14 @@ export class Card extends GameObjects.Container {
             EventBus.emit('heart-ace-drag-started');
         }
         
+        // 检查是否为红桃Q，如果是则通知隐藏引导效果
+        if (this._suit === 'h' && this._value === 'Q') {
+            EventBus.emit('heart-q-drag-started');
+        }
+        
+        // 发射通用的拖拽开始事件，供教学系统监听
+        EventBus.emit('card-drag-start', { card: this });
+        
         // 设置深度
         this.setDepth(Card.DRAG_DEPTH);
         this.attachedCards.forEach((card, index) => {
