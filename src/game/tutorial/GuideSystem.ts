@@ -240,28 +240,9 @@ export class GuideSystem {
             this.textTween2 = null;
         }
         
-        // 使用平滑过渡动画更新位置
-        this.textTween1 = this.scene.tweens.add({
-            targets: this.guideTextImage1,
-            x: introPos.x,
-            y: introPos.y,
-            duration: 300,
-            ease: 'Power2',
-            onComplete: () => {
-                this.textTween1 = null;
-            }
-        });
-        
-        this.textTween2 = this.scene.tweens.add({
-            targets: this.guideTextImage2,
-            x: objectivePos.x,
-            y: objectivePos.y,
-            duration: 300,
-            ease: 'Power2',
-            onComplete: () => {
-                this.textTween2 = null;
-            }
-        });
+        // 直接设置位置，不使用动画
+        this.guideTextImage1.setPosition(introPos.x, introPos.y);
+        this.guideTextImage2.setPosition(objectivePos.x, objectivePos.y);
     }
 
     private updateSingleTextPosition(): void {
@@ -289,25 +270,17 @@ export class GuideSystem {
                 更新前坐标: { x: this.currentGuideTextImage.x, y: this.currentGuideTextImage.y }
             });
             
-            // 使用平滑过渡动画更新位置
+            // 停止之前的动画
             if (this.currentTextTween) {
                 this.currentTextTween.stop();
                 this.currentTextTween = null;
             }
             
-            this.currentTextTween = this.scene.tweens.add({
-                targets: this.currentGuideTextImage,
-                x: textPos.x,
-                y: textPos.y,
-                duration: 300,
-                ease: 'Power2',
-                onComplete: () => {
-                    this.currentTextTween = null;
-                    console.log('🔍 [DEBUG] updateSingleTextPosition - 位置更新完成:', {
-                        x: this.currentGuideTextImage?.x,
-                        y: this.currentGuideTextImage?.y
-                    });
-                }
+            // 直接设置位置，不使用动画
+            this.currentGuideTextImage.setPosition(textPos.x, textPos.y);
+            console.log('🔍 [DEBUG] updateSingleTextPosition - 位置更新完成:', {
+                x: this.currentGuideTextImage?.x,
+                y: this.currentGuideTextImage?.y
             });
         } else {
             console.warn('⚠️ [WARNING] updateSingleTextPosition - 配置中未找到坐标:', {
@@ -340,22 +313,14 @@ export class GuideSystem {
             orientation: isLandscape ? 'landscape' : 'portrait'
         });
         
-        // 使用平滑过渡动画
+        // 停止之前的动画
         if (this.currentTextTween) {
             this.currentTextTween.stop();
             this.currentTextTween = null;
         }
         
-        this.currentTextTween = this.scene.tweens.add({
-            targets: this.currentGuideTextImage,
-            x: screenWidth / 2,
-            y: textY,
-            duration: 300,
-            ease: 'Power2',
-            onComplete: () => {
-                this.currentTextTween = null;
-            }
-        });
+        // 直接设置位置，不使用动画
+        this.currentGuideTextImage.setPosition(screenWidth / 2, textY);
     }
 
     private createGhostCard(): void {
