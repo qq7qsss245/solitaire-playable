@@ -306,9 +306,9 @@ export const portraitLayout: LayoutPositions = {
     
     // 厂商信息组件位置配置 - 竖屏模式：右下角
     vendorInfo: {
-        icon: { x: 750, y: 1700, scale: 0.9 },
-        productName: { x: 900, y: 1650, scale: 0.8 },
-        fiveStars: { x: 900, y: 1750, scale: 0.8 }
+        icon: { x: 750, y: 1600, scale: 0.5 },
+        productName: { x: 920, y: 1570, scale: 0.4 },
+        fiveStars: { x: 920, y: 1630, scale: 0.4 }
     },
     
     // 教学文案位置配置
