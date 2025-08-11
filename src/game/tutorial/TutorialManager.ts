@@ -5,6 +5,7 @@ import { Game } from '../scenes/Game';
 import { GuideSystem } from './GuideSystem';
 import { TutorialSteps, TutorialStep } from './TutorialSteps';
 import { TutorialState } from './TutorialState';
+import { DEBUG_SPACING } from '../../config/klondike-layout';
 
 export interface TutorialTarget {
     card?: CardComponent;
@@ -596,20 +597,77 @@ export class TutorialManager {
     }
 
     public showFinalTutorialMessage(): void {
-        console.log('🔍 [DEBUG] Tutorial: showFinalTutorialMessage() called - displaying final message');
+        console.log('Tutorial: Showing final tutorial message');
         
         // 立即进入自由游戏模式，允许用户操作所有卡牌
         this.currentState = TutorialState.STEP_FREE_PLAY;
         this.isWaitingForAction = false;
         
-        console.log('🔍 [DEBUG] Tutorial: State changed to STEP_FREE_PLAY');
+        // 隐藏所有教学相关的引导效果
+        this.guideSystem.hideWasteToTableauGuide();
+        this.guideSystem.hideGuideText();
         
-        // 显示结束文案
-        this.guideSystem.showFinalTutorialMessage();
-        console.log('🔍 [DEBUG] Tutorial: Final message displayed via GuideSystem');
+        // 使用独立的逻辑显示结束文案，不依赖教学系统
+        this.showIndependentFinalMessage();
+    }
+
+    private showIndependentFinalMessage(): void {
+        console.log('Tutorial: Showing independent final message');
         
-        // 设置3秒后自动隐藏，或者用户拖拽时立即隐藏
-        this.setupFinalMessageAutoHide();
+        // 直接在游戏场景中创建结束文案图像
+        const layout = this.scene.currentLayout;
+        const completePos = layout.guideTexts.complete;
+        
+        if (!completePos) {
+            console.warn('Complete guide text position not found');
+            return;
+        }
+        
+        // 创建独立的结束文案图像
+        const finalMessageImage = this.scene.add.image(completePos.x, completePos.y, 'guide-complete');
+        finalMessageImage.setVisible(true);
+        finalMessageImage.setDepth(9999);
+        finalMessageImage.setScale(DEBUG_SPACING.GUIDE_TEXT_SCALE);
+        
+        // 淡入效果
+        finalMessageImage.setAlpha(0);
+        this.scene.tweens.add({
+            targets: finalMessageImage,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+        
+        // 3秒后自动淡出并销毁
+        this.scene.time.delayedCall(3000, () => {
+            this.scene.tweens.add({
+                targets: finalMessageImage,
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    finalMessageImage.destroy();
+                    console.log('Tutorial: Final message hidden and destroyed');
+                }
+            });
+        });
+        
+        // 如果用户开始拖拽，立即隐藏文案
+        const onDragStart = () => {
+            console.log('Tutorial: User started dragging, hiding final message immediately');
+            this.scene.tweens.add({
+                targets: finalMessageImage,
+                alpha: 0,
+                duration: 200,
+                ease: 'Power2',
+                onComplete: () => {
+                    finalMessageImage.destroy();
+                    this.scene.events.off('card-drag-start', onDragStart);
+                }
+            });
+        };
+        
+        this.scene.events.on('card-drag-start', onDragStart);
     }
 
     private setupFinalMessageAutoHide(): void {
