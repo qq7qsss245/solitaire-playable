@@ -110,6 +110,14 @@ export class TutorialSteps {
             },
             onStepStart: (scene: Game) => {
                 console.log('Tutorial Step: Stock to Pile - Heart Q to Spade K');
+            },
+            onStepComplete: (scene: Game) => {
+                console.log('Tutorial Step: Stock to Pile completed, showing final message');
+                // 显示结束文案并进入自由模式
+                const tutorialManager = scene.getTutorialManager();
+                if (tutorialManager) {
+                    tutorialManager.showFinalTutorialMessage();
+                }
             }
         },
 

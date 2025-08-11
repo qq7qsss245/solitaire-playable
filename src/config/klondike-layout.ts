@@ -205,6 +205,10 @@ export interface LayoutPositions {
             x: number;
             y: number;
         };
+        complete: {
+            x: number;
+            y: number;
+        };
     };
 }
 
@@ -311,6 +315,10 @@ export const portraitLayout: LayoutPositions = {
             x: 540,  // 与intro位置相同
             y: 1200, // 与intro位置相同
         },
+        complete: {
+            x: 540,  // 与intro位置相同
+            y: 1200, // 与intro位置相同
+        },
     },
 };
 
@@ -414,6 +422,10 @@ export const landscapeLayout: LayoutPositions = {
             y: 650,   // 与intro位置相同
         },
         stockHint: {
+            x: 606,  // 与intro位置相同
+            y: 650,   // 与intro位置相同
+        },
+        complete: {
             x: 606,  // 与intro位置相同
             y: 650,   // 与intro位置相同
         },

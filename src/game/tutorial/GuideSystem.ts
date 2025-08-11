@@ -868,7 +868,9 @@ export class GuideSystem {
     }
 
     public showWasteToTableauGuide(): void {
-        // 显示引导文案（已在前面步骤实现）
+        // 显示"Good, let's put this card to the pile"文案
+        this.showGuideText('cardToPile');
+        
         // 启动幽灵拖拽动画
         this.isShowingWasteToTableauGuide = true;
         this.startWasteToTableauDragAnimation();
@@ -1057,6 +1059,23 @@ export class GuideSystem {
             this.ghostCard.setPosition(wasteCard.x, wasteCard.y);
             this.createWasteToTableauDragAnimation(wasteCard, targetPosition);
         }
+    }
+
+    public showFinalTutorialMessage(): void {
+        console.log('🔍 [DEBUG] showFinalTutorialMessage - 显示教学结束文案');
+        
+        // 确保之前的引导都已隐藏
+        this.hideAllGuides();
+        
+        // 使用showGuideText方法来显示结束文案，这样可以复用现有的逻辑
+        this.showGuideText('complete');
+    }
+
+    public hideFinalTutorialMessage(): void {
+        console.log('🔍 [DEBUG] hideFinalTutorialMessage - 隐藏教学结束文案');
+        
+        // 使用现有的hideCurrentGuideText方法来隐藏文案
+        this.hideCurrentGuideText();
     }
 
     public destroy(): void {

@@ -28,6 +28,9 @@ export class TutorialManager {
     private currentTarget: TutorialTarget | null = null;
     private allowedActions: string[] = [];
     
+    // 结束文案相关
+    private finalMessageTimer: Phaser.Time.TimerEvent | null = null;
+    
     constructor(scene: Game) {
         this.scene = scene;
         this.guideSystem = new GuideSystem(scene);
@@ -284,9 +287,15 @@ export class TutorialManager {
     }
 
     private onCardMoved(data: { card: CardComponent, fromColumn: number, toColumn: number }): void {
-        console.log('Tutorial: Card move detected', data);
+        console.log('🔍 [DEBUG] Tutorial: Card move detected', {
+            card: `${data.card.suit}${data.card.value}`,
+            fromColumn: data.fromColumn,
+            toColumn: data.toColumn,
+            currentState: this.currentState
+        });
         
         if (!this.isValidAction('card-move', data)) {
+            console.log('🔍 [DEBUG] Invalid card-move action');
             this.onInvalidAction();
             return;
         }
@@ -295,7 +304,7 @@ export class TutorialManager {
         if (this.currentState === TutorialState.STEP_STOCK_TO_PILE) {
             const { card, toColumn } = data;
             if (card.suit === 'h' && card.value === 'Q' && toColumn === 0) {
-                console.log('Tutorial: Heart Q successfully moved to Spade K column via card-move');
+                console.log('🔍 [DEBUG] Tutorial: Heart Q successfully moved to Spade K column via card-move');
                 this.guideSystem.hideWasteToTableauGuide();
                 this.nextStep();
                 return;
@@ -304,6 +313,7 @@ export class TutorialManager {
 
         // 检查是否完成当前步骤目标
         if (this.checkStepCompletion('card-move', data)) {
+            console.log('🔍 [DEBUG] Step completion condition met via checkStepCompletion');
             this.nextStep();
         }
     }
@@ -330,9 +340,14 @@ export class TutorialManager {
     }
 
     private onWasteToTableau(data: { card: CardComponent, fromWaste: boolean, toColumn: number }): void {
-        console.log('Tutorial: Waste to tableau move detected', data);
+        console.log('🔍 [DEBUG] Tutorial: Waste to tableau move detected', {
+            card: `${data.card.suit}${data.card.value}`,
+            toColumn: data.toColumn,
+            currentState: this.currentState
+        });
         
         if (!this.isValidAction('waste-to-tableau', data)) {
+            console.log('🔍 [DEBUG] Invalid waste-to-tableau action');
             this.onInvalidAction();
             return;
         }
@@ -341,18 +356,20 @@ export class TutorialManager {
         if (data.card.suit === 'h' && data.card.value === 'Q' &&
             data.toColumn === 0 && this.currentState === TutorialState.STEP_STOCK_TO_PILE) {
             
-            console.log('Tutorial: Heart Q successfully moved to Spade K column');
+            console.log('🔍 [DEBUG] Tutorial: Heart Q successfully moved to Spade K column - STEP_STOCK_TO_PILE completed!');
             
             // 立即隐藏引导
             this.guideSystem.hideWasteToTableauGuide();
             
             // 完成当前步骤
+            console.log('🔍 [DEBUG] Calling nextStep() for STEP_STOCK_TO_PILE completion');
             this.nextStep();
             return;
         }
 
         // 检查其他步骤的完成条件
         if (this.checkStepCompletion('waste-to-tableau', data)) {
+            console.log('🔍 [DEBUG] Step completion condition met via checkStepCompletion');
             this.nextStep();
         }
     }
@@ -473,7 +490,14 @@ export class TutorialManager {
     }
 
     private nextStep(): void {
-        console.log(`Completing step ${this.currentStepIndex + 1}`);
+        const currentStep = this.steps[this.currentStepIndex];
+        console.log(`🔍 [DEBUG] Completing step ${this.currentStepIndex + 1}: ${currentStep?.id}`);
+        
+        // 🔧 修复：调用当前步骤的onStepComplete回调
+        if (currentStep?.onStepComplete) {
+            console.log(`🔍 [DEBUG] Calling onStepComplete for step: ${currentStep.id}`);
+            currentStep.onStepComplete(this.scene);
+        }
         
         // 播放步骤完成音效
         EventBus.emit('play-card-place');
@@ -486,9 +510,11 @@ export class TutorialManager {
         this.currentStepIndex++;
         
         if (this.currentStepIndex >= this.steps.length) {
+            console.log(`🔍 [DEBUG] All steps completed, calling completeTutorial()`);
             this.completeTutorial();
         } else {
             // 短暂延迟后执行下一步
+            console.log(`🔍 [DEBUG] Moving to next step: ${this.currentStepIndex + 1}`);
             this.scene.time.delayedCall(1000, () => {
                 this.executeCurrentStep();
             });
@@ -569,7 +595,62 @@ export class TutorialManager {
         return this.currentState === TutorialState.STEP_FREE_PLAY;
     }
 
+    public showFinalTutorialMessage(): void {
+        console.log('🔍 [DEBUG] Tutorial: showFinalTutorialMessage() called - displaying final message');
+        
+        // 立即进入自由游戏模式，允许用户操作所有卡牌
+        this.currentState = TutorialState.STEP_FREE_PLAY;
+        this.isWaitingForAction = false;
+        
+        console.log('🔍 [DEBUG] Tutorial: State changed to STEP_FREE_PLAY');
+        
+        // 显示结束文案
+        this.guideSystem.showFinalTutorialMessage();
+        console.log('🔍 [DEBUG] Tutorial: Final message displayed via GuideSystem');
+        
+        // 设置3秒后自动隐藏，或者用户拖拽时立即隐藏
+        this.setupFinalMessageAutoHide();
+    }
+
+    private setupFinalMessageAutoHide(): void {
+        // 3秒后自动隐藏
+        this.finalMessageTimer = this.scene.time.delayedCall(3000, () => {
+            this.hideFinalTutorialMessage();
+        });
+        
+        // 监听用户拖拽事件，立即隐藏
+        this.scene.events.on('card-drag-start', this.onFinalMessageDragStart, this);
+    }
+
+    private onFinalMessageDragStart(): void {
+        console.log('Tutorial: User started dragging, hiding final message');
+        this.hideFinalTutorialMessage();
+    }
+
+    private hideFinalTutorialMessage(): void {
+        // 清除定时器
+        if (this.finalMessageTimer) {
+            this.finalMessageTimer.destroy();
+            this.finalMessageTimer = null;
+        }
+        
+        // 移除拖拽监听
+        this.scene.events.off('card-drag-start', this.onFinalMessageDragStart, this);
+        
+        // 隐藏文案
+        this.guideSystem.hideFinalTutorialMessage();
+        
+        console.log('Tutorial: Final message hidden, tutorial completely finished');
+    }
+
     public destroy(): void {
+        // 清理结束文案相关的定时器和事件监听器
+        if (this.finalMessageTimer) {
+            this.finalMessageTimer.destroy();
+            this.finalMessageTimer = null;
+        }
+        this.scene.events.off('card-drag-start', this.onFinalMessageDragStart, this);
+        
         // 清理事件监听器
         EventBus.off('card-moved', this.onCardMoved, this);
         EventBus.off('card-to-foundation', this.onCardToFoundation, this);
