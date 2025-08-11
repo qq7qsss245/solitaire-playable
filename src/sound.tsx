@@ -84,8 +84,15 @@ class AudioManager {
     private mraid: any = null;
     private eventListeners: Map<string, () => void> = new Map();
     
+    // BGM播放状态管理
+    private bgmPlaying = false;
+    private bgmAttempted = false;
+    private userInteracted = false;
+    private interactionListeners: (() => void)[] = [];
+    
     constructor() {
         this.initializeMRAID();
+        this.setupUserInteractionListeners();
     }
     
     private initializeMRAID(): void {
@@ -143,19 +150,92 @@ class AudioManager {
         }
     }
     
+    // 设置用户交互监听器
+    private setupUserInteractionListeners(): void {
+        const interactionEvents = ['click', 'touchstart', 'keydown', 'mousedown'];
+        
+        const handleUserInteraction = () => {
+            if (!this.userInteracted) {
+                this.userInteracted = true;
+                console.log('检测到用户交互');
+                
+                // 如果BGM还没有成功播放，尝试播放
+                if (this.bgmAttempted && !this.bgmPlaying && this.bgmInstance) {
+                    console.log('用户交互后重试BGM播放');
+                    this.retryBGMPlayback();
+                }
+                
+                // 移除交互监听器
+                this.removeUserInteractionListeners();
+            }
+        };
+        
+        // 保存监听器引用以便后续移除
+        this.interactionListeners = interactionEvents.map(() => handleUserInteraction);
+        
+        // 添加监听器到document
+        interactionEvents.forEach((event, index) => {
+            document.addEventListener(event, this.interactionListeners[index], { once: true, passive: true });
+        });
+    }
+    
+    // 移除用户交互监听器
+    private removeUserInteractionListeners(): void {
+        const interactionEvents = ['click', 'touchstart', 'keydown', 'mousedown'];
+        
+        interactionEvents.forEach((event, index) => {
+            if (this.interactionListeners[index]) {
+                document.removeEventListener(event, this.interactionListeners[index]);
+            }
+        });
+        
+        this.interactionListeners = [];
+    }
+    
+    // 重试BGM播放
+    private async retryBGMPlayback(): Promise<void> {
+        if (!this.bgmInstance || this.bgmPlaying || !this.isEnabled) return;
+        
+        try {
+            await this.bgmInstance.play();
+            this.bgmPlaying = true;
+            console.log('用户交互后BGM播放成功');
+        } catch (error) {
+            console.warn('用户交互后BGM播放仍然失败:', error);
+        }
+    }
+    
+    // 自动播放BGM（游戏开始时调用）
+    async tryAutoPlayBGM(): Promise<void> {
+        if (!this.isEnabled || this.bgmAttempted) return;
+        
+        try {
+            // 尝试自动播放BGM
+            await this.playBGM(AUDIO_MAP['play-bgm']);
+        } catch (error) {
+            console.log('自动播放BGM失败，等待用户交互');
+        }
+    }
+    
     private handleBackgroundMusic(): void {
         if (!this.bgmInstance) return;
         
         try {
             if (this.isEnabled) {
-                this.bgmInstance.play().catch(error => {
+                this.bgmInstance.play().then(() => {
+                    this.bgmPlaying = true;
+                    console.log('背景音乐播放成功');
+                }).catch(error => {
                     console.warn('背景音乐播放失败:', error);
+                    this.bgmPlaying = false;
                 });
             } else {
                 this.bgmInstance.pause();
+                this.bgmPlaying = false;
             }
         } catch (error) {
             console.warn('背景音乐控制失败:', error);
+            this.bgmPlaying = false;
         }
     }
     
@@ -192,6 +272,9 @@ class AudioManager {
     async playBGM(src: string): Promise<void> {
         if (!this.isEnabled) return;
         
+        // 标记已尝试播放BGM
+        this.bgmAttempted = true;
+        
         try {
             if (!this.bgmInstance) {
                 this.bgmInstance = await this.createBGMInstance(src);
@@ -218,8 +301,16 @@ class AudioManager {
             }
             
             await this.bgmInstance.play();
+            this.bgmPlaying = true;
+            console.log('BGM播放成功');
         } catch (error) {
             console.warn('背景音乐播放失败:', error);
+            this.bgmPlaying = false;
+            
+            // 如果是因为浏览器自动播放策略失败，等待用户交互后重试
+            if (error instanceof Error && error.name === 'NotAllowedError' && !this.userInteracted) {
+                console.log('等待用户交互后重试BGM播放');
+            }
         }
     }
     
@@ -258,12 +349,20 @@ class AudioManager {
         });
         this.eventListeners.clear();
         
+        // 清理用户交互监听器
+        this.removeUserInteractionListeners();
+        
         // 清理背景音乐
         if (this.bgmInstance) {
             this.bgmInstance.pause();
             this.bgmInstance.src = '';
             this.bgmInstance = null;
         }
+        
+        // 重置BGM状态
+        this.bgmPlaying = false;
+        this.bgmAttempted = false;
+        this.userInteracted = false;
         
         // 清理音频池
         this.audioPool.cleanup();
@@ -298,6 +397,16 @@ const Sound: React.FC = () => {
         // 设置事件监听器
         managerRef.current.setupEventListeners();
 
+        // 尝试自动播放BGM
+        const tryAutoPlay = async () => {
+            if (managerRef.current) {
+                await managerRef.current.tryAutoPlayBGM();
+            }
+        };
+        
+        // 延迟一点时间确保音频管理器完全初始化
+        setTimeout(tryAutoPlay, 100);
+
         // 清理函数
         return () => {
             if (managerRef.current) {
@@ -322,6 +431,13 @@ export const playSound = (eventName: string): void => {
         } else {
             audioManager.playSound(AUDIO_MAP[eventName]);
         }
+    }
+};
+
+// 导出BGM自动播放函数
+export const tryAutoPlayBGM = (): void => {
+    if (audioManager) {
+        audioManager.tryAutoPlayBGM();
     }
 };
 

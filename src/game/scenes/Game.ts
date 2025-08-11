@@ -95,8 +95,7 @@ export class Game extends Scene {
     }
 
     create() {
-        // 播放背景音乐
-        EventBus.emit('play-bgm');
+        // BGM现在会自动播放，不需要手动触发
 
         // 记录游戏开始时间
         this.startTime = Date.now();

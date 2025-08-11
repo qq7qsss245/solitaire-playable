@@ -297,27 +297,27 @@ export const portraitLayout: LayoutPositions = {
     guideTexts: {
         intro: {
             x: 540,  // 与牌局中心对齐
-            y: 1200, // 牌局下方
+            y: 1000, // 牌局下方
         },
         objective: {
             x: 540,  // 与牌局中心对齐
-            y: 1280, // 第一个文案下方50单位
+            y: 1180, // 第一个文案下方50单位
         },
         aceToFoundation: {
             x: 540,  // 与intro位置相同
-            y: 1200, // 与intro位置相同
+            y: 1000, // 与intro位置相同
         },
         cardToPile: {
             x: 540,  // 与intro位置相同
-            y: 1200, // 与intro位置相同
+            y: 1000, // 与intro位置相同
         },
         stockHint: {
             x: 540,  // 与intro位置相同
-            y: 1200, // 与intro位置相同
+            y: 1000, // 与intro位置相同
         },
         complete: {
             x: 540,  // 与intro位置相同
-            y: 1200, // 与intro位置相同
+            y: 1000, // 与intro位置相同
         },
     },
 };
