@@ -443,6 +443,15 @@ export class GuideSystem {
             return;
         }
         
+        // 创建或重用幽灵卡牌，确保设置为红桃A
+        if (!this.ghostCard) {
+            this.createGhostCard();
+        } else {
+            // 如果幽灵卡牌已存在，确保设置为正确的花色和数值（红桃A）
+            this.ghostCard.setSuit('h');
+            this.ghostCard.setValue('A');
+        }
+        
         // 设置幽灵卡牌位置
         this.ghostCard.setPosition(aceCard.x, aceCard.y);
         this.ghostCard.setVisible(true);
@@ -924,14 +933,19 @@ export class GuideSystem {
         const targetPosition = this.findSpadeKPosition();
         
         if (wasteCard && targetPosition) {
-            // 创建或重用幽灵卡牌
+            // 创建或重用幽灵卡牌，确保设置为红桃Q
             if (!this.ghostCard) {
                 this.createGhostCardForWasteGuide();
+            } else {
+                // 如果幽灵卡牌已存在，确保设置为正确的花色和数值（红桃Q）
+                this.ghostCard.setSuit('h');
+                this.ghostCard.setValue('Q');
             }
             
             // 设置幽灵卡牌位置和可见性
             this.ghostCard.setPosition(wasteCard.x, wasteCard.y);
             this.ghostCard.setVisible(true);
+            this.ghostCard.setAlpha(0.7);
             
             // 创建循环拖拽动画
             this.createWasteToTableauDragAnimation(wasteCard, targetPosition);

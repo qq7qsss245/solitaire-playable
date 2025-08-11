@@ -192,8 +192,8 @@ export class Game extends Scene {
     private initializeTutorial(): void {
         this.tutorialManager = new TutorialManager(this);
         
-        // 延迟启动教学，确保所有组件都已初始化
-        this.time.delayedCall(1000, () => {
+        // 减少延迟时间，但保持延迟机制确保依赖完整性
+        this.time.delayedCall(100, () => {
             if (this.tutorialManager) {
                 this.tutorialManager.startTutorial();
             }
@@ -1236,9 +1236,10 @@ export class Game extends Scene {
         }
         
         // 获取教学管理器
+        // 在教学模式下，如果教学管理器不存在或未激活，默认禁止交互
         if (!this.tutorialManager || !this.tutorialManager.isActive()) {
-            console.log('🔍 [DEBUG] canStockInteractInTutorial - 教学管理器未激活，允许交互');
-            return true;
+            console.log('🔍 [DEBUG] canStockInteractInTutorial - 教学管理器未激活，禁止交互');
+            return false;
         }
         
         // 获取当前教学状态

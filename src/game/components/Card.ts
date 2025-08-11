@@ -880,8 +880,10 @@ export class Card extends GameObjects.Container {
         
         // 获取教学管理器
         const tutorialManager = gameScene.getTutorialManager();
+        // 在教学模式下，如果教学管理器不存在或未激活，默认禁止交互
+        // 这样可以避免教学系统启动前的可操作间隙
         if (!tutorialManager || !tutorialManager.isActive()) {
-            return true;
+            return false;
         }
         
         // 获取当前教学状态
@@ -941,5 +943,17 @@ export class Card extends GameObjects.Container {
             'c': '梅花'
         };
         return suitName[suit];
+    }
+
+    // 设置卡牌花色
+    public setSuit(suit: CardSuit): void {
+        this._suit = suit;
+        this.updateCardDisplay();
+    }
+
+    // 设置卡牌数值
+    public setValue(value: CardValue): void {
+        this._value = value;
+        this.updateCardDisplay();
     }
 }
