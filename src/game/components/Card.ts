@@ -91,7 +91,9 @@ export class Card extends GameObjects.Container {
     }
     
     private static get CARD_GAP_Y(): number {
-        return Card.CARD_HEIGHT / 4;
+        // 根据当前屏幕方向获取正确的卡牌间距
+        const isLandscape = window.innerWidth > window.innerHeight;
+        return isLandscape ? landscapeLayout.tableau.cardGap : portraitLayout.tableau.cardGap;
     }
     
     private static readonly DRAG_DEPTH = 10000;
