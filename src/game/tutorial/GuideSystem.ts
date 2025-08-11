@@ -111,6 +111,9 @@ export class GuideSystem {
     private setupEventListeners(): void {
         // 监听红桃A开始拖拽事件
         EventBus.on('heart-ace-drag-started', this.onHeartAceDragStarted, this);
+        
+        // 监听布局更新事件
+        EventBus.on('layout-updated', this.onLayoutUpdated, this);
     }
 
     private onHeartAceDragStarted(): void {
@@ -120,29 +123,70 @@ export class GuideSystem {
         }
     }
 
+    private onLayoutUpdated(newLayout: any): void {
+        console.log('🔍 [DEBUG] GuideSystem.onLayoutUpdated - 收到布局更新事件:', {
+            newLayout: newLayout ? `${newLayout.gameWidth}x${newLayout.gameHeight}` : 'null',
+            currentOrientation: this.getOrientation(),
+            isShowingInitialTexts: this.isShowingInitialTexts,
+            isShowingAceGuide: this.isShowingAceGuide,
+            isShowingWasteToTableauGuide: this.isShowingWasteToTableauGuide,
+            hasCurrentGuideText: !!this.currentGuideTextImage && this.currentGuideTextImage.visible
+        });
+        
+        // 更新场景的当前布局引用
+        if (newLayout) {
+            this.scene.currentLayout = newLayout;
+        }
+        
+        // 触发方向变化处理逻辑
+        this.onOrientationChange();
+    }
+
     private getOrientation(): string {
         return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
     }
 
     private onOrientationChange(): void {
+        console.log('🔍 [DEBUG] onOrientationChange - 处理方向变化:', {
+            newOrientation: this.getOrientation(),
+            isShowingAceGuide: this.isShowingAceGuide,
+            isShowingWasteToTableauGuide: this.isShowingWasteToTableauGuide,
+            isShowingInitialTexts: this.isShowingInitialTexts,
+            hasCurrentGuideText: !!this.currentGuideTextImage && this.currentGuideTextImage.visible,
+            currentGuideText: this.currentGuideText
+        });
+        
         // 如果正在显示A牌引导，需要重新初始化
         if (this.isShowingAceGuide) {
+            console.log('🔍 [DEBUG] onOrientationChange - 重启A牌引导动画');
             this.restartAceGuideAnimation();
         }
         
         // 如果正在显示waste到tableau引导，需要重新初始化
         if (this.isShowingWasteToTableauGuide) {
+            console.log('🔍 [DEBUG] onOrientationChange - 重启waste到tableau引导动画');
             this.restartWasteToTableauAnimation();
         }
         
         // 如果正在显示开局文案，需要更新位置
         if (this.isShowingInitialTexts) {
+            console.log('🔍 [DEBUG] onOrientationChange - 更新开局文案位置');
             this.updateInitialTextsPosition();
         }
         
         // 如果正在显示单个文案，需要更新位置
         if (this.currentGuideTextImage && this.currentGuideTextImage.visible) {
+            console.log('🔍 [DEBUG] onOrientationChange - 更新单个文案位置');
             this.updateSingleTextPosition();
+        }
+        
+        // 更新点击区域大小以适应新的屏幕尺寸
+        if (this.clickArea) {
+            this.clickArea.setSize(this.scene.scale.width, this.scene.scale.height);
+            console.log('🔍 [DEBUG] onOrientationChange - 更新点击区域大小:', {
+                width: this.scene.scale.width,
+                height: this.scene.scale.height
+            });
         }
     }
 
@@ -172,20 +216,64 @@ export class GuideSystem {
     private updateInitialTextsPosition(): void {
         // 获取新的布局配置
         const layout = this.scene.currentLayout;
-        if (!layout) return;
+        if (!layout) {
+            console.warn('⚠️ [WARNING] updateInitialTextsPosition - 缺少布局配置');
+            return;
+        }
         
         const introPos = layout.guideTexts.intro;
         const objectivePos = layout.guideTexts.objective;
         
-        // 更新文案位置
-        this.guideTextImage1.setPosition(introPos.x, introPos.y);
-        this.guideTextImage2.setPosition(objectivePos.x, objectivePos.y);
+        console.log('🔍 [DEBUG] updateInitialTextsPosition - 更新开局文案位置:', {
+            introPos,
+            objectivePos,
+            orientation: this.getOrientation()
+        });
+        
+        // 停止之前的动画
+        if (this.textTween1) {
+            this.textTween1.stop();
+            this.textTween1 = null;
+        }
+        if (this.textTween2) {
+            this.textTween2.stop();
+            this.textTween2 = null;
+        }
+        
+        // 使用平滑过渡动画更新位置
+        this.textTween1 = this.scene.tweens.add({
+            targets: this.guideTextImage1,
+            x: introPos.x,
+            y: introPos.y,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.textTween1 = null;
+            }
+        });
+        
+        this.textTween2 = this.scene.tweens.add({
+            targets: this.guideTextImage2,
+            x: objectivePos.x,
+            y: objectivePos.y,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.textTween2 = null;
+            }
+        });
     }
 
     private updateSingleTextPosition(): void {
         // 获取新的布局配置
         const layout = this.scene.currentLayout;
-        if (!layout || !this.currentGuideTextImage) return;
+        if (!layout || !this.currentGuideTextImage) {
+            console.warn('⚠️ [WARNING] updateSingleTextPosition - 缺少必要条件:', {
+                hasLayout: !!layout,
+                hasCurrentGuideTextImage: !!this.currentGuideTextImage
+            });
+            return;
+        }
         
         console.log('🔍 [DEBUG] updateSingleTextPosition - 当前文案类型:', this.currentGuideText);
         
@@ -197,16 +285,77 @@ export class GuideSystem {
                 textKey: this.currentGuideText,
                 配置坐标: textPos,
                 orientation: this.getOrientation(),
-                gameSize: `${layout.gameWidth}x${layout.gameHeight}`
+                gameSize: `${layout.gameWidth}x${layout.gameHeight}`,
+                更新前坐标: { x: this.currentGuideTextImage.x, y: this.currentGuideTextImage.y }
             });
-            this.currentGuideTextImage.setPosition(textPos.x, textPos.y);
-            console.log('🔍 [DEBUG] updateSingleTextPosition - 更新后实际坐标:', {
-                x: this.currentGuideTextImage.x,
-                y: this.currentGuideTextImage.y
+            
+            // 使用平滑过渡动画更新位置
+            if (this.currentTextTween) {
+                this.currentTextTween.stop();
+                this.currentTextTween = null;
+            }
+            
+            this.currentTextTween = this.scene.tweens.add({
+                targets: this.currentGuideTextImage,
+                x: textPos.x,
+                y: textPos.y,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.currentTextTween = null;
+                    console.log('🔍 [DEBUG] updateSingleTextPosition - 位置更新完成:', {
+                        x: this.currentGuideTextImage?.x,
+                        y: this.currentGuideTextImage?.y
+                    });
+                }
             });
         } else {
-            console.warn('⚠️ [WARNING] updateSingleTextPosition - 配置中未找到坐标:', this.currentGuideText);
+            console.warn('⚠️ [WARNING] updateSingleTextPosition - 配置中未找到坐标:', {
+                currentGuideText: this.currentGuideText,
+                availableKeys: guideTexts ? Object.keys(guideTexts) : 'no guideTexts'
+            });
+            
+            // 如果配置中没有对应的坐标，使用后备位置计算
+            this.updateSingleTextPositionFallback();
         }
+    }
+
+    private updateSingleTextPositionFallback(): void {
+        if (!this.currentGuideTextImage) return;
+        
+        const screenWidth = this.scene.scale.width;
+        const screenHeight = this.scene.scale.height;
+        const isLandscape = screenWidth > screenHeight;
+        
+        let textY: number;
+        if (isLandscape) {
+            textY = screenHeight * 0.85;
+        } else {
+            textY = screenHeight * 0.80;
+        }
+        
+        console.log('🔍 [DEBUG] updateSingleTextPositionFallback - 使用后备位置:', {
+            x: screenWidth / 2,
+            y: textY,
+            orientation: isLandscape ? 'landscape' : 'portrait'
+        });
+        
+        // 使用平滑过渡动画
+        if (this.currentTextTween) {
+            this.currentTextTween.stop();
+            this.currentTextTween = null;
+        }
+        
+        this.currentTextTween = this.scene.tweens.add({
+            targets: this.currentGuideTextImage,
+            x: screenWidth / 2,
+            y: textY,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.currentTextTween = null;
+            }
+        });
     }
 
     private createGhostCard(): void {
@@ -1248,6 +1397,7 @@ export class GuideSystem {
         
         // 清理事件监听器
         EventBus.off('heart-ace-drag-started', this.onHeartAceDragStarted, this);
+        EventBus.off('layout-updated', this.onLayoutUpdated, this);
         
         // 销毁游戏对象
         this.handGuide?.destroy();

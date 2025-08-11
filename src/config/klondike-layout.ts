@@ -201,6 +201,10 @@ export interface LayoutPositions {
             x: number;
             y: number;
         };
+        moveCard: {
+            x: number;
+            y: number;
+        };
         stockHint: {
             x: number;
             y: number;
@@ -311,6 +315,10 @@ export const portraitLayout: LayoutPositions = {
             x: 540,  // 与intro位置相同
             y: 1000, // 与intro位置相同
         },
+        moveCard: {
+            x: 540,  // 与intro位置相同
+            y: 1000, // 与intro位置相同
+        },
         stockHint: {
             x: 540,  // 与intro位置相同
             y: 1000, // 与intro位置相同
@@ -418,6 +426,10 @@ export const landscapeLayout: LayoutPositions = {
             y: 650,    // 与intro位置相同
         },
         cardToPile: {
+            x: 606,  // 与intro位置相同
+            y: 650,   // 与intro位置相同
+        },
+        moveCard: {
             x: 606,  // 与intro位置相同
             y: 650,   // 与intro位置相同
         },

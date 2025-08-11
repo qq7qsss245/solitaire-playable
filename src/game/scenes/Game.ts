@@ -488,6 +488,11 @@ export class Game extends Scene {
 
         // 更新所有组件位置
         this.updateAllPositions();
+        
+        // 通知教学系统布局已更新（如果教学系统存在）
+        if (this.tutorialManager) {
+            EventBus.emit('layout-updated', this.currentLayout);
+        }
     }
 
     private updateAllPositions(): void {
@@ -605,6 +610,12 @@ export class Game extends Scene {
 
     private onResize(): void {
         this.updateGameSize();
+        
+        // 通知教学系统布局已更新
+        if (this.tutorialManager) {
+            // 使用EventBus通知GuideSystem布局更新
+            EventBus.emit('layout-updated', this.currentLayout);
+        }
     }
 
     // 动画状态管理
