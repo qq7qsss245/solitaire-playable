@@ -18,6 +18,7 @@ import { TutorialTest } from '../tutorial/TutorialTest';
 import download from './constants/download';
 import { getTranslation } from '../i18n';
 import { AssetKeys } from '../../assets';
+import { getOutputConfigValue, getOutputConfigValueAsync } from '../../utils/outputConfigLoader';
 
 // 游戏区域类型
 interface TableauColumn {
@@ -882,10 +883,37 @@ export class Game extends Scene {
         const t = getTranslation();
         this.movesText.setText(`${t.moves}${this.moves}`);
 
-        // 当移动次数超过10次时自动下载
-        if (this.moves > 10) {
-            EventBus.emit('play-card-place');
-            download();
+        // 当移动次数超过配置的最大步数时自动下载
+        this.checkMaxMovesAndDownload();
+    }
+
+    // 检查最大移动次数并触发下载（异步处理配置读取）
+    private async checkMaxMovesAndDownload(): Promise<void> {
+        try {
+            // 在开发环境使用异步方法，生产环境使用同步方法
+            const maxMoves = import.meta.env.DEV
+                ? await getOutputConfigValueAsync('maxMoves', 10)
+                : getOutputConfigValue('maxMoves', 10);
+                
+            console.log('🔍 [DEBUG] 配置读取调试:', {
+                currentMoves: this.moves,
+                maxMoves: maxMoves,
+                isDev: import.meta.env.DEV,
+                willTriggerDownload: this.moves > maxMoves
+            });
+            
+            if (this.moves > maxMoves) {
+                console.log('🚨 [DEBUG] 触发下载! moves:', this.moves, 'maxMoves:', maxMoves);
+                EventBus.emit('play-card-place');
+                download();
+            }
+        } catch (error) {
+            console.error('❌ [DEBUG] 配置读取失败，使用默认值:', error);
+            // 配置读取失败时使用默认值
+            if (this.moves > 10) {
+                EventBus.emit('play-card-place');
+                download();
+            }
         }
     }
 
@@ -1244,6 +1272,15 @@ export class Game extends Scene {
 
     public getIsTutorialMode(): boolean {
         return this.isTutorialMode;
+    }
+
+    public setIsTutorialMode(value: boolean): void {
+        console.log(`🔍 [DEBUG] setIsTutorialMode - 设置教学模式: ${this.isTutorialMode} -> ${value}`);
+        this.isTutorialMode = value;
+        
+        if (!value) {
+            console.log('🔍 [DEBUG] setIsTutorialMode - 教学模式已结束，用户现在可以自由游戏');
+        }
     }
     
     public getDebugMode(): boolean {

@@ -22,7 +22,7 @@ declare global {
 export function getOutputConfig(): OutputConfig {
   // 开发环境：返回空对象，建议使用异步方法
   if (import.meta.env.DEV) {
-    console.warn('开发环境下请使用 getOutputConfigAsync() 方法');
+    console.warn('🔍 [DEBUG] 开发环境下 getOutputConfig() 返回空对象，建议使用 getOutputConfigAsync() 方法');
     return {};
   }
 
@@ -53,7 +53,7 @@ export async function getOutputConfigAsync(): Promise<OutputConfig> {
   // 开发环境：使用 fetch 读取配置文件
   if (import.meta.env.DEV) {
     try {
-      const response = await fetch('/src/game/config/output-config.json');
+      const response = await fetch('/src/config/output-config.json');
       if (response.ok) {
         const config = await response.json();
         return config || {};
@@ -97,13 +97,29 @@ export async function getOutputConfigAsync(): Promise<OutputConfig> {
 export function getOutputConfigValue<T = any>(path: string, defaultValue?: T): T {
   const config = getOutputConfig();
   
+  console.log('🔍 [DEBUG] getOutputConfigValue 调用:', {
+    path,
+    defaultValue,
+    isDev: import.meta.env.DEV,
+    config,
+    configType: typeof config,
+    configKeys: Object.keys(config || {})
+  });
+  
   // 如果是 Promise（开发环境），需要异步处理
   if (config instanceof Promise) {
     console.warn('getOutputConfigValue 在开发环境中返回了 Promise，请使用 getOutputConfigValueAsync');
     return defaultValue as T;
   }
   
-  return getNestedValue(config, path, defaultValue);
+  const result = getNestedValue(config, path, defaultValue);
+  console.log('🔍 [DEBUG] getOutputConfigValue 结果:', {
+    path,
+    result,
+    usedDefault: result === defaultValue
+  });
+  
+  return result;
 }
 
 /**

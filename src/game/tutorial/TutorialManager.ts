@@ -607,6 +607,10 @@ export class TutorialManager {
         this.currentState = TutorialState.STEP_FREE_PLAY;
         this.isWaitingForAction = false;
         
+        // 结束教学模式 - 设置isTutorialMode为false
+        this.scene.setIsTutorialMode(false);
+        console.log('🔍 [DEBUG] showFinalTutorialMessage - 教学模式已结束，用户现在可以自由游戏');
+        
         // 隐藏所有教学相关的引导效果
         this.guideSystem.hideWasteToTableauGuide();
         this.guideSystem.hideGuideText();

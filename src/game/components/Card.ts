@@ -68,7 +68,12 @@ export class Card extends GameObjects.Container {
     private isProcessingQueue: boolean = false;
     private isFlipping: boolean = false;
     private clickTimer: number = 0;
-    private static readonly DRAG_THRESHOLD = 200;
+    private static readonly DRAG_THRESHOLD = 500;
+    
+    // 错误交互检测相关状态
+    private isShaking: boolean = false;
+    private lastErrorTime: number = 0;
+    private static readonly ERROR_DEBOUNCE_TIME = 1000; // 防抖时间：1秒
 
     // 卡牌组件
     private cardBackground!: GameObjects.Image;
@@ -393,17 +398,30 @@ export class Card extends GameObjects.Container {
 
     // 检查卡牌是否可以操作
     private canInteract(allowFaceDown: boolean = false): boolean {
-        return (allowFaceDown || this._faceUp) && !this.isFlipping && !this.isProcessingQueue && !this.isMoving;
+        return (allowFaceDown || this._faceUp) && !this.isFlipping && !this.isProcessingQueue && !this.isMoving && !this.isShaking;
     }
 
     // 拖拽开始
-    private onDragStart(pointer: Phaser.Input.Pointer): void {
+    private onDragStart(_pointer: Phaser.Input.Pointer): void {
         if (!this.canInteract()) return;
         
         // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
         const gameScene = this.scene as Game;
         if (!this.canInteractInTutorial(gameScene)) {
             return;
+        }
+        
+        // 错误交互检测逻辑 - 只在教学结束后生效
+        if (gameScene.getIsTutorialMode()) {
+            // 仍在教学模式中，跳过错误检测
+            console.log('🔍 [DEBUG] 仍在教学模式中，跳过错误检测:', this.name);
+        } else {
+            // 教学已结束，启用错误检测
+            console.log('🔍 [DEBUG] 教学已结束，开始错误检测:', this.name);
+            if (!this.hasAnyValidMove()) {
+                this.triggerErrorFeedback();
+                return;
+            }
         }
         
         this.isDragging = true;
@@ -446,7 +464,7 @@ export class Card extends GameObjects.Container {
     }
 
     // 拖拽中
-    private onDrag(pointer: Phaser.Input.Pointer, dragX: number, dragY: number): void {
+    private onDrag(_pointer: Phaser.Input.Pointer, dragX: number, dragY: number): void {
         if (!this.isDragging || !this.canInteract()) return;
         
         // 计算位移
@@ -471,7 +489,7 @@ export class Card extends GameObjects.Container {
     }
 
     // 拖拽结束
-    private async onDragEnd(pointer: Phaser.Input.Pointer): Promise<void> {
+    private async onDragEnd(_pointer: Phaser.Input.Pointer): Promise<void> {
         if (!this.isDragging) return;
         
         this.isDragging = false;
@@ -546,19 +564,32 @@ export class Card extends GameObjects.Container {
     }
 
     // 点击事件
-    private onPointerDown(pointer: Phaser.Input.Pointer): void {
-        if (!this.canInteract()) return;
+    private onPointerDown(_pointer: Phaser.Input.Pointer): void {
         this.clickTimer = Date.now();
+        console.log(`🔍 [DEBUG] Card.onPointerDown - 设置点击时间: ${this._suit}${this._value}, clickTimer: ${this.clickTimer}, canInteract: ${this.canInteract()}`);
     }
 
-    private onPointerUp(pointer: Phaser.Input.Pointer): void {
-        if (!this.canInteract()) return;
+    private onPointerUp(_pointer: Phaser.Input.Pointer): void {
+        console.log(`🔍 [DEBUG] Card.onPointerUp - 开始处理点击: ${this._suit}${this._value}`);
+        
+        if (!this.canInteract()) {
+            console.log(`🔍 [DEBUG] Card.onPointerUp - canInteract检查失败: ${this._suit}${this._value}`);
+            return;
+        }
         
         const timeDiff = Date.now() - this.clickTimer;
-        if (timeDiff < Card.DRAG_THRESHOLD && !this.isDragging) {
+        console.log(`🔍 [DEBUG] Card.onPointerUp - 时间差检查: ${this._suit}${this._value}, timeDiff: ${timeDiff}, isDragging: ${this.isDragging}, DRAG_THRESHOLD: ${Card.DRAG_THRESHOLD}`);
+        
+        // 只要不是真正的拖拽，就应该进行错误检测
+        if (!this.isDragging) {
+            console.log(`🔍 [DEBUG] Card.onPointerUp - 进入错误检测逻辑: ${this._suit}${this._value}`);
+            
             // 检查教学模式下的交互权限 - 如果不允许则直接返回，不做任何反应
             const gameScene = this.scene as Game;
-            if (!this.canInteractInTutorial(gameScene)) {
+            const canInteractInTutorial = this.canInteractInTutorial(gameScene);
+            console.log(`🔍 [DEBUG] Card.onPointerUp - 教学交互检查: ${this._suit}${this._value}, canInteractInTutorial: ${canInteractInTutorial}`);
+            
+            if (!canInteractInTutorial) {
                 if (gameScene.getDebugMode()) {
                     console.log(`🐛 [DEBUG MODE] Card.onPointerUp - 调试模式下忽略教学限制 (${this._suit}${this._value})`);
                 } else {
@@ -567,8 +598,35 @@ export class Card extends GameObjects.Container {
                 }
             }
             
-            EventBus.emit('play-card-flip');
-            this.tryAutoMove();
+            // 错误交互检测逻辑 - 只在教学结束后生效
+            const isTutorialMode = gameScene.getIsTutorialMode();
+            console.log(`🔍 [DEBUG] Card.onPointerUp - 教学状态检查: ${this._suit}${this._value}, isTutorialMode: ${isTutorialMode}`);
+            
+            if (isTutorialMode) {
+                // 仍在教学模式中，跳过错误检测
+                console.log(`🔍 [DEBUG] Card.onPointerUp - 仍在教学模式中，跳过错误检测: ${this._suit}${this._value}`);
+            } else {
+                // 教学已结束，启用错误检测
+                console.log(`🔍 [DEBUG] Card.onPointerUp - 教学已结束，开始错误检测: ${this._suit}${this._value}`);
+                const hasValidMove = this.hasAnyValidMove();
+                console.log(`🔍 [DEBUG] Card.onPointerUp - 有效移动检查: ${this._suit}${this._value}, hasValidMove: ${hasValidMove}`);
+                
+                if (!hasValidMove) {
+                    console.log(`🚫 [DEBUG] Card.onPointerUp - 触发错误反馈: ${this._suit}${this._value}`);
+                    this.triggerErrorFeedback();
+                    return;
+                } else {
+                    console.log(`✅ [DEBUG] Card.onPointerUp - 有有效移动，继续自动移动: ${this._suit}${this._value}`);
+                }
+            }
+            
+            // 只有在点击时间较短时才播放音效和执行自动移动
+            if (timeDiff < Card.DRAG_THRESHOLD) {
+                EventBus.emit('play-card-flip');
+                this.tryAutoMove();
+            }
+        } else {
+            console.log(`🔍 [DEBUG] Card.onPointerUp - 正在拖拽中，跳过处理: ${this._suit}${this._value}`);
         }
     }
 
@@ -942,6 +1000,203 @@ export class Card extends GameObjects.Container {
                 // 默认不允许交互
                 return false;
         }
+    }
+
+    // 错误交互检测方法
+    
+    /**
+     * 检查卡牌是否可以移动到任何Foundation位置
+     */
+    private canMoveToAnyFoundation(): boolean {
+        const gameScene = this.scene as Game;
+        
+        // Foundation只接受单张卡牌
+        const attachedCards = gameScene.getAttachedCards(this);
+        console.log(`🔍 [DEBUG] canMoveToAnyFoundation - ${this._suit}${this._value}, attachedCards.length: ${attachedCards.length}`);
+        
+        if (attachedCards.length > 0) {
+            console.log(`🔍 [DEBUG] canMoveToAnyFoundation - ${this._suit}${this._value}, 有附属卡牌，不能移动到Foundation`);
+            return false;
+        }
+        
+        // 检查所有Foundation位置
+        for (let i = 0; i < gameScene.foundationZones.length; i++) {
+            const canAdd = gameScene.canAddToFoundation(this, i);
+            console.log(`🔍 [DEBUG] canMoveToAnyFoundation - ${this._suit}${this._value}, Foundation[${i}] canAdd: ${canAdd}`);
+            if (canAdd) {
+                console.log(`🔍 [DEBUG] canMoveToAnyFoundation - ${this._suit}${this._value}, 可以移动到Foundation[${i}]`);
+                return true;
+            }
+        }
+        
+        console.log(`🔍 [DEBUG] canMoveToAnyFoundation - ${this._suit}${this._value}, 不能移动到任何Foundation`);
+        return false;
+    }
+    
+    /**
+     * 检查卡牌是否可以移动到任何Tableau位置
+     */
+    private canMoveToAnyTableau(): boolean {
+        const gameScene = this.scene as Game;
+        const attachedCards = gameScene.getAttachedCards(this);
+        
+        // 获取所有列底部卡牌
+        const targets = gameScene.getColumnBottomCards()
+            .filter(card => !([this, ...attachedCards].includes(card)) && card.faceUp);
+        
+        console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value}, targets.length: ${targets.length}, attachedCards.length: ${attachedCards.length}`);
+        console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value}, this.isRed: ${this.isRed}, this.numericValue: ${this.numericValue}`);
+        
+        // 检查是否可以放置到任何现有卡牌上
+        for (const target of targets) {
+            const canPlace = target.isRed !== this.isRed && target.numericValue === this.numericValue + 1;
+            console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value} -> ${target._suit}${target._value}, target.isRed: ${target.isRed}, target.numericValue: ${target.numericValue}, canPlace: ${canPlace}`);
+            
+            // Klondike规则：红黑交替，数值递减
+            if (canPlace) {
+                console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value}, 可以移动到 ${target._suit}${target._value}`);
+                return true;
+            }
+        }
+        
+        // 检查是否可以放置到空列（只允许K）
+        if (this.numericValue === 13) {
+            console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value}, 是K，检查空列`);
+            for (let columnIndex = 0; columnIndex < 7; columnIndex++) {
+                const columnCards = gameScene.getColumnBottomCards();
+                const hasCardInColumn = columnCards.some(card => gameScene.getColumnIndex(card) === columnIndex);
+                console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value}, column[${columnIndex}] hasCard: ${hasCardInColumn}`);
+                
+                if (!hasCardInColumn) {
+                    console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value}, 可以移动到空列[${columnIndex}]`);
+                    return true;
+                }
+            }
+        }
+        
+        console.log(`🔍 [DEBUG] canMoveToAnyTableau - ${this._suit}${this._value}, 不能移动到任何Tableau位置`);
+        return false;
+    }
+    
+    /**
+     * 检查卡牌是否有任何有效移动
+     */
+    private hasAnyValidMove(): boolean {
+        const canMoveToFoundation = this.canMoveToAnyFoundation();
+        const canMoveToTableau = this.canMoveToAnyTableau();
+        const result = canMoveToFoundation || canMoveToTableau;
+        
+        console.log(`🔍 [DEBUG] hasAnyValidMove - ${this._suit}${this._value}, canMoveToFoundation: ${canMoveToFoundation}, canMoveToTableau: ${canMoveToTableau}, result: ${result}`);
+        
+        return result;
+    }
+    
+    /**
+     * 晃动动画
+     */
+    private shake(): void {
+        // 防止重复晃动
+        if (this.isShaking) return;
+        
+        // 设置晃动状态
+        this.isShaking = true;
+        
+        // 记录原始位置和缩放
+        const originalX = this.x;
+        const originalY = this.y;
+        const originalScale = this.scaleX;
+        
+        // 晃动参数
+        const shakeAmplitude = 8; // 水平晃动幅度：8px
+        const verticalAmplitude = 2; // 垂直微调幅度：2px
+        const scaleMin = 0.95; // 最小缩放
+        const scaleMax = 1.05; // 最大缩放
+        const stageDuration = 100; // 每阶段时长：100ms
+        
+        console.log(`🎯 [SHAKE] 开始晃动动画: ${this._suit}${this._value}`);
+        
+        // 第一阶段：向右晃动+轻微放大 (0-100ms)
+        this.scene.tweens.add({
+            targets: this,
+            x: originalX + shakeAmplitude,
+            y: originalY - verticalAmplitude,
+            scaleX: originalScale * scaleMax,
+            scaleY: originalScale * scaleMax,
+            duration: stageDuration,
+            ease: 'Power2',
+            onComplete: () => {
+                // 第二阶段：向左晃动+轻微缩小 (100-200ms)
+                this.scene.tweens.add({
+                    targets: this,
+                    x: originalX - shakeAmplitude,
+                    y: originalY + verticalAmplitude,
+                    scaleX: originalScale * scaleMin,
+                    scaleY: originalScale * scaleMin,
+                    duration: stageDuration,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        // 第三阶段：向右晃动+轻微放大 (200-300ms)
+                        this.scene.tweens.add({
+                            targets: this,
+                            x: originalX + shakeAmplitude,
+                            y: originalY - verticalAmplitude,
+                            scaleX: originalScale * scaleMax,
+                            scaleY: originalScale * scaleMax,
+                            duration: stageDuration,
+                            ease: 'Power2',
+                            onComplete: () => {
+                                // 第四阶段：回到原位+恢复原始大小 (300-400ms)
+                                this.scene.tweens.add({
+                                    targets: this,
+                                    x: originalX,
+                                    y: originalY,
+                                    scaleX: originalScale,
+                                    scaleY: originalScale,
+                                    duration: stageDuration,
+                                    ease: 'Power2',
+                                    onComplete: () => {
+                                        // 动画结束后恢复状态
+                                        this.isShaking = false;
+                                        console.log(`🎯 [SHAKE] 晃动动画完成: ${this._suit}${this._value}`);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * 触发错误反馈
+     */
+    private triggerErrorFeedback(): void {
+        const currentTime = Date.now();
+        
+        console.log(`🚫 [DEBUG] triggerErrorFeedback - 开始: ${this._suit}${this._value}, currentTime: ${currentTime}, lastErrorTime: ${this.lastErrorTime}`);
+        
+        // 防抖检查
+        const timeSinceLastError = currentTime - this.lastErrorTime;
+        console.log(`🚫 [DEBUG] triggerErrorFeedback - 防抖检查: ${this._suit}${this._value}, timeSinceLastError: ${timeSinceLastError}, ERROR_DEBOUNCE_TIME: ${Card.ERROR_DEBOUNCE_TIME}`);
+        
+        if (timeSinceLastError < Card.ERROR_DEBOUNCE_TIME) {
+            console.log(`🚫 [DEBUG] triggerErrorFeedback - 防抖阻止: ${this._suit}${this._value}, 距离上次错误时间太短`);
+            return;
+        }
+        
+        this.lastErrorTime = currentTime;
+        console.log(`🚫 [DEBUG] triggerErrorFeedback - 更新lastErrorTime: ${this._suit}${this._value}, newLastErrorTime: ${this.lastErrorTime}`);
+        
+        // 播放错误音效
+        console.log(`🚫 [DEBUG] triggerErrorFeedback - 播放错误音效: ${this._suit}${this._value}`);
+        EventBus.emit('play-error');
+        
+        // 触发晃动动画
+        console.log(`🚫 [DEBUG] triggerErrorFeedback - 触发晃动动画: ${this._suit}${this._value}, isShaking: ${this.isShaking}`);
+        this.shake();
+        
+        console.log(`🚫 [ERROR FEEDBACK] 卡牌无法移动: ${this._suit}${this._value}`);
     }
 
     // 兼容性方法 - 保持与现有代码的兼容性
