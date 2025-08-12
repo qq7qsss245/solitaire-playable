@@ -68,7 +68,7 @@ export class Card extends GameObjects.Container {
     private isProcessingQueue: boolean = false;
     private isFlipping: boolean = false;
     private clickTimer: number = 0;
-    private static readonly DRAG_THRESHOLD = 500;
+    private static readonly DRAG_THRESHOLD = 200;
     
     // 错误交互检测相关状态
     private isShaking: boolean = false;

@@ -725,8 +725,8 @@ export class Game extends Scene {
             // 获取要翻的卡牌
             const card = this.stock.cards.pop()!;
             
-            // 播放发牌音效
-            EventBus.emit('play-card-deal');
+            // 发牌音效已移除，保留用于之后的发牌动画
+            // EventBus.emit('play-card-deal');
             
             // 创建临时动画卡牌
             this.animationCard = this.add.sprite(

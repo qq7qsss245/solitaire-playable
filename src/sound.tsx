@@ -24,8 +24,8 @@ const AUDIO_MAP: {
     
     // UI交互音效 - 使用更合适的音效
     'play-ui-click': cardFlipAudio, // UI按钮点击音效，使用翻牌音效
-    'play-ui-success': slotPlaceAudio, // UI操作成功音效，使用入槽音效
-    'play-step-complete': slotPlaceAudio, // 教学步骤完成音效，使用入槽音效
+    'play-ui-success': cardFlipAudio, // UI操作成功音效，使用翻牌音效
+    'play-step-complete': cardFlipAudio, // 教学步骤完成音效，使用翻牌音效
     'play-download-trigger': victoryAudio, // 下载触发音效，使用胜利音效
     
     // 为兼容性保留的别名
