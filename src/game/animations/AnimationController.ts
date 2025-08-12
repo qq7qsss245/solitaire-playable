@@ -53,8 +53,8 @@ export class AnimationController {
     // 确保卡牌在stock位置可见
     card.setVisible(true);
     
-    // 设置动画期间的较低深度值，让stockZone覆盖住卡牌
-    card.setDepth(50 + delay / 10); // 使用较低深度值，让stockZone(深度100)覆盖
+    // 设置动画期间的高深度值，确保正在动画的卡牌在最上层
+    card.setDepth(1000 + delay / 10); // 使用高深度值，确保动画卡牌不被遮挡
 
     console.log(`🎮 AnimationController: Starting animation for card ${card.suit}${card.value} from (${card.x}, ${card.y}) to (${targetPosition.x}, ${targetPosition.y})`);
 

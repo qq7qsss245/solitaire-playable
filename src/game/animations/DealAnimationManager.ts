@@ -249,8 +249,9 @@ export class DealAnimationManager {
         // 让卡牌在stock位置可见，这样用户可以看到它们从stock飞出
         card.setVisible(true);
         
-        // 设置较低的深度，让stockZone(深度100)覆盖住卡牌
-        card.setDepth(50 + columnIndex * 10 + rowIndex);
+        // 设置初始深度值，按照发牌顺序递增，确保后发的牌在上层
+        // 使用较高的基础值，为动画期间的更高深度值留出空间
+        card.setDepth(500 + columnIndex * 10 + rowIndex);
         
         // 记录到动画卡牌集合
         this.state.animatedCards.add(card);
