@@ -9,7 +9,8 @@ import {
   AnimationState,
   DEFAULT_DEAL_CONFIG,
   DEFAULT_AUDIO_SYNC_CONFIG,
-  AudioSyncConfig
+  AudioSyncConfig,
+  DealAnimationMode
 } from './types/DealAnimationTypes';
 import { EventBus } from '../EventBus';
 
@@ -46,6 +47,7 @@ export class DealAnimationManager {
     
     this.isInitialized = true;
     console.log('🎮 DealAnimationManager: Initialized successfully');
+    console.log('🎮 DealAnimationManager: Current animation mode:', this.config.mode);
   }
 
   /**
@@ -423,6 +425,39 @@ export class DealAnimationManager {
    */
   public setShowSkipHint(show: boolean): void {
     this.interactionController.setShowSkipHint(show);
+  }
+
+  /**
+   * 设置动画模式
+   */
+  public setAnimationMode(mode: DealAnimationMode): void {
+    if (this.state.isPlaying) {
+      console.warn('Cannot change animation mode while animation is playing');
+      return;
+    }
+    
+    this.config.mode = mode;
+    this.sequencer.updateConfig(this.config);
+    console.log(`🎮 DealAnimationManager: Animation mode set to ${mode}`);
+  }
+
+  /**
+   * 获取当前动画模式
+   */
+  public getAnimationMode(): DealAnimationMode {
+    return this.config.mode;
+  }
+
+  /**
+   * 切换动画模式
+   */
+  public toggleAnimationMode(): DealAnimationMode {
+    const newMode = this.config.mode === DealAnimationMode.ROW_BY_ROW
+      ? DealAnimationMode.SIMULTANEOUS
+      : DealAnimationMode.ROW_BY_ROW;
+    
+    this.setAnimationMode(newMode);
+    return newMode;
   }
 
   /**

@@ -1,9 +1,21 @@
 import { Card as CardComponent } from '../../components/Card';
 
 /**
+ * 发牌动画模式
+ */
+export enum DealAnimationMode {
+  /** 逐行发牌模式（原始模式） */
+  ROW_BY_ROW = 'row_by_row',
+  /** 同时发牌模式（新模式） */
+  SIMULTANEOUS = 'simultaneous'
+}
+
+/**
  * 发牌动画配置接口
  */
 export interface DealAnimationConfig {
+  /** 动画模式 */
+  mode: DealAnimationMode;
   /** 单张卡牌移动速度 (ms) */
   cardMoveSpeed: number;
   /** 行与行之间的延迟 (ms) */
@@ -131,6 +143,7 @@ export interface InteractionState {
  * 默认发牌动画配置
  */
 export const DEFAULT_DEAL_CONFIG: DealAnimationConfig = {
+  mode: DealAnimationMode.SIMULTANEOUS, // 默认使用同时发牌模式
   cardMoveSpeed: 300,          // 300ms每张卡牌
   rowDelay: 150,              // 行间延迟150ms
   cardStaggerDelay: 50,       // 同行卡牌50ms错开

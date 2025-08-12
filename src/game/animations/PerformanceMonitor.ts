@@ -1,9 +1,10 @@
-import { 
-  DealAnimationConfig, 
-  DeviceCapability, 
+import {
+  DealAnimationConfig,
+  DeviceCapability,
   PerformanceConfig,
   DEFAULT_DEAL_CONFIG,
-  DEFAULT_PERFORMANCE_CONFIG 
+  DEFAULT_PERFORMANCE_CONFIG,
+  DealAnimationMode
 } from './types/DealAnimationTypes';
 
 /**
@@ -226,6 +227,7 @@ export class PerformanceMonitor {
    */
   private getLowPerformanceConfig(): DealAnimationConfig {
     return {
+      mode: DEFAULT_DEAL_CONFIG.mode, // 保持用户设置的模式
       cardMoveSpeed: 200,      // 更快的动画，减少总时间
       rowDelay: 80,            // 更短的延迟
       cardStaggerDelay: 20,    // 减少错开时间
@@ -240,6 +242,7 @@ export class PerformanceMonitor {
    */
   private getMediumPerformanceConfig(): DealAnimationConfig {
     return {
+      mode: DEFAULT_DEAL_CONFIG.mode, // 保持用户设置的模式
       cardMoveSpeed: 250,      // 适中的动画速度
       rowDelay: 120,           // 适中的延迟
       cardStaggerDelay: 40,    // 适中的错开时间
@@ -254,6 +257,7 @@ export class PerformanceMonitor {
    */
   private getHighPerformanceConfig(): DealAnimationConfig {
     return {
+      mode: DEFAULT_DEAL_CONFIG.mode, // 保持用户设置的模式
       cardMoveSpeed: 400,      // 更平滑的动画
       rowDelay: 200,           // 更长的延迟，更有节奏感
       cardStaggerDelay: 80,    // 更明显的错开效果

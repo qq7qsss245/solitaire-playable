@@ -1,11 +1,12 @@
 import { Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
 import { AnimationController } from './AnimationController';
-import { 
-  DealAnimationConfig, 
-  CardAnimationData, 
+import {
+  DealAnimationConfig,
+  CardAnimationData,
   AnimationEventData,
-  DEFAULT_DEAL_CONFIG 
+  DEFAULT_DEAL_CONFIG,
+  DealAnimationMode
 } from './types/DealAnimationTypes';
 import { EventBus } from '../EventBus';
 
@@ -45,27 +46,14 @@ export class CardDealSequencer {
       // 触发动画开始事件
       this.emitAnimationEvent('animation-start', { totalRows: 7 });
 
-      // 按行发牌：从上到下，每行发该行应该有的卡牌
-      // 第1行：每列的第1张卡牌（7张）
-      // 第2行：第2-7列的第2张卡牌（6张）
-      // 第3行：第3-7列的第3张卡牌（5张）
-      // ...
-      // 第7行：第7列的第7张卡牌（1张）
-      for (let rowIndex = 0; rowIndex < 7; rowIndex++) {
-        this.currentRowIndex = rowIndex;
-        
-        // 触发行开始事件
-        this.emitAnimationEvent('row-start', { rowIndex, totalRows: 7 });
-        
-        await this.dealRow(rowIndex);
-        
-        // 触发行完成事件
-        this.emitAnimationEvent('row-complete', { rowIndex, totalRows: 7 });
-        
-        // 行间延迟（最后一行不需要延迟）
-        if (rowIndex < 6) {
-          await this.wait(this.config.rowDelay);
-        }
+      // 根据动画模式选择不同的发牌策略
+      console.log('🎮 CardDealSequencer: Animation mode:', this.config.mode);
+      if (this.config.mode === DealAnimationMode.SIMULTANEOUS) {
+        console.log('🎮 CardDealSequencer: Using SIMULTANEOUS mode');
+        await this.dealSimultaneous();
+      } else {
+        console.log('🎮 CardDealSequencer: Using ROW_BY_ROW mode');
+        await this.dealRowByRow();
       }
 
       // 触发动画完成事件
@@ -77,6 +65,141 @@ export class CardDealSequencer {
     } finally {
       this.isSequenceRunning = false;
     }
+  }
+
+  /**
+   * 逐行发牌模式（原始模式）
+   */
+  private async dealRowByRow(): Promise<void> {
+    // 按行发牌：从上到下，每行发该行应该有的卡牌
+    // 第1行：每列的第1张卡牌（7张）
+    // 第2行：第2-7列的第2张卡牌（6张）
+    // 第3行：第3-7列的第3张卡牌（5张）
+    // ...
+    // 第7行：第7列的第7张卡牌（1张）
+    for (let rowIndex = 0; rowIndex < 7; rowIndex++) {
+      this.currentRowIndex = rowIndex;
+      
+      // 触发行开始事件
+      this.emitAnimationEvent('row-start', { rowIndex, totalRows: 7 });
+      
+      await this.dealRow(rowIndex);
+      
+      // 触发行完成事件
+      this.emitAnimationEvent('row-complete', { rowIndex, totalRows: 7 });
+      
+      // 行间延迟（最后一行不需要延迟）
+      if (rowIndex < 6) {
+        await this.wait(this.config.rowDelay);
+      }
+    }
+  }
+
+  /**
+   * 同时发牌模式（新模式）
+   */
+  private async dealSimultaneous(): Promise<void> {
+    console.log('🎮 CardDealSequencer: Starting simultaneous deal mode');
+    
+    // 1. 准备所有卡牌的动画数据，所有卡牌都设为背面朝上
+    const allAnimationData: CardAnimationData[] = [];
+    
+    for (let rowIndex = 0; rowIndex < 7; rowIndex++) {
+      const startColumn = rowIndex;
+      const endColumn = 6;
+      
+      for (let columnIndex = startColumn; columnIndex <= endColumn; columnIndex++) {
+        const card = this.getCardForPosition(rowIndex, columnIndex);
+        if (card) {
+          // 确保卡牌是背面朝上
+          card.setFaceUp(false);
+          
+          const targetPosition = this.calculateTargetPosition(rowIndex, columnIndex);
+          const animationData: CardAnimationData = {
+            card,
+            startPosition: { x: card.x, y: card.y },
+            targetPosition,
+            rowIndex,
+            columnIndex,
+            delay: 0 // 所有卡牌同时开始
+          };
+          
+          console.log(`🎮 CardDealSequencer: Card ${card.suit}${card.value} [${rowIndex},${columnIndex}] delay: ${animationData.delay}`);
+          allAnimationData.push(animationData);
+        }
+      }
+    }
+    
+    // 2. 同时开始所有卡牌的移动动画
+    console.log(`🎮 CardDealSequencer: Starting ${allAnimationData.length} simultaneous animations`);
+    await this.animationController.animateCards(allAnimationData);
+    
+    // 3. 动画完成后，翻开每列的最后一张卡牌（最下面的卡牌）
+    console.log('🎮 CardDealSequencer: Flipping bottom cards');
+    await this.flipBottomCards();
+  }
+
+  /**
+   * 翻开每列的最后一张卡牌
+   */
+  private async flipBottomCards(): Promise<void> {
+    const flipPromises: Promise<void>[] = [];
+    
+    for (let columnIndex = 0; columnIndex < 7; columnIndex++) {
+      const bottomCard = this.getBottomCardForColumn(columnIndex);
+      if (bottomCard) {
+        // 添加翻牌动画
+        const flipPromise = this.animateCardFlip(bottomCard);
+        flipPromises.push(flipPromise);
+      }
+    }
+    
+    // 等待所有翻牌动画完成
+    await Promise.all(flipPromises);
+  }
+
+  /**
+   * 获取指定列的最后一张卡牌（最下面的卡牌）
+   */
+  private getBottomCardForColumn(columnIndex: number): CardComponent | null {
+    const gameScene = this.scene as any;
+    const column = gameScene.tableau?.[columnIndex];
+    if (!column || !column.cards || column.cards.length === 0) {
+      return null;
+    }
+    
+    // 返回该列的最后一张卡牌
+    return column.cards[column.cards.length - 1];
+  }
+
+  /**
+   * 翻牌动画
+   */
+  private async animateCardFlip(card: CardComponent): Promise<void> {
+    return new Promise<void>((resolve) => {
+      // 创建翻牌动画：先缩小到0，然后翻面，再放大到原尺寸
+      this.scene.tweens.add({
+        targets: card,
+        scaleX: 0,
+        duration: 150,
+        ease: 'Power2',
+        onComplete: () => {
+          // 翻面
+          card.setFaceUp(true);
+          
+          // 放大回原尺寸
+          this.scene.tweens.add({
+            targets: card,
+            scaleX: 1,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => {
+              resolve();
+            }
+          });
+        }
+      });
+    });
   }
 
   /**

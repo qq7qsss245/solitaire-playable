@@ -1,8 +1,9 @@
 import { DealAnimationManager } from './DealAnimationManager';
 import { PerformanceMonitor } from './PerformanceMonitor';
-import { 
-  DealAnimationConfig, 
-  DEFAULT_DEAL_CONFIG 
+import {
+  DealAnimationConfig,
+  DEFAULT_DEAL_CONFIG,
+  DealAnimationMode
 } from './types/DealAnimationTypes';
 
 /**
@@ -154,6 +155,7 @@ export class DealAnimationTest {
     switch (capability) {
       case 'low':
         return {
+          mode: DealAnimationMode.ROW_BY_ROW,
           cardMoveSpeed: 200,
           rowDelay: 80,
           cardStaggerDelay: 20,
@@ -163,6 +165,7 @@ export class DealAnimationTest {
         };
       case 'medium':
         return {
+          mode: DealAnimationMode.ROW_BY_ROW,
           cardMoveSpeed: 250,
           rowDelay: 120,
           cardStaggerDelay: 40,
@@ -172,6 +175,7 @@ export class DealAnimationTest {
         };
       case 'high':
         return {
+          mode: DealAnimationMode.ROW_BY_ROW,
           cardMoveSpeed: 400,
           rowDelay: 200,
           cardStaggerDelay: 80,
