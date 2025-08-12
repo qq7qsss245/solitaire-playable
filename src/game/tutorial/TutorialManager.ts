@@ -58,15 +58,21 @@ export class TutorialManager {
     }
 
     public startTutorial(): void {
-        console.log('Starting tutorial...');
+        console.log('🔍 TutorialManager: startTutorial() called');
+        console.log('🔍 TutorialManager: Current state before start =', this.currentState);
+        
         this.currentState = TutorialState.ACTIVE;
         this.currentStepIndex = 0;
         this.isWaitingForAction = false;
         this.stepTimer = 0;
         this.autoAdvanceTimer = 0;
         
+        console.log('🔍 TutorialManager: State set to ACTIVE, starting first step');
+        
         // 开始第一步
         this.executeCurrentStep();
+        
+        console.log('🔍 TutorialManager: executeCurrentStep() completed');
     }
 
     public stopTutorial(): void {
@@ -595,7 +601,9 @@ export class TutorialManager {
     }
 
     public isActive(): boolean {
-        return this.currentState !== TutorialState.INACTIVE && this.currentState !== TutorialState.COMPLETED;
+        const active = this.currentState !== TutorialState.INACTIVE && this.currentState !== TutorialState.COMPLETED;
+        console.log('🔍 TutorialManager: isActive() called, currentState =', this.currentState, ', returning =', active);
+        return active;
     }
 
     public isFreePlay(): boolean {

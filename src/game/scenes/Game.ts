@@ -246,7 +246,9 @@ export class Game extends Scene {
     }
 
     private initializeTutorial(): void {
+        console.log('🔍 Game: initializeTutorial() called');
         this.tutorialManager = new TutorialManager(this);
+        console.log('🔍 Game: TutorialManager created, isActive =', this.tutorialManager.isActive());
         
         // 注意：教学系统的启动现在由发牌动画完成后触发
         // 不在这里立即启动，避免与发牌动画冲突
@@ -274,9 +276,12 @@ export class Game extends Scene {
         }
         
         try {
-            console.log('🎮 Game: Starting deal animation');
+            console.log('🔍 Game: Starting deal animation, isTutorialMode =', this.isTutorialMode);
             await this.dealAnimationManager.startDealAnimation();
-            console.log('🎮 Game: Deal animation completed');
+            console.log('🔍 Game: Deal animation completed, tutorialManager exists =', !!this.tutorialManager);
+            if (this.tutorialManager) {
+                console.log('🔍 Game: After deal animation, tutorialManager.isActive() =', this.tutorialManager.isActive());
+            }
         } catch (error) {
             console.error('Deal animation failed:', error);
             // 如果动画失败，确保卡牌仍然显示在正确位置
