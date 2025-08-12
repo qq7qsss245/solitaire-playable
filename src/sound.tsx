@@ -21,11 +21,17 @@ const AUDIO_MAP: {
     'play-slot-place': slotPlaceAudio,
     'play-victory': victoryAudio,
     'play-error': errorAudio,
-    // 为兼容性添加别名
-    'play-click': cardPlaceAudio, // 点击音效使用卡牌放置音效
+    
+    // UI交互音效 - 使用更合适的音效
+    'play-ui-click': cardFlipAudio, // UI按钮点击音效，使用翻牌音效
+    'play-ui-success': slotPlaceAudio, // UI操作成功音效，使用入槽音效
+    'play-step-complete': slotPlaceAudio, // 教学步骤完成音效，使用入槽音效
+    'play-download-trigger': victoryAudio, // 下载触发音效，使用胜利音效
+    
+    // 为兼容性保留的别名
+    'play-click': cardFlipAudio, // 点击音效改为使用翻牌音效
     'play-deal': cardDealAudio, // 发牌音效别名
     'play-move': cardPlaceAudio, // 移动音效使用卡牌放置音效
-    'play-step-complete': cardPlaceAudio, // 步骤完成音效
     'play-tutorial-complete': victoryAudio // 教学完成音效使用胜利音效
 };
 

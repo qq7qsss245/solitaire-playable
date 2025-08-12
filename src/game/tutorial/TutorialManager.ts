@@ -434,7 +434,9 @@ export class TutorialManager {
     }
 
     private onInvalidAction(): void {
-        console.log('Invalid action during tutorial');
+        console.log('🚫 [CRITICAL DEBUG] TutorialManager.onInvalidAction - 教学模式下的无效操作');
+        console.log('🚫 [CRITICAL DEBUG] TutorialManager.onInvalidAction - 当前状态:', this.currentState);
+        console.log('🚫 [CRITICAL DEBUG] TutorialManager.onInvalidAction - 调用堆栈:', new Error().stack);
         EventBus.emit('play-error');
         
         // 显示错误提示
@@ -501,7 +503,7 @@ export class TutorialManager {
         }
         
         // 播放步骤完成音效
-        EventBus.emit('play-card-place');
+        EventBus.emit('play-step-complete');
         
         // 清除当前引导，等待淡出动画完成
         this.guideSystem.hideAllGuides(() => {
@@ -528,7 +530,7 @@ export class TutorialManager {
         console.log(`Jumping to step: ${targetStepId}`);
         
         // 播放步骤完成音效
-        EventBus.emit('play-card-place');
+        EventBus.emit('play-step-complete');
         
         // 清除当前引导，等待淡出动画完成
         this.guideSystem.hideAllGuides(() => {

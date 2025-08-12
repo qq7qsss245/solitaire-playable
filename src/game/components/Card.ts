@@ -342,7 +342,6 @@ export class Card extends GameObjects.Container {
                             ease: 'Power1',
                             onComplete: () => {
                                 console.log('🔍 [DEBUG] Card.flip - 翻转动画完成');
-                                EventBus.emit('play-card-deal');
                                 this.isFlipping = false;
                                 
                                 if (this._faceUp) {
@@ -622,6 +621,7 @@ export class Card extends GameObjects.Container {
             
             // 只有在点击时间较短时才播放音效和执行自动移动
             if (timeDiff < Card.DRAG_THRESHOLD) {
+                console.log(`🔍 [CRITICAL DEBUG] onPointerUp - 播放翻牌音效并尝试自动移动: ${this._suit}${this._value}`);
                 EventBus.emit('play-card-flip');
                 this.tryAutoMove();
             }
@@ -647,6 +647,7 @@ export class Card extends GameObjects.Container {
                             card.setDepth(Card.DRAG_DEPTH + index + 1);
                         });
 
+                        console.log(`✅ [CRITICAL DEBUG] tryAutoMove - 成功移动到Foundation[${i}]: ${this._suit}${this._value}`);
                         await this.animateMove(
                             gameScene.foundationZones[i].x,
                             gameScene.foundationZones[i].y,
@@ -666,6 +667,7 @@ export class Card extends GameObjects.Container {
                             attachedCards
                         );
                         
+                        console.log(`✅ [CRITICAL DEBUG] tryAutoMove - Foundation移动完成，提前返回: ${this._suit}${this._value}`);
                         return;
                     }
                 }
@@ -692,12 +694,63 @@ export class Card extends GameObjects.Container {
                                 }),
                                 attachedCards
                             );
+                            console.log(`✅ [CRITICAL DEBUG] tryAutoMove - Tableau移动完成，提前返回: ${this._suit}${this._value}`);
+                            return;
+                        }
+                    }
+                }
+
+                // 检查是否可以移动到空列（只允许K）
+                if (this.numericValue === 13) {
+                    for (let columnIndex = 0; columnIndex < 7; columnIndex++) {
+                        const columnCards = gameScene.getColumnBottomCards();
+                        const hasCardInColumn = columnCards.some(card => gameScene.getColumnIndex(card) === columnIndex);
+                        
+                        if (!hasCardInColumn) {
+                            // 找到空列，移动K牌到空列
+                            const columnX = gameScene.currentLayout.tableau.startX + columnIndex * gameScene.currentLayout.tableau.columnGap;
+                            const columnY = gameScene.currentLayout.tableau.startY;
+                            
+                            this.setDepth(Card.DRAG_DEPTH);
+                            attachedCards.forEach((card, index) => {
+                                card.setDepth(Card.DRAG_DEPTH + index + 1);
+                            });
+
+                            await this.animateMove(
+                                columnX,
+                                columnY,
+                                () => new Promise<void>((resolveMove) => {
+                                    gameScene.moveCardToColumn(this, columnIndex, true);
+                                    resolveMove();
+                                }),
+                                attachedCards
+                            );
+                            console.log(`✅ [CRITICAL DEBUG] tryAutoMove - 空列移动完成，提前返回: ${this._suit}${this._value}`);
                             return;
                         }
                     }
                 }
 
                 // 如果没有可移动位置,播放错误音效
+                console.log(`🚫 [CRITICAL DEBUG] tryAutoMove - 没有找到移动位置，准备播放错误音效: ${this._suit}${this._value}`);
+                console.log(`🚫 [CRITICAL DEBUG] tryAutoMove - 当前教学状态: ${gameScene.getIsTutorialMode()}`);
+                console.log(`🚫 [CRITICAL DEBUG] tryAutoMove - 当前时间: ${Date.now()}, 上次错误时间: ${this.lastErrorTime}`);
+                
+                // 检查是否在教学模式中 - 教学模式下不应该播放错误音效
+                if (gameScene.getIsTutorialMode()) {
+                    console.log(`🚫 [CRITICAL DEBUG] tryAutoMove - 教学模式中，跳过错误音效: ${this._suit}${this._value}`);
+                    return;
+                }
+                
+                // 检查防抖
+                const currentTime = Date.now();
+                if (currentTime - this.lastErrorTime < Card.ERROR_DEBOUNCE_TIME) {
+                    console.log(`🚫 [CRITICAL DEBUG] tryAutoMove - 防抖阻止错误音效: ${this._suit}${this._value}`);
+                    return;
+                }
+                
+                this.lastErrorTime = currentTime;
+                console.log(`🚫 [CRITICAL DEBUG] tryAutoMove - 播放错误音效: ${this._suit}${this._value}`);
                 EventBus.emit('play-error');
             } catch (error) {
                 console.error('Error during move:', error);
@@ -1189,7 +1242,8 @@ export class Card extends GameObjects.Container {
         console.log(`🚫 [DEBUG] triggerErrorFeedback - 更新lastErrorTime: ${this._suit}${this._value}, newLastErrorTime: ${this.lastErrorTime}`);
         
         // 播放错误音效
-        console.log(`🚫 [DEBUG] triggerErrorFeedback - 播放错误音效: ${this._suit}${this._value}`);
+        console.log(`🚫 [CRITICAL DEBUG] triggerErrorFeedback - 播放错误音效: ${this._suit}${this._value}`);
+        console.log(`🚫 [CRITICAL DEBUG] triggerErrorFeedback - 调用堆栈:`, new Error().stack);
         EventBus.emit('play-error');
         
         // 触发晃动动画

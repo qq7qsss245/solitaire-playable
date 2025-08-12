@@ -451,7 +451,7 @@ export class Game extends Scene {
         this.playNowButton.setScale(0.8);
         this.playNowButton.setInteractive();
         this.playNowButton.on('pointerdown', () => {
-            EventBus.emit('play-card-place');
+            EventBus.emit('play-ui-click');
             download();
         });
 
@@ -702,7 +702,7 @@ export class Game extends Scene {
     private playClickFeedback(): Promise<void> {
         return new Promise((resolve) => {
             // 播放点击音效
-            EventBus.emit('play-card-place');
+            EventBus.emit('play-ui-click');
             
             // stock区域缩放反馈
             this.tweens.add({
@@ -724,6 +724,9 @@ export class Game extends Scene {
         return new Promise((resolve) => {
             // 获取要翻的卡牌
             const card = this.stock.cards.pop()!;
+            
+            // 播放发牌音效
+            EventBus.emit('play-card-deal');
             
             // 创建临时动画卡牌
             this.animationCard = this.add.sprite(
@@ -904,14 +907,14 @@ export class Game extends Scene {
             
             if (this.moves > maxMoves) {
                 console.log('🚨 [DEBUG] 触发下载! moves:', this.moves, 'maxMoves:', maxMoves);
-                EventBus.emit('play-card-place');
+                EventBus.emit('play-download-trigger');
                 download();
             }
         } catch (error) {
             console.error('❌ [DEBUG] 配置读取失败，使用默认值:', error);
             // 配置读取失败时使用默认值
             if (this.moves > 10) {
-                EventBus.emit('play-card-place');
+                EventBus.emit('play-download-trigger');
                 download();
             }
         }
@@ -1080,6 +1083,9 @@ export class Game extends Scene {
         foundation.cards.push(card);
         
         // 花色已经预先绑定，无需设置
+        
+        // 播放基础牌堆放置音效
+        EventBus.emit('play-slot-place');
         
         // 更新分数
         this.updateScore(10);
