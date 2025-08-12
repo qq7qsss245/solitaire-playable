@@ -127,7 +127,7 @@ export class TutorialSteps {
             guideText: 'moveCard', // 使用assets中的键名
             description: '牌堆间移动',
             autoAdvanceTime: 0,
-            allowedActions: ['card-move'],
+            allowedActions: ['card-move', 'stock-click'],
             completionCondition: (actionType: string, data: any, scene: Game) => {
                 // 检查是否完成了牌堆间移动操作
                 if (actionType === 'card-move') {
