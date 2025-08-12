@@ -512,8 +512,10 @@ export class Card extends GameObjects.Container {
         } else {
             const gameScene = this.scene as Game;
             
-            // 在移动前先找到原来的列和下一张卡牌
-            const nextCard = gameScene.getNextCard(this);
+            // 在移动前记录原始位置信息，用于后续的自动翻牌检测
+            const originalColumnIndex = gameScene.getColumnIndex(this);
+            const originalCardIndex = originalColumnIndex !== -1 ?
+                gameScene.tableau[originalColumnIndex].cards.indexOf(this) : -1;
             
             if (dropResult.canDrop) {
                 // 播放成功音效
@@ -534,14 +536,8 @@ export class Card extends GameObjects.Container {
                                     console.log('Card moved to new position:', { x: this.x, y: this.y });
                                 }
 
-                                // 翻转原列中的下一张卡牌
-                                if (nextCard && !nextCard.faceUp && !nextCard.isFlipping) {
-                                    try {
-                                        await nextCard.flip();
-                                    } catch (error) {
-                                        console.warn('Failed to flip next card:', error);
-                                    }
-                                }
+                                // 使用可靠的自动翻牌机制
+                                await this.performAutoFlip(originalColumnIndex, originalCardIndex);
                             } catch (error) {
                                 console.error('Error updating state:', error);
                                 this.x = this.startX;
@@ -637,11 +633,14 @@ export class Card extends GameObjects.Container {
                 const gameScene = this.scene as Game;
                 const attachedCards = gameScene.getAttachedCards(this);
                 
+                // 记录原始位置信息，用于自动翻牌
+                const originalColumnIndex = gameScene.getColumnIndex(this);
+                const originalCardIndex = originalColumnIndex !== -1 ?
+                    gameScene.tableau[originalColumnIndex].cards.indexOf(this) : -1;
+                
                 // 首先尝试移动到收牌区
                 for (let i = 0; i < gameScene.foundationZones.length; i++) {
                     if (gameScene.canAddToFoundation(this, i) && attachedCards.length === 0) {
-                        const nextCard = gameScene.getNextCard(this);
-                        
                         this.setDepth(Card.DRAG_DEPTH);
                         attachedCards.forEach((card, index) => {
                             card.setDepth(Card.DRAG_DEPTH + index + 1);
@@ -655,9 +654,8 @@ export class Card extends GameObjects.Container {
                                 try {
                                     gameScene.addToFoundation(this, i, true);
 
-                                    if (nextCard && !nextCard.faceUp && !nextCard.isFlipping) {
-                                        await nextCard.flip();
-                                    }
+                                    // 使用可靠的自动翻牌机制
+                                    await this.performAutoFlip(originalColumnIndex, originalCardIndex);
                                     resolveMove();
                                 } catch (error) {
                                     console.error('Error in foundation move:', error);
@@ -688,9 +686,17 @@ export class Card extends GameObjects.Container {
                             await this.animateMove(
                                 target.x,
                                 target.y + Card.CARD_GAP_Y,
-                                () => new Promise<void>((resolveMove) => {
-                                    gameScene.moveCardToColumn(this, newColumnIndex, true);
-                                    resolveMove();
+                                () => new Promise<void>(async (resolveMove) => {
+                                    try {
+                                        gameScene.moveCardToColumn(this, newColumnIndex, true);
+                                        
+                                        // 使用可靠的自动翻牌机制
+                                        await this.performAutoFlip(originalColumnIndex, originalCardIndex);
+                                        resolveMove();
+                                    } catch (error) {
+                                        console.error('Error in tableau move:', error);
+                                        resolveMove();
+                                    }
                                 }),
                                 attachedCards
                             );
@@ -719,9 +725,17 @@ export class Card extends GameObjects.Container {
                             await this.animateMove(
                                 columnX,
                                 columnY,
-                                () => new Promise<void>((resolveMove) => {
-                                    gameScene.moveCardToColumn(this, columnIndex, true);
-                                    resolveMove();
+                                () => new Promise<void>(async (resolveMove) => {
+                                    try {
+                                        gameScene.moveCardToColumn(this, columnIndex, true);
+                                        
+                                        // 使用可靠的自动翻牌机制
+                                        await this.performAutoFlip(originalColumnIndex, originalCardIndex);
+                                        resolveMove();
+                                    } catch (error) {
+                                        console.error('Error in empty column move:', error);
+                                        resolveMove();
+                                    }
                                 }),
                                 attachedCards
                             );
@@ -1251,6 +1265,119 @@ export class Card extends GameObjects.Container {
         this.shake();
         
         console.log(`🚫 [ERROR FEEDBACK] 卡牌无法移动: ${this._suit}${this._value}`);
+    }
+
+    /**
+     * 可靠的自动翻牌机制
+     * @param originalColumnIndex 原始列索引
+     * @param originalCardIndex 原始卡牌在列中的索引
+     */
+    private async performAutoFlip(originalColumnIndex: number, originalCardIndex: number): Promise<void> {
+        console.log('🔄 [AUTO-FLIP] 开始自动翻牌检测:', {
+            originalColumnIndex,
+            originalCardIndex,
+            card: `${this._suit}${this._value}`
+        });
+
+        const gameScene = this.scene as Game;
+        
+        // 验证原始位置信息的有效性
+        if (originalColumnIndex < 0 || originalColumnIndex >= gameScene.tableau.length) {
+            console.log('🔄 [AUTO-FLIP] 原始列索引无效，跳过自动翻牌');
+            return;
+        }
+
+        const originalColumn = gameScene.tableau[originalColumnIndex];
+        
+        // 检查原始位置是否还有卡牌需要翻转
+        if (originalCardIndex > 0 && originalCardIndex <= originalColumn.cards.length) {
+            // 获取应该被翻转的卡牌（原来在移动卡牌下面的那张）
+            const cardToFlip = originalColumn.cards[originalCardIndex - 1];
+            
+            if (cardToFlip && !cardToFlip.faceUp && !cardToFlip.isFlipping) {
+                console.log('🔄 [AUTO-FLIP] 找到需要翻转的卡牌:', {
+                    cardToFlip: `${cardToFlip.suit}${cardToFlip.value}`,
+                    faceUp: cardToFlip.faceUp,
+                    isFlipping: cardToFlip.isFlipping
+                });
+
+                // 执行翻牌，带重试机制
+                await this.flipCardWithRetry(cardToFlip, 3);
+            } else {
+                console.log('🔄 [AUTO-FLIP] 没有找到需要翻转的卡牌或卡牌已经是正面朝上');
+            }
+        } else {
+            console.log('🔄 [AUTO-FLIP] 原始位置没有需要翻转的卡牌');
+        }
+
+        // 额外的安全检查：扫描所有列，确保没有遗漏的翻牌
+        await this.performSafetyFlipCheck();
+    }
+
+    /**
+     * 带重试机制的翻牌方法
+     * @param card 要翻转的卡牌
+     * @param maxRetries 最大重试次数
+     */
+    private async flipCardWithRetry(card: Card, maxRetries: number): Promise<void> {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`🔄 [AUTO-FLIP] 尝试翻牌 (第${attempt}次):`, `${card.suit}${card.value}`);
+                
+                // 确保卡牌状态正确
+                if (card.faceUp || card.isFlipping) {
+                    console.log('🔄 [AUTO-FLIP] 卡牌已经是正面朝上或正在翻转，跳过');
+                    return;
+                }
+
+                await card.flip();
+                console.log('🔄 [AUTO-FLIP] 翻牌成功:', `${card.suit}${card.value}`);
+                return;
+            } catch (error) {
+                console.warn(`🔄 [AUTO-FLIP] 翻牌失败 (第${attempt}次):`, error);
+                
+                if (attempt < maxRetries) {
+                    // 等待一段时间后重试
+                    await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+                } else {
+                    console.error('🔄 [AUTO-FLIP] 翻牌重试次数用尽，放弃翻牌');
+                }
+            }
+        }
+    }
+
+    /**
+     * 安全检查：扫描所有列，确保没有遗漏需要翻转的卡牌
+     */
+    private async performSafetyFlipCheck(): Promise<void> {
+        const gameScene = this.scene as Game;
+        
+        console.log('🔄 [SAFETY-CHECK] 开始安全翻牌检查');
+        
+        for (let columnIndex = 0; columnIndex < gameScene.tableau.length; columnIndex++) {
+            const column = gameScene.tableau[columnIndex];
+            
+            if (column.cards.length > 0) {
+                const bottomCard = column.cards[column.cards.length - 1];
+                
+                // 如果底部卡牌是背面朝上且没有在翻转中，则翻转它
+                if (!bottomCard.faceUp && !bottomCard.isFlipping) {
+                    console.log('🔄 [SAFETY-CHECK] 发现需要翻转的底部卡牌:', {
+                        column: columnIndex,
+                        card: `${bottomCard.suit}${bottomCard.value}`
+                    });
+                    
+                    try {
+                        await bottomCard.flip();
+                        console.log('🔄 [SAFETY-CHECK] 安全检查翻牌成功:', `${bottomCard.suit}${bottomCard.value}`);
+                    } catch (error) {
+                        console.warn('🔄 [SAFETY-CHECK] 安全检查翻牌失败:', error);
+                    }
+                }
+            }
+        }
+        
+        console.log('🔄 [SAFETY-CHECK] 安全翻牌检查完成');
     }
 
     // 兼容性方法 - 保持与现有代码的兼容性
