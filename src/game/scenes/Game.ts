@@ -19,6 +19,8 @@ import download from './constants/download';
 import { getTranslation } from '../i18n';
 import { AssetKeys } from '../../assets';
 import { getOutputConfigValue, getOutputConfigValueAsync } from '../../utils/outputConfigLoader';
+import { DealAnimationManager } from '../animations/DealAnimationManager';
+import { DealAnimationTest } from '../animations/DealAnimationTest';
 
 // 游戏区域类型
 interface TableauColumn {
@@ -79,6 +81,9 @@ export class Game extends Scene {
     private tutorialManager: TutorialManager | null = null;
     private isTutorialMode: boolean = false;
     
+    // 发牌动画系统
+    private dealAnimationManager: DealAnimationManager | null = null;
+    
     // 调试模式
     private debugMode: boolean = false;
     
@@ -116,8 +121,8 @@ export class Game extends Scene {
             console.log('🐛 [DEBUG MODE] 调试模式已启用 - 教学系统已禁用，使用随机牌局');
         }
 
-        // 初始化游戏布局
-        this.initializeGame(tutorialMode);
+        // 异步初始化游戏布局（包含发牌动画）
+        this.initializeGameAsync(tutorialMode);
         
         // 创建UI元素
         this.createUI();
@@ -145,13 +150,43 @@ export class Game extends Scene {
         // 添加场景销毁时的清理
         this.events.on('destroy', () => {
             window.removeEventListener('resize', boundOnResize);
-            if (this.tutorialManager) {
-                this.tutorialManager.destroy();
-            }
+            this.cleanupGameResources();
         });
     }
+    
+    /**
+     * 异步初始化游戏（包装方法，处理异步调用）
+     */
+    private async initializeGameAsync(tutorialMode: boolean): Promise<void> {
+        try {
+            await this.initializeGame(tutorialMode);
+        } catch (error) {
+            console.error('Game initialization failed:', error);
+            // 确保游戏仍然可以进行，即使动画失败
+            this.fallbackToStaticLayout();
+        }
+    }
+    
+    /**
+     * 清理游戏资源
+     */
+    private cleanupGameResources(): void {
+        // 清理教学系统
+        if (this.tutorialManager) {
+            this.tutorialManager.destroy();
+            this.tutorialManager = null;
+        }
+        
+        // 清理发牌动画系统
+        if (this.dealAnimationManager) {
+            this.dealAnimationManager.destroy();
+            this.dealAnimationManager = null;
+        }
+        
+        console.log('🎮 Game: Resources cleaned up');
+    }
 
-    private initializeGame(tutorialMode: boolean = true): void {
+    private async initializeGame(tutorialMode: boolean = true): Promise<void> {
         // 默认使用教学牌局，除非明确指定使用随机牌局
         if (tutorialMode) {
             this.gameLayout = generateTutorialLayout();
@@ -167,10 +202,16 @@ export class Game extends Scene {
         this.initializeStock();
         this.initializeWaste();
         
-        // 创建卡牌
+        // 创建卡牌（但不立即设置位置，由动画系统控制）
         this.createCards();
         
-        // 初始化教学系统
+        // 初始化发牌动画系统
+        this.initializeDealAnimation();
+        
+        // 启动发牌动画
+        await this.startDealAnimation();
+        
+        // 初始化教学系统（在发牌动画完成后）
         if (this.isTutorialMode) {
             this.initializeTutorial();
             
@@ -181,6 +222,19 @@ export class Game extends Scene {
                     TutorialTest.runAllTests();
                 });
             }
+        }
+        
+        // 在开发环境下运行发牌动画测试
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            this.time.delayedCall(1000, () => {
+                console.log('🎮 运行发牌动画测试...');
+                DealAnimationTest.runAllTests();
+                DealAnimationTest.logSystemInfo();
+                
+                if (this.dealAnimationManager) {
+                    DealAnimationTest.testAnimationManagerInit(this);
+                }
+            });
         }
         
         // 确保在下一帧更新Stock Zone显示状态
@@ -194,11 +248,62 @@ export class Game extends Scene {
     private initializeTutorial(): void {
         this.tutorialManager = new TutorialManager(this);
         
-        // 减少延迟时间，但保持延迟机制确保依赖完整性
+        // 注意：教学系统的启动现在由发牌动画完成后触发
+        // 不在这里立即启动，避免与发牌动画冲突
+    }
+    
+    /**
+     * 初始化发牌动画系统
+     */
+    private initializeDealAnimation(): void {
+        try {
+            this.dealAnimationManager = new DealAnimationManager(this);
+            console.log('🎮 Game: Deal animation manager initialized');
+        } catch (error) {
+            console.error('Failed to initialize deal animation manager:', error);
+        }
+    }
+    
+    /**
+     * 启动发牌动画
+     */
+    private async startDealAnimation(): Promise<void> {
+        if (!this.dealAnimationManager) {
+            console.warn('Deal animation manager not initialized');
+            return;
+        }
+        
+        try {
+            console.log('🎮 Game: Starting deal animation');
+            await this.dealAnimationManager.startDealAnimation();
+            console.log('🎮 Game: Deal animation completed');
+        } catch (error) {
+            console.error('Deal animation failed:', error);
+            // 如果动画失败，确保卡牌仍然显示在正确位置
+            this.fallbackToStaticLayout();
+        }
+    }
+    
+    /**
+     * 发牌动画失败时的后备方案
+     */
+    private fallbackToStaticLayout(): void {
+        console.log('🎮 Game: Falling back to static layout');
+        
+        // 立即更新所有位置，确保游戏可以正常进行
         this.time.delayedCall(100, () => {
-            if (this.tutorialManager) {
-                this.tutorialManager.startTutorial();
-            }
+            this.updateAllPositions();
+            
+            // 确保所有卡牌可见
+            this.tableau.forEach(column => {
+                column.cards.forEach(card => {
+                    card.setVisible(true);
+                });
+            });
+            
+            this.stock.cards.forEach(card => {
+                card.setVisible(true);
+            });
         });
     }
 
@@ -257,19 +362,28 @@ export class Game extends Scene {
             isTutorialMode: this.isTutorialMode
         });
 
+        // 获取stock位置用于初始化卡牌位置
+        const stockPosition = this.currentLayout?.stock || { x: 0, y: 0 };
+
         // 创建Tableau区域的卡牌
         this.gameLayout.tableau.forEach((column, columnIndex) => {
             column.forEach((cardData, cardIndex) => {
                 const card = new CardComponent(
                     this,
-                    0, 0, // 位置稍后设置
+                    stockPosition.x, // 初始位置设为stock位置
+                    stockPosition.y,
                     cardData.suit,
                     cardData.value,
                     cardData.faceUp
                 );
                 
+                // 初始时隐藏所有tableau卡牌，由动画系统控制显示
+                card.setVisible(false);
+                
                 this.add.existing(card);
                 this.tableau[columnIndex].cards.push(card);
+                
+                console.log(`🔍 [DEBUG] createCards - Tableau卡牌[${cardIndex}, ${columnIndex}]创建: ${cardData.suit}${cardData.value}, faceUp: ${cardData.faceUp}`);
             });
         });
 
@@ -282,11 +396,15 @@ export class Game extends Scene {
         this.gameLayout.stock.forEach((cardData, index) => {
             const card = new CardComponent(
                 this,
-                0, 0, // 位置稍后设置
+                stockPosition.x, // 初始位置设为stock位置
+                stockPosition.y,
                 cardData.suit,
                 cardData.value,
                 cardData.faceUp
             );
+            
+            // Stock卡牌保持可见
+            card.setVisible(true);
             
             this.add.existing(card);
             this.stock.cards.push(card);
@@ -299,9 +417,10 @@ export class Game extends Scene {
             });
         });
         
-        console.log('🔍 [DEBUG] createCards - Stock卡牌创建完成:', {
-            finalStockCount: this.stock.cards.length,
-            expectedCount: this.gameLayout.stock.length
+        console.log('🔍 [DEBUG] createCards - 卡牌创建完成:', {
+            tableauCardCount: this.tableau.reduce((sum, col) => sum + col.cards.length, 0),
+            stockCardCount: this.stock.cards.length,
+            expectedStockCount: this.gameLayout.stock.length
         });
     }
 
@@ -518,6 +637,11 @@ export class Game extends Scene {
     }
 
     private updateTableauPositions(): void {
+        // 如果正在进行发牌动画，不更新位置
+        if (this.dealAnimationManager?.isAnimating()) {
+            return;
+        }
+        
         // 更新7列游戏区域的卡牌位置
         this.tableau.forEach((column, columnIndex) => {
             const x = this.currentLayout.tableau.startX + columnIndex * this.currentLayout.tableau.columnGap;
