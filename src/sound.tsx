@@ -164,24 +164,21 @@ class AudioManager {
             if (!this.userInteracted) {
                 this.userInteracted = true;
                 console.log('检测到用户交互');
-                
-                // 如果BGM还没有成功播放，尝试播放
-                if (this.bgmAttempted && !this.bgmPlaying && this.bgmInstance) {
-                    console.log('用户交互后重试BGM播放');
-                    this.retryBGMPlayback();
-                }
-                
-                // 移除交互监听器
-                this.removeUserInteractionListeners();
+            }
+            
+            // 每次用户交互都检查BGM播放状态
+            if (this.bgmAttempted && !this.bgmPlaying && this.bgmInstance && this.isEnabled) {
+                console.log('用户交互后重试BGM播放');
+                this.retryBGMPlayback();
             }
         };
         
         // 保存监听器引用以便后续移除
         this.interactionListeners = interactionEvents.map(() => handleUserInteraction);
         
-        // 添加监听器到document
+        // 添加监听器到document，移除once选项以支持持续监听
         interactionEvents.forEach((event, index) => {
-            document.addEventListener(event, this.interactionListeners[index], { once: true, passive: true });
+            document.addEventListener(event, this.interactionListeners[index], { passive: true });
         });
     }
     
@@ -203,9 +200,24 @@ class AudioManager {
         if (!this.bgmInstance || this.bgmPlaying || !this.isEnabled) return;
         
         try {
-            await this.bgmInstance.play();
-            this.bgmPlaying = true;
-            console.log('用户交互后BGM播放成功');
+            // 确保音频实例处于可播放状态
+            if (this.bgmInstance.readyState >= 2) { // HAVE_CURRENT_DATA
+                await this.bgmInstance.play();
+                this.bgmPlaying = true;
+                console.log('用户交互后BGM播放成功');
+            } else {
+                console.log('BGM音频尚未准备就绪，等待加载完成');
+                // 等待音频加载完成后再尝试播放
+                this.bgmInstance.addEventListener('canplay', async () => {
+                    try {
+                        await this.bgmInstance!.play();
+                        this.bgmPlaying = true;
+                        console.log('BGM加载完成后播放成功');
+                    } catch (error) {
+                        console.warn('BGM加载完成后播放失败:', error);
+                    }
+                }, { once: true });
+            }
         } catch (error) {
             console.warn('用户交互后BGM播放仍然失败:', error);
         }
@@ -277,6 +289,12 @@ class AudioManager {
     
     async playBGM(src: string): Promise<void> {
         if (!this.isEnabled) return;
+        
+        // 如果BGM已经在播放，不需要重复播放
+        if (this.bgmPlaying && this.bgmInstance && !this.bgmInstance.paused) {
+            console.log('BGM已在播放，跳过重复播放');
+            return;
+        }
         
         // 标记已尝试播放BGM
         this.bgmAttempted = true;

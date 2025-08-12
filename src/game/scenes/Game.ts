@@ -135,6 +135,8 @@ export class Game extends Scene {
             this.resetGuideState();
             // 触发用户操作事件
             EventBus.emit('user-action');
+            // 每次点击都尝试播放BGM（如果BGM没有播放的话）
+            EventBus.emit('play-bgm');
         });
         
         // 监听窗口大小变化
