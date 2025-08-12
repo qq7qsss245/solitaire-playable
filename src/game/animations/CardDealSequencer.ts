@@ -148,9 +148,14 @@ export class CardDealSequencer {
     for (let columnIndex = 0; columnIndex < 7; columnIndex++) {
       const bottomCard = this.getBottomCardForColumn(columnIndex);
       if (bottomCard) {
-        // 添加翻牌动画
-        const flipPromise = this.animateCardFlip(bottomCard);
-        flipPromises.push(flipPromise);
+        // 添加延迟的翻牌动画
+        const delayedFlipPromise = new Promise<void>((resolve) => {
+          setTimeout(async () => {
+            await this.animateCardFlip(bottomCard);
+            resolve();
+          }, columnIndex * this.config.flipDelay); // 使用配置的翻牌延迟
+        });
+        flipPromises.push(delayedFlipPromise);
       }
     }
     

@@ -161,7 +161,8 @@ export class DealAnimationTest {
           cardStaggerDelay: 20,
           easeFunction: 'Linear',
           startDelay: 200,
-          endDelay: 100
+          endDelay: 100,
+          flipDelay: 80
         };
       case 'medium':
         return {
@@ -171,7 +172,8 @@ export class DealAnimationTest {
           cardStaggerDelay: 40,
           easeFunction: 'Power2',
           startDelay: 350,
-          endDelay: 150
+          endDelay: 150,
+          flipDelay: 100
         };
       case 'high':
         return {
@@ -181,7 +183,8 @@ export class DealAnimationTest {
           cardStaggerDelay: 80,
           easeFunction: 'Back.easeOut',
           startDelay: 600,
-          endDelay: 300
+          endDelay: 300,
+          flipDelay: 120
         };
     }
   }

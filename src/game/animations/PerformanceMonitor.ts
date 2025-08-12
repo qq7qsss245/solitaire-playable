@@ -233,7 +233,8 @@ export class PerformanceMonitor {
       cardStaggerDelay: 20,    // 减少错开时间
       easeFunction: 'Linear',  // 简单的缓动函数
       startDelay: 200,         // 减少开始延迟
-      endDelay: 100            // 减少结束延迟
+      endDelay: 100,           // 减少结束延迟
+      flipDelay: 80            // 较快的翻牌延迟
     };
   }
 
@@ -248,7 +249,8 @@ export class PerformanceMonitor {
       cardStaggerDelay: 40,    // 适中的错开时间
       easeFunction: 'Power2',  // 标准缓动函数
       startDelay: 350,         // 适中的开始延迟
-      endDelay: 150            // 适中的结束延迟
+      endDelay: 150,           // 适中的结束延迟
+      flipDelay: 100           // 标准翻牌延迟
     };
   }
 
@@ -263,7 +265,8 @@ export class PerformanceMonitor {
       cardStaggerDelay: 80,    // 更明显的错开效果
       easeFunction: 'Back.easeOut', // 复杂的缓动函数
       startDelay: 600,         // 更长的开始延迟
-      endDelay: 300            // 更长的结束延迟
+      endDelay: 300,           // 更长的结束延迟
+      flipDelay: 120           // 较慢的翻牌延迟，更有节奏感
     };
   }
 

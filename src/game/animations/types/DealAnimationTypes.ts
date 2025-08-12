@@ -28,6 +28,8 @@ export interface DealAnimationConfig {
   startDelay: number;
   /** 动画结束后延迟 (ms) */
   endDelay: number;
+  /** 同时发牌模式下，每列翻牌之间的延迟 (ms) */
+  flipDelay: number;
 }
 
 /**
@@ -149,7 +151,8 @@ export const DEFAULT_DEAL_CONFIG: DealAnimationConfig = {
   cardStaggerDelay: 50,       // 同行卡牌50ms错开
   easeFunction: 'Power2',     // 平滑缓动
   startDelay: 500,           // 开始前0.5秒延迟
-  endDelay: 200              // 结束后0.2秒延迟
+  endDelay: 200,             // 结束后0.2秒延迟
+  flipDelay: 100             // 翻牌延迟100ms
 };
 
 /**
