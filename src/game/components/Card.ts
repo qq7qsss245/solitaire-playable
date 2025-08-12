@@ -410,18 +410,9 @@ export class Card extends GameObjects.Container {
             return;
         }
         
-        // 错误交互检测逻辑 - 只在教学结束后生效
-        if (gameScene.getIsTutorialMode()) {
-            // 仍在教学模式中，跳过错误检测
-            console.log('🔍 [DEBUG] 仍在教学模式中，跳过错误检测:', this.name);
-        } else {
-            // 教学已结束，启用错误检测
-            console.log('🔍 [DEBUG] 教学已结束，开始错误检测:', this.name);
-            if (!this.hasAnyValidMove()) {
-                this.triggerErrorFeedback();
-                return;
-            }
-        }
+        // 拖拽操作不进行错误反馈检测
+        // 拖拽是探索性操作，用户可以自由尝试不同的位置
+        console.log('🔍 [DEBUG] 拖拽操作开始，跳过错误检测:', this.name);
         
         this.isDragging = true;
         this.startX = this.x;
