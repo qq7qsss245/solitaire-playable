@@ -1084,6 +1084,12 @@ export class Game extends Scene {
     }
 
     private showGuideHand(x: number, y: number): void {
+        // 🔧 修复：添加教学模式验证，防止在非教学模式下显示手势
+        if (!this.isTutorialMode) {
+            console.log('🔍 [DEBUG] showGuideHand - 非教学模式，拒绝显示手势');
+            return;
+        }
+        
         this.handGuide.setPosition(x, y);
         this.handGuide.setVisible(true);
         
@@ -1105,24 +1111,26 @@ export class Game extends Scene {
         // 更新教学系统
         if (this.tutorialManager && this.isTutorialMode) {
             this.tutorialManager.update(time, delta);
-        } else {
-            // 只有在非教学模式下才显示普通引导
-            this.updateHandGuide();
         }
+        // 🔧 修复：完全禁用非教学模式下的手势提示
+        // 手势图片应该只在教学模式下由GuideSystem控制显示
+        // 移除了 updateHandGuide() 调用，确保手势图片不会在正常游戏中出现
     }
 
-    private updateHandGuide(): void {
-        // 如果5秒内没有移动，显示引导
-        this.guideTimer += 16; // 假设60fps
-        
-        if (this.guideTimer > 5000 && this.lastMoves === this.moves) {
-            // 寻找可以移动的卡牌并显示引导
-            const clickableCard = this.findClickableCard();
-            if (clickableCard) {
-                this.showGuideHand(clickableCard.x, clickableCard.y - 50);
-            }
-        }
-    }
+    // 🔧 修复：移除updateHandGuide方法，因为手势提示应该只在教学模式下显示
+    // 这个方法之前会在非教学模式下显示手势，导致了用户报告的问题
+    // private updateHandGuide(): void {
+    //     // 如果5秒内没有移动，显示引导
+    //     this.guideTimer += 16; // 假设60fps
+    //
+    //     if (this.guideTimer > 5000 && this.lastMoves === this.moves) {
+    //         // 寻找可以移动的卡牌并显示引导
+    //         const clickableCard = this.findClickableCard();
+    //         if (clickableCard) {
+    //             this.showGuideHand(clickableCard.x, clickableCard.y - 50);
+    //         }
+    //     }
+    // }
 
     private findClickableCard(): CardComponent | null {
         // 寻找可以点击的卡牌（简化版本）
@@ -1414,6 +1422,22 @@ export class Game extends Scene {
         this.isTutorialMode = value;
         
         if (!value) {
+            console.log('🔍 [DEBUG] setIsTutorialMode - 教学模式已结束，开始清理手势图片');
+            
+            // 🐛 DEBUG: 检查当前手势状态
+            console.log('🔍 [DEBUG] setIsTutorialMode - handGuide.visible =', this.handGuide?.visible);
+            console.log('🔍 [DEBUG] setIsTutorialMode - tutorialManager存在 =', !!this.tutorialManager);
+            
+            // 隐藏Game.ts中的手势图片
+            if (this.handGuide) {
+                this.handGuide.setVisible(false);
+                console.log('🔍 [DEBUG] setIsTutorialMode - 已隐藏Game.ts中的handGuide');
+            }
+            
+            // 重置引导计时器，防止立即显示手势
+            this.guideTimer = 0;
+            this.lastMoves = this.moves;
+            
             console.log('🔍 [DEBUG] setIsTutorialMode - 教学模式已结束，用户现在可以自由游戏');
         }
     }
