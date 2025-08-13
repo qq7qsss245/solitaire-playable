@@ -78,7 +78,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #000000;
+    color: #00878f;
     font-weight: bold;
 }
 
@@ -166,7 +166,7 @@
     }
     
     .col-value {
-        font-size: calc(80vh * 0.036); /* 同步缩放 */
+        font-size: calc(80vh * 0.042); /* 增大字体 */
     }
     
     .record-badge {
@@ -186,7 +186,7 @@
     .continue-button {
         width: calc(80vh * 4 / 5 * 0.5 * 0.75); /* 缩小到75% */
         height: auto;
-        margin-top: -6vh;
+        margin-top: -2vh;
     }
 }
 
@@ -259,7 +259,7 @@
     }
     
     .col-value {
-        font-size: calc(80vw * 5 / 4 * 0.036); /* 保持原始大小 */
+        font-size: calc(80vw * 5 / 4 * 0.042); /* 增大字体 */
     }
     
     .record-badge {
@@ -272,14 +272,14 @@
         font-weight: bold;
         color: #FF8C00;
         text-align: center;
-        margin-bottom: calc(80vw * 5 / 4 * 0.05); /* 相当于20px在500px高度中的比例 */
+        margin-bottom: calc(80vw * 5 / 4 * 0.04); /* 相当于20px在500px高度中的比例 */
         margin-top: -7vmin;
     }
     
     .continue-button {
         width: calc(80vw * 0.5 * 0.75); /* 缩小到75% */
         height: auto;
-        margin-top: -5vmin;
+        margin-top: -7vmin;
 
     }
 }
@@ -297,7 +297,7 @@
         }
         
         .col-value {
-            font-size: calc(80vh * 0.032);
+            font-size: calc(80vh * 0.038);
         }
         
         .continue-prompt {
@@ -316,7 +316,7 @@
         }
         
         .col-value {
-            font-size: calc(80vw * 5 / 4 * 0.032);
+            font-size: calc(80vw * 5 / 4 * 0.038);
         }
         
         .continue-prompt {
