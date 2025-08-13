@@ -24,7 +24,7 @@ interface GameOverModalProps {
 }
 
 const GameOverModal: React.FC<GameOverModalProps> = () => {
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
     const [currentStats, setCurrentStats] = useState<GameStats>({ score: 0, time: 0, moves: 0 });
 
     useEffect(() => {

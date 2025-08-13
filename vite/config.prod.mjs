@@ -3,6 +3,7 @@ import { viteSingleFile } from "vite-plugin-singlefile"
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from "url";
 import { base64ToGzippedBase122, base64ToBrotliBase122 } from "./base122.ts";
+import { configEmbedPlugin } from "./config-embed-plugin.mjs";
 
 const phasermsg = () => {
     return {
@@ -57,6 +58,7 @@ export default defineConfig({
     plugins: [
         react(),
         phasermsg(),
+        configEmbedPlugin(),
         viteSingleFile()    ],
     resolve: {
         alias: [
