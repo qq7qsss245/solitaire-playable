@@ -5,6 +5,13 @@
     to { opacity: 1; }
 }
 
+.line {
+    position: absolute;
+    background-color: #00878f;
+    z-index: 1001;
+    border-radius: 3px;
+}
+
 /* 遮罩层 */
 .game-over-overlay {
     position: fixed;
@@ -40,7 +47,7 @@
 
 .table-header {
     display: grid;
-    grid-template-columns: 2.5fr 2fr 2fr;
+    grid-template-columns: 2fr 2.5fr 2fr;
     align-items: center;
 }
 
@@ -57,7 +64,7 @@
 
 .table-row {
     display: grid;
-    grid-template-columns: 2.5fr 2fr 2fr;
+    grid-template-columns: 2fr 2.5fr 2fr;
     align-items: center;
 }
 
@@ -98,12 +105,46 @@
         max-width: 90vw;
         padding-top: calc(80vh * 0.08); /* 相当于80px在500px高度中的比例 */
     }
+
+    .hor {
+        width:  60vh;
+        height: 3px;
+        margin-top: -14vh;
+    }
+    
+    .ver {
+        width: 3px;;
+    }
+
+    .id1 {
+        height: 4.5vh;
+        left: calc(50vw - 10vh);
+        margin-top: calc(-80vh * 0.28);
+    }
+
+    .id2 {
+        height: 4.5vh;
+        left: calc(50vw + 10vh);
+        margin-top: calc(-80vh * 0.28);
+    }
+
+    .id4 {
+        height: calc(80vh * 0.22);
+        left: calc(50vw - 10vh);
+        margin-top: calc(80vh * 0.1);
+    }
+
+    .id5 {
+        height: calc(80vh * 0.22);
+        left: calc(50vw + 10vh);
+        margin-top: calc(80vh * 0.1);
+    }
     
     .stats-table {
         width: calc(80vh * 4 / 5 * 0.8); /* 面板宽度的80% */
-        gap: calc(80vh * 0.024); /* 相当于12px在500px高度中的比例 */
+        gap: calc(80vh * 0.016); /* 相当于12px在500px高度中的比例 */
         margin-top: calc(80vh * 0.3); /* 相当于90px在500px高度中的比例 */
-        margin-bottom: calc(80vh * 0.08); /* 相当于40px在500px高度中的比例 */
+        margin-bottom: calc(80vh * 0.10); /* 相当于40px在500px高度中的比例 */
     }
     
     .table-header {
@@ -156,6 +197,40 @@
         height: calc(80vw);
         max-height: 100vh;
         padding-top: calc(80vw * 5 / 4 * 0.1); /* 相当于80px在500px高度中的比例 */
+    }
+
+    .hor {
+        width:  70vw;
+        height: 3px;
+        margin-top: -20vw;
+    }
+    
+    .ver {
+        width: 3px;;
+    }
+
+    .id1 {
+        height: 7vw;
+        left: 37vw;
+        margin-top: calc(-80vw * 0.38);
+    }
+
+    .id2 {
+        height: 7vw;
+        left: 62.5vw;
+        margin-top: calc(-80vw * 0.38);
+    }
+
+    .id4 {
+        height: calc(80vw * 0.33);
+        left: 37vw;
+        margin-top: calc(80vw * 0.13);
+    }
+
+    .id5 {
+        height: calc(80vw * 0.33);
+        left: 62.5vw;
+        margin-top: calc(80vw * 0.13);
     }
     
     .stats-table {

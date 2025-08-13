@@ -68,6 +68,11 @@ const GameOverModal: React.FC<GameOverModalProps> = () => {
 
     return (
         <div className="game-over-overlay">
+            <div className='line ver id1'/>
+            <div className='line ver id2'/>
+            <div className='line hor id3'/>
+            <div className='line ver id4'/>
+            <div className='line ver id5'/>
             {/* 结算面板背景 */}
             <div className="game-over-panel" style={{ backgroundImage: `url(${gameoverBg})` }}>
                 {/* 表格式布局 */}
