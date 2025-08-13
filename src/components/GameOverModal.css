@@ -20,37 +20,28 @@
     animation: fadeIn 0.3s ease-in-out;
 }
 
-/* 结算面板背景 */
+/* 结算面板背景 - 基础样式 */
 .game-over-panel {
     position: relative;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    width: 400px;
-    height: 500px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 80px;
 }
 
-/* 表格式布局样式 */
+/* 表格式布局样式 - 基础 */
 .stats-table {
-    width: 320px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 40px;
-    margin-top: 150px;
 }
 
-/* 表格标题行 */
 .table-header {
     display: grid;
-    grid-template-columns: 100px 1fr 80px;
+    grid-template-columns: 2.5fr 2fr 2fr;
     align-items: center;
-    margin-bottom: 15px;
 }
 
 .col-empty {
@@ -64,17 +55,10 @@
     align-items: center;
 }
 
-.header-text {
-    height: 30px;
-    width: auto;
-}
-
-/* 表格数据行 */
 .table-row {
     display: grid;
-    grid-template-columns: 100px 1fr 80px;
+    grid-template-columns: 2.5fr 2fr 2fr;
     align-items: center;
-    height: 35px;
 }
 
 .col-label {
@@ -83,17 +67,11 @@
     align-items: center;
 }
 
-.label-text {
-    height: 25px;
-    width: auto;
-}
-
 .col-value {
     display: flex;
     justify-content: center;
     align-items: center;
     color: #000000;
-    font-size: 18px;
     font-weight: bold;
 }
 
@@ -103,21 +81,6 @@
     align-items: center;
 }
 
-.record-badge {
-    height: 40px;
-    width: auto;
-}
-
-/* 继续提示 */
-.continue-prompt {
-    font-size: 18px;
-    font-weight: bold;
-    color: #FF8C00;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-/* 继续按钮 */
 .continue-button-container {
     cursor: pointer;
     transition: transform 0.1s ease;
@@ -127,58 +90,162 @@
     transform: scale(1.05);
 }
 
-.continue-button {
-    width: 200px;
-    height: auto;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
+/* 横屏模式样式 - 高度的75% */
+@media (orientation: landscape) {
     .game-over-panel {
-        width: 90%;
-        height: auto;
-        min-height: 450px;
-        padding-top: 60px;
+        height: 80vh;
+        width: calc(80vh);
+        max-width: 90vw;
+        padding-top: calc(80vh * 0.08); /* 相当于80px在500px高度中的比例 */
     }
     
     .stats-table {
-        width: 280px;
-        gap: 10px;
-        margin-bottom: 30px;
+        width: calc(80vh * 4 / 5 * 0.8); /* 面板宽度的80% */
+        gap: calc(80vh * 0.024); /* 相当于12px在500px高度中的比例 */
+        margin-top: calc(80vh * 0.3); /* 相当于90px在500px高度中的比例 */
+        margin-bottom: calc(80vh * 0.08); /* 相当于40px在500px高度中的比例 */
     }
     
     .table-header {
-        grid-template-columns: 80px 1fr 70px;
-        margin-bottom: 12px;
+        margin-bottom: calc(80vh * 0.03); /* 相当于15px在500px高度中的比例 */
     }
     
     .header-text {
-        height: 25px;
+        height: calc(80vh * 0.06 * 0.75); /* 缩小到75% */
+        width: auto;
     }
     
     .table-row {
-        grid-template-columns: 80px 1fr 70px;
-        height: 30px;
+        height: calc(80vh * 0.07); /* 相当于35px在500px高度中的比例 */
     }
     
     .label-text {
-        height: 20px;
+        height: calc(80vh * 0.05 * 0.75); /* 缩小到75% */
+        width: auto;
     }
     
     .col-value {
-        font-size: 16px;
+        font-size: calc(80vh * 0.036); /* 同步缩放 */
     }
     
     .record-badge {
-        height: 32px;
+        height: calc(80vh * 0.08 * 0.75); /* 缩小到75% */
+        width: auto;
     }
     
     .continue-prompt {
-        font-size: 16px;
-        margin-bottom: 15px;
+        font-size: calc(80vh * 0.02); /* 同步缩放 */
+        font-weight: bold;
+        color: #FF8C00;
+        text-align: center;
+        margin-bottom: calc(80vh * 0.03); /* 相当于20px在500px高度中的比例 */
+        margin-top: -6vh;
     }
     
     .continue-button {
-        width: 160px;
+        width: calc(80vh * 4 / 5 * 0.5 * 0.75); /* 缩小到75% */
+        height: auto;
+        margin-top: -6vh;
+    }
+}
+
+/* 竖屏模式样式 - 宽度的80% */
+@media (orientation: portrait) {
+    .game-over-panel {
+        width: 100vw;
+        height: calc(80vw);
+        max-height: 100vh;
+        padding-top: calc(80vw * 5 / 4 * 0.1); /* 相当于80px在500px高度中的比例 */
+    }
+    
+    .stats-table {
+        width: calc(80vw * 0.8); /* 面板宽度的80% */
+        gap: calc(80vw * 5 / 4 * 0.024); /* 相当于12px在500px高度中的比例 */
+        margin-top: calc(80vw * 5 / 4 * 0.18); /* 相当于90px在500px高度中的比例 */
+        margin-bottom: calc(80vw * 5 / 4 * 0.08); /* 相当于40px在500px高度中的比例 */
+    }
+    
+    .table-header {
+        margin-bottom: calc(80vw * 5 / 4 * 0.03); /* 相当于15px在500px高度中的比例 */
+    }
+    
+    .header-text {
+        height: calc(80vw * 5 / 4 * 0.06 * 0.75); /* 缩小到75% */
+        width: auto;
+    }
+    
+    .table-row {
+        height: calc(80vw * 5 / 4 * 0.07); /* 相当于35px在500px高度中的比例 */
+    }
+    
+    .label-text {
+        height: calc(80vw * 5 / 4 * 0.05 * 0.75); /* 缩小到75% */
+        width: auto;
+    }
+    
+    .col-value {
+        font-size: calc(80vw * 5 / 4 * 0.036); /* 保持原始大小 */
+    }
+    
+    .record-badge {
+        height: calc(80vw * 5 / 4 * 0.08 * 0.75); /* 缩小到75% */
+        width: auto;
+    }
+    
+    .continue-prompt {
+        font-size: calc(80vw * 5 / 4 * 0.02); /* 相当于18px在500px高度中的比例 */
+        font-weight: bold;
+        color: #FF8C00;
+        text-align: center;
+        margin-bottom: calc(80vw * 5 / 4 * 0.05); /* 相当于20px在500px高度中的比例 */
+        margin-top: -7vmin;
+    }
+    
+    .continue-button {
+        width: calc(80vw * 0.5 * 0.75); /* 缩小到75% */
+        height: auto;
+        margin-top: -5vmin;
+
+    }
+}
+
+/* 极小屏幕优化 */
+@media (max-width: 320px) or (max-height: 320px) {
+    @media (orientation: landscape) {
+        .game-over-panel {
+            padding-top: calc(80vh * 0.12);
+        }
+        
+        .stats-table {
+            gap: calc(80vh * 0.02);
+            margin-top: calc(80vh * 0.15);
+        }
+        
+        .col-value {
+            font-size: calc(80vh * 0.032);
+        }
+        
+        .continue-prompt {
+            font-size: calc(80vh * 0.032);
+        }
+    }
+    
+    @media (orientation: portrait) {
+        .game-over-panel {
+            padding-top: calc(80vw * 5 / 4 * 0.12);
+        }
+        
+        .stats-table {
+            gap: calc(80vw * 5 / 4 * 0.02);
+            margin-top: calc(80vw * 5 / 4 * 0.15);
+        }
+        
+        .col-value {
+            font-size: calc(80vw * 5 / 4 * 0.032);
+        }
+        
+        .continue-prompt {
+            font-size: calc(80vw * 5 / 4 * 0.032);
+        }
     }
 }
