@@ -95,7 +95,7 @@ export class Game extends Scene {
     
     // 结算系统
     private gameOverTriggered: boolean = false;
-    private readonly GAME_OVER_TIME = 30; // 30秒后触发结算
+    private gameOverTime: number = 30; // 默认30秒后触发结算，可从配置文件读取
     
     // 游戏尺寸常量
     public readonly LANDSCAPE_WIDTH = 1920;
@@ -114,6 +114,11 @@ export class Game extends Scene {
         this.startTime = 0;
         this.isTimerStarted = false;
         console.log('🔍 [INIT_DEBUG] Timer state initialized - started:', this.isTimerStarted);
+
+        // 从配置文件中读取游戏结束时间
+        this.loadGameOverTimeFromConfig().catch(error => {
+            console.error('Failed to load game over time config:', error);
+        });
 
         // 检查URL参数
         const urlParams = new URLSearchParams(window.location.search);
@@ -1753,7 +1758,21 @@ export class Game extends Scene {
     // 结算面板相关方法
 
     /**
-     * 检查游戏时间是否达到30秒，触发结算面板
+     * 从配置文件中加载游戏结束时间
+     */
+    private async loadGameOverTimeFromConfig(): Promise<void> {
+        try {
+            // 从配置中读取游戏结束时间（秒），默认为 30 秒
+            this.gameOverTime = await getOutputConfigValueAsync('gameOverModalDelay', 30);
+            console.log(`⏱️ Game: Game over time loaded from config: ${this.gameOverTime} seconds`);
+        } catch (error) {
+            console.warn('⚠️ Game: Failed to load game over time from config, using default 30 seconds:', error);
+            this.gameOverTime = 30;
+        }
+    }
+
+    /**
+     * 检查游戏时间是否达到配置的时间，触发结算面板
      */
     private checkGameOverTime(): void {
         // 如果已经触发过结算或者计时器未启动，直接返回
@@ -1765,8 +1784,8 @@ export class Game extends Scene {
         const currentTime = Date.now();
         const gameTime = Math.floor((currentTime - this.startTime) / 1000);
 
-        // 检查是否达到30秒
-        if (gameTime >= this.GAME_OVER_TIME) {
+        // 检查是否达到配置的游戏结束时间
+        if (gameTime >= this.gameOverTime) {
             this.triggerGameOver();
         }
     }
@@ -1780,7 +1799,7 @@ export class Game extends Scene {
         }
 
         this.gameOverTriggered = true;
-        console.log('🏁 Game Over triggered after 30 seconds');
+        console.log(`🏁 Game Over triggered after ${this.gameOverTime} seconds`);
 
         // 计算当前游戏数据
         const currentTime = Date.now();

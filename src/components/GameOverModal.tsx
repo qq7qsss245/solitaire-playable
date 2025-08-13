@@ -32,9 +32,10 @@ const GameOverModal: React.FC<GameOverModalProps> = () => {
         const handleGameOver = (data: GameStats) => {
             console.log('🏁 React: Game over event received', data);
             
-            // 更新状态
+            // 更新状态并立即显示弹窗
             setCurrentStats(data);
             setIsVisible(true);
+            console.log('🎯 React: Game over modal is now visible');
         };
 
         // 监听隐藏事件
