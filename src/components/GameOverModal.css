@@ -1,0 +1,159 @@
+/* 结算面板样式 */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 遮罩层 */
+.game-over-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 结算面板背景 */
+.game-over-panel {
+    position: relative;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 400px;
+    height: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 顶部标题 GREAT! */
+.great-title {
+    position: absolute;
+    top: 60px;
+    width: 120px;
+    height: auto;
+}
+
+/* 标题行容器 */
+.title-row {
+    position: absolute;
+    top: 140px;
+    display: flex;
+    width: 280px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title-your {
+    width: 60px;
+    height: auto;
+}
+
+.title-best {
+    width: 60px;
+    height: auto;
+}
+
+/* 数据区域 */
+.data-section {
+    position: absolute;
+    top: 180px;
+    width: 320px;
+}
+
+/* 数据行 */
+.data-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    height: 30px;
+}
+
+.data-label {
+    width: 80px;
+    height: auto;
+}
+
+.data-value {
+    flex: 1;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: #000000;
+}
+
+.data-value.time {
+    color: #4A90E2;
+}
+
+/* 最佳记录区域 */
+.best-record-container {
+    position: relative;
+    width: 60px;
+    text-align: center;
+}
+
+.best-record-icon {
+    width: 50px;
+    height: auto;
+}
+
+.best-record-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    font-weight: bold;
+    color: #FFFFFF;
+    text-align: center;
+    line-height: 1;
+}
+
+.best-record-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #000000;
+}
+
+/* 继续提示 */
+.continue-prompt {
+    position: absolute;
+    top: 320px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #FF8C00;
+    text-align: center;
+}
+
+/* 继续按钮 */
+.continue-button-container {
+    position: absolute;
+    bottom: 60px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.continue-button-container:hover {
+    transform: scale(1.05);
+}
+
+.continue-button {
+    width: 200px;
+    height: auto;
+}
+
+/* 蓝色分隔线 */
+.blue-line {
+    position: absolute;
+    border-radius: 5px;
+    background-color: rgb(0, 135, 143);
+}
