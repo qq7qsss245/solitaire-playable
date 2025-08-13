@@ -885,7 +885,7 @@ export class Game extends Scene {
             // 发牌音效已移除，保留用于之后的发牌动画
             // EventBus.emit('play-card-deal');
             
-            // 创建临时动画卡牌
+            // 创建临时动画卡牌（背面）
             this.animationCard = this.add.sprite(
                 this.currentLayout.stock.x,
                 this.currentLayout.stock.y,
@@ -910,12 +910,24 @@ export class Game extends Scene {
                     // 更新卡牌状态
                     card.setFaceUp(true);
                     
-                    // 切换到牌面纹理
-                    this.animationCard!.setTexture(AssetKeys.CARD_FACE);
+                    // 销毁简单的sprite，创建完整渲染的卡牌容器
+                    this.animationCard!.destroy();
+                    
+                    // 创建完整渲染的卡牌容器
+                    const renderedCard = this.createRenderedCardContainer(card);
+                    renderedCard.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y - 12);
+                    renderedCard.setDepth(100);
+                    
+                    // 初始时scaleX为0（翻转状态），scaleY保持0.8
+                    renderedCard.scaleX = 0;
+                    renderedCard.scaleY = 0.8;
+                    
+                    // 将容器赋值给animationCard以便后续处理
+                    this.animationCard = renderedCard as any;
                     
                     // 第二阶段翻转（50-100ms）
                     this.tweens.add({
-                        targets: this.animationCard,
+                        targets: renderedCard,
                         scaleX: 0.8,
                         duration: 50,
                         ease: 'Power2',
@@ -995,6 +1007,124 @@ export class Game extends Scene {
             this.animationCard = null;
             this.isStockAnimating = false;
         }
+    }
+
+    // 创建完整渲染的卡牌容器（用于动画）
+    private createRenderedCardContainer(card: CardComponent): GameObjects.Container {
+        const container = this.add.container(0, 0);
+        
+        // 获取标准卡牌尺寸（与Card组件保持一致）
+        const isLandscape = window.innerWidth > window.innerHeight;
+        const cardWidth = isLandscape ? landscapeLayout.cardWidth : portraitLayout.cardWidth;
+        const cardHeight = isLandscape ? landscapeLayout.cardHeight : portraitLayout.cardHeight;
+        
+        // 创建卡面背景
+        const cardBackground = this.add.image(0, 0, AssetKeys.CARD_FACE);
+        cardBackground.setDisplaySize(cardWidth, cardHeight);
+        container.add(cardBackground);
+
+        // 获取卡牌的花色和数值信息
+        const suit = card.suit;
+        const value = card.value;
+        
+        // 获取花色资源键名
+        const getSuitKey = (suit: string): string => {
+            const suitMap = {
+                'h': 'hearts',
+                'd': 'diamonds',
+                'c': 'clubs',
+                's': 'spades'
+            } as const;
+            
+            const SUIT_KEYS = {
+                hearts: AssetKeys.SUIT_HEART,
+                diamonds: AssetKeys.SUIT_DIAMOND,
+                clubs: AssetKeys.SUIT_CLUB,
+                spades: AssetKeys.SUIT_SPADE
+            };
+            
+            return SUIT_KEYS[suitMap[suit as keyof typeof suitMap]];
+        };
+        
+        // 获取数值资源键名
+        const getValueKey = (suit: string, value: string): string => {
+            const isRed = (suit === 'h' || suit === 'd');
+            const color = isRed ? 'red' : 'black';
+            
+            const VALUE_KEYS = {
+                red: {
+                    A: AssetKeys.RED_A, 2: AssetKeys.RED_2, 3: AssetKeys.RED_3, 4: AssetKeys.RED_4,
+                    5: AssetKeys.RED_5, 6: AssetKeys.RED_6, 7: AssetKeys.RED_7, 8: AssetKeys.RED_8,
+                    9: AssetKeys.RED_9, 10: AssetKeys.RED_10, J: AssetKeys.RED_J, Q: AssetKeys.RED_Q, K: AssetKeys.RED_K,
+                },
+                black: {
+                    A: AssetKeys.BLACK_A, 2: AssetKeys.BLACK_2, 3: AssetKeys.BLACK_3, 4: AssetKeys.BLACK_4,
+                    5: AssetKeys.BLACK_5, 6: AssetKeys.BLACK_6, 7: AssetKeys.BLACK_7, 8: AssetKeys.BLACK_8,
+                    9: AssetKeys.BLACK_9, 10: AssetKeys.BLACK_10, J: AssetKeys.BLACK_J, Q: AssetKeys.BLACK_Q, K: AssetKeys.BLACK_K,
+                }
+            };
+            
+            return VALUE_KEYS[color][value as keyof typeof VALUE_KEYS.red];
+        };
+        
+        // 获取人物牌大图资源键名
+        const getFaceCardKey = (value: string): string | null => {
+            if (value === 'J') return AssetKeys.FACE_J;
+            if (value === 'Q') return AssetKeys.FACE_Q;
+            if (value === 'K') return AssetKeys.FACE_K;
+            return null;
+        };
+        
+        // 判断是否为人物牌
+        const isFaceCard = (value: string): boolean => {
+            return value === 'J' || value === 'Q' || value === 'K';
+        };
+
+        const suitKey = getSuitKey(suit);
+        const valueKey = getValueKey(suit, value);
+
+        // 布局位置常量（与Card.ts保持一致）
+        const TOP_LEFT_SUIT_POS = { x: -40, y: -28 };
+        const TOP_LEFT_VALUE_POS = { x: -42, y: -70 };
+        const TOP_RIGHT_SUIT_POS = { x: 36, y: -65 };
+        const CENTER_SUIT_POS = { x: 0, y: 35 };
+
+        // 创建花色图标 - 左上角
+        const suitTopLeft = this.add.image(TOP_LEFT_SUIT_POS.x, TOP_LEFT_SUIT_POS.y, suitKey);
+        suitTopLeft.setScale(0.6);
+        container.add(suitTopLeft);
+
+        // 创建数值图标 - 左上角
+        const valueTopLeft = this.add.image(TOP_LEFT_VALUE_POS.x, TOP_LEFT_VALUE_POS.y, valueKey);
+        valueTopLeft.setScale(0.6);
+        container.add(valueTopLeft);
+
+        // 创建花色图标 - 右上角装饰
+        const suitTopRight = this.add.image(TOP_RIGHT_SUIT_POS.x, TOP_RIGHT_SUIT_POS.y, suitKey);
+        suitTopRight.setScale(1);
+        suitTopRight.setAlpha(1.0);
+        container.add(suitTopRight);
+
+        // 创建中心图标
+        const centerSuit = this.add.image(CENTER_SUIT_POS.x, CENTER_SUIT_POS.y, suitKey);
+        
+        if (isFaceCard(value)) {
+            // J、Q、K显示人物大图
+            const faceCardKey = getFaceCardKey(value);
+            if (faceCardKey) {
+                centerSuit.setTexture(faceCardKey);
+                centerSuit.setScale(0.6);
+                centerSuit.setAlpha(1.0);
+            }
+        } else {
+            // 其他牌显示花色
+            centerSuit.setTexture(suitKey);
+            centerSuit.setScale(1.5);
+            centerSuit.setAlpha(1.0);
+        }
+        container.add(centerSuit);
+
+        return container;
     }
 
     // 重置waste到stock（保持原有逻辑）
