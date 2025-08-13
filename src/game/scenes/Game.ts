@@ -1536,8 +1536,13 @@ export class Game extends Scene {
 
     // 游戏胜利处理
     private onGameWin(): void {
+        // 停止计时器
+        this.isTimerStarted = false;
+        console.log('⏱️ Timer stopped for game win');
+        
         // 播放胜利音效
         EventBus.emit('play-victory');
+        console.log('🎵 Victory sound played for game win');
         
         // 显示胜利界面或执行其他胜利逻辑
         console.log('Game Won!');
@@ -1800,6 +1805,14 @@ export class Game extends Scene {
 
         this.gameOverTriggered = true;
         console.log(`🏁 Game Over triggered after ${this.gameOverTime} seconds`);
+
+        // 停止计时器
+        this.isTimerStarted = false;
+        console.log('⏱️ Timer stopped for game over');
+
+        // 播放胜利音效
+        EventBus.emit('play-victory');
+        console.log('🎵 Victory sound played');
 
         // 计算当前游戏数据
         const currentTime = Date.now();

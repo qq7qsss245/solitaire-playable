@@ -1,4 +1,4 @@
 {
-  "maxMoves": 10,
+  "maxMoves": 1000,
   "gameOverModalDelay": 3
 }
