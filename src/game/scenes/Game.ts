@@ -93,6 +93,10 @@ export class Game extends Scene {
     private guideTimer: number = 0;
     private lastMoves: number = 0;
     
+    // 结算系统
+    private gameOverTriggered: boolean = false;
+    private readonly GAME_OVER_TIME = 30; // 30秒后触发结算
+    
     // 游戏尺寸常量
     public readonly LANDSCAPE_WIDTH = 1920;
     public readonly LANDSCAPE_HEIGHT = 1080;
@@ -1155,6 +1159,9 @@ export class Game extends Scene {
         // 更新时间显示
         this.updateTimeDisplay();
         
+        // 检查30秒结算逻辑
+        this.checkGameOverTime();
+        
         // 更新教学系统
         if (this.tutorialManager && this.isTutorialMode) {
             this.tutorialManager.update(time, delta);
@@ -1611,5 +1618,96 @@ export class Game extends Scene {
         }
         
         return this.tutorialManager.isActive() ? false : true; // 简化版本
+    }
+
+    // 结算面板相关方法
+
+    /**
+     * 检查游戏时间是否达到30秒，触发结算面板
+     */
+    private checkGameOverTime(): void {
+        // 如果已经触发过结算或者计时器未启动，直接返回
+        if (this.gameOverTriggered || !this.isTimerStarted) {
+            return;
+        }
+
+        // 计算游戏时间
+        const currentTime = Date.now();
+        const gameTime = Math.floor((currentTime - this.startTime) / 1000);
+
+        // 检查是否达到30秒
+        if (gameTime >= this.GAME_OVER_TIME) {
+            this.triggerGameOver();
+        }
+    }
+
+    /**
+     * 触发游戏结算
+     */
+    private triggerGameOver(): void {
+        if (this.gameOverTriggered) {
+            return;
+        }
+
+        this.gameOverTriggered = true;
+        console.log('🏁 Game Over triggered after 30 seconds');
+
+        // 计算当前游戏数据
+        const currentTime = Date.now();
+        const gameTime = Math.floor((currentTime - this.startTime) / 1000);
+        
+        const currentStats = {
+            score: this.score,
+            time: gameTime,
+            moves: this.moves
+        };
+
+        // 通过EventBus发送结算事件到React组件
+        EventBus.emit('show-game-over', currentStats);
+
+        console.log('📊 Game stats sent to React:', currentStats);
+
+        // 监听继续游戏事件
+        EventBus.once('game-continue', () => {
+            this.onContinueGame();
+        });
+    }
+
+    /**
+     * 继续游戏回调
+     */
+    private onContinueGame(): void {
+        console.log('🔄 Continue game requested');
+        
+        // 重置结算状态，允许再次触发
+        this.gameOverTriggered = false;
+        
+        // 重置计时器
+        this.startTime = Date.now();
+        
+        console.log('✅ Game continued, timer reset');
+    }
+
+    /**
+     * 获取当前游戏统计数据
+     */
+    public getCurrentGameStats() {
+        const currentTime = Date.now();
+        const gameTime = this.isTimerStarted ? Math.floor((currentTime - this.startTime) / 1000) : 0;
+        
+        return {
+            score: this.score,
+            time: gameTime,
+            moves: this.moves
+        };
+    }
+
+    /**
+     * 手动触发结算面板（用于测试）
+     */
+    public showGameOverPanel(): void {
+        if (!this.gameOverTriggered) {
+            this.triggerGameOver();
+        }
     }
 }
