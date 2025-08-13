@@ -63,6 +63,7 @@ export class Game extends Scene {
     private score: number = 0;
     private moves: number = 0;
     private startTime: number = 0;
+    private isTimerStarted: boolean = false;
     
     // 计分板UI元素
     private scoreboardBackground: Phaser.GameObjects.Image;
@@ -105,8 +106,10 @@ export class Game extends Scene {
     create() {
         // BGM现在会自动播放，不需要手动触发
 
-        // 记录游戏开始时间
-        this.startTime = Date.now();
+        // 初始化计时器状态（不立即启动）
+        this.startTime = 0;
+        this.isTimerStarted = false;
+        console.log('🔍 [INIT_DEBUG] Timer state initialized - started:', this.isTimerStarted);
 
         // 检查URL参数
         const urlParams = new URLSearchParams(window.location.search);
@@ -132,7 +135,22 @@ export class Game extends Scene {
         
         // 添加全局点击事件监听
         this.input.on('pointerdown', () => {
+            console.log('🔍 [USER_ACTION_DEBUG] Pointer down detected');
+            console.log('🔍 [USER_ACTION_DEBUG] Tutorial mode:', this.isTutorialMode);
+            console.log('🔍 [USER_ACTION_DEBUG] Timer started:', this.isTimerStarted);
+            
             this.resetGuideState();
+            
+            // 在非教学模式下，第一次用户操作时启动计时器
+            if (!this.isTutorialMode && !this.isTimerStarted) {
+                console.log('🔍 [USER_ACTION_DEBUG] Starting timer due to user action in non-tutorial mode');
+                this.startTimer();
+            } else if (!this.isTutorialMode && this.isTimerStarted) {
+                console.log('🔍 [USER_ACTION_DEBUG] Timer already started in non-tutorial mode');
+            } else if (this.isTutorialMode) {
+                console.log('🔍 [USER_ACTION_DEBUG] In tutorial mode, timer should be managed by tutorial system');
+            }
+            
             // 触发用户操作事件
             EventBus.emit('user-action');
             // 每次点击都尝试播放BGM（如果BGM没有播放的话）
@@ -371,14 +389,19 @@ export class Game extends Scene {
 
         // 获取stock位置用于初始化卡牌位置
         const stockPosition = this.currentLayout?.stock || { x: 0, y: 0 };
+        // 调整发牌动画起始位置，向左上偏移50像素
+        const adjustedStockPosition = {
+            x: stockPosition.x - 50,
+            y: stockPosition.y - 90
+        };
 
         // 创建Tableau区域的卡牌
         this.gameLayout.tableau.forEach((column, columnIndex) => {
             column.forEach((cardData, cardIndex) => {
                 const card = new CardComponent(
                     this,
-                    stockPosition.x, // 初始位置设为stock位置
-                    stockPosition.y,
+                    adjustedStockPosition.x, // 初始位置设为调整后的stock位置
+                    adjustedStockPosition.y,
                     cardData.suit,
                     cardData.value,
                     cardData.faceUp
@@ -403,8 +426,8 @@ export class Game extends Scene {
         this.gameLayout.stock.forEach((cardData, index) => {
             const card = new CardComponent(
                 this,
-                stockPosition.x, // 初始位置设为stock位置
-                stockPosition.y,
+                adjustedStockPosition.x, // 初始位置设为调整后的stock位置
+                adjustedStockPosition.y,
                 cardData.suit,
                 cardData.value,
                 cardData.faceUp
@@ -1065,6 +1088,12 @@ export class Game extends Scene {
 
     // 更新时间显示
     private updateTimeDisplay(): void {
+        if (!this.isTimerStarted) {
+            // 计时器未启动时显示 00:00
+            this.timeValue.setText('00:00');
+            return;
+        }
+        
         const currentTime = Date.now();
         const elapsedSeconds = Math.floor((currentTime - this.startTime) / 1000);
         const minutes = Math.floor(elapsedSeconds / 60);
@@ -1072,6 +1101,23 @@ export class Game extends Scene {
         
         const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         this.timeValue.setText(timeString);
+    }
+
+    /**
+     * 启动计时器
+     */
+    public startTimer(): void {
+        if (!this.isTimerStarted) {
+            this.startTime = Date.now();
+            this.isTimerStarted = true;
+            console.log('🕐 Game: Timer started');
+            console.log('🔍 [TIMER_DEBUG] Timer started at:', new Date(this.startTime).toISOString());
+            console.log('🔍 [TIMER_DEBUG] Tutorial mode:', this.isTutorialMode);
+            console.log('🔍 [TIMER_DEBUG] Tutorial manager active:', this.tutorialManager?.isActive());
+        } else {
+            console.log('🔍 [TIMER_DEBUG] Timer start attempted but already started');
+            console.log('🔍 [TIMER_DEBUG] Current timer state - started:', this.isTimerStarted, 'startTime:', this.startTime);
+        }
     }
 
     // 引导系统相关方法
@@ -1378,9 +1424,12 @@ export class Game extends Scene {
         this.waste.cards.forEach(card => card.destroy());
         this.waste.cards = [];
         
-        // 重置游戏状态
+        // 重置游戏状态和计时器状态
         this.score = 0;
         this.moves = 0;
+        this.startTime = 0;
+        this.isTimerStarted = false;
+        console.log('🔍 [RESET_DEBUG] Game reset - timer state reset to:', this.isTimerStarted);
         
         // 重新初始化游戏
         this.initializeGame();

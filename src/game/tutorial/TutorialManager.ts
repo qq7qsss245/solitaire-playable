@@ -69,6 +69,17 @@ export class TutorialManager {
         
         console.log('🔍 TutorialManager: State set to ACTIVE, starting first step');
         
+        // 启动游戏计时器
+        if (this.scene && typeof this.scene.startTimer === 'function') {
+            console.log('🔍 [TUTORIAL_TIMER_DEBUG] About to start timer from tutorial');
+            this.scene.startTimer();
+            console.log('🕐 TutorialManager: Game timer started');
+        } else {
+            console.error('🔍 [TUTORIAL_TIMER_DEBUG] Cannot start timer - scene or startTimer method not available');
+            console.log('🔍 [TUTORIAL_TIMER_DEBUG] Scene exists:', !!this.scene);
+            console.log('🔍 [TUTORIAL_TIMER_DEBUG] startTimer method exists:', this.scene && typeof this.scene.startTimer === 'function');
+        }
+        
         // 开始第一步
         this.executeCurrentStep();
         

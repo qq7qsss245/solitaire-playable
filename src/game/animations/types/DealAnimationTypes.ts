@@ -7,7 +7,9 @@ export enum DealAnimationMode {
   /** 逐行发牌模式（原始模式） */
   ROW_BY_ROW = 'row_by_row',
   /** 同时发牌模式（新模式） */
-  SIMULTANEOUS = 'simultaneous'
+  SIMULTANEOUS = 'simultaneous',
+  /** 按张发牌模式（快速连续发牌） */
+  CARD_BY_CARD = 'card_by_card'
 }
 
 /**
@@ -30,6 +32,8 @@ export interface DealAnimationConfig {
   endDelay: number;
   /** 同时发牌模式下，每列翻牌之间的延迟 (ms) */
   flipDelay: number;
+  /** 按张发牌模式下，每张卡牌之间的延迟 (ms) */
+  cardByCardDelay: number;
 }
 
 /**
@@ -145,14 +149,15 @@ export interface InteractionState {
  * 默认发牌动画配置
  */
 export const DEFAULT_DEAL_CONFIG: DealAnimationConfig = {
-  mode: DealAnimationMode.SIMULTANEOUS, // 默认使用同时发牌模式
+  mode: DealAnimationMode.CARD_BY_CARD, // 默认使用按张发牌模式
   cardMoveSpeed: 300,          // 300ms每张卡牌
   rowDelay: 150,              // 行间延迟150ms
   cardStaggerDelay: 50,       // 同行卡牌50ms错开
   easeFunction: 'Power2',     // 平滑缓动
   startDelay: 500,           // 开始前0.5秒延迟
   endDelay: 200,             // 结束后0.2秒延迟
-  flipDelay: 100             // 翻牌延迟100ms
+  flipDelay: 100,            // 翻牌延迟100ms
+  cardByCardDelay: 30        // 按张发牌延迟30ms
 };
 
 /**

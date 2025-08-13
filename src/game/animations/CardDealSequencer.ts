@@ -51,6 +51,9 @@ export class CardDealSequencer {
       if (this.config.mode === DealAnimationMode.SIMULTANEOUS) {
         console.log('🎮 CardDealSequencer: Using SIMULTANEOUS mode');
         await this.dealSimultaneous();
+      } else if (this.config.mode === DealAnimationMode.CARD_BY_CARD) {
+        console.log('🎮 CardDealSequencer: Using CARD_BY_CARD mode');
+        await this.dealCardByCard();
       } else {
         console.log('🎮 CardDealSequencer: Using ROW_BY_ROW mode');
         await this.dealRowByRow();
@@ -137,6 +140,87 @@ export class CardDealSequencer {
     // 3. 动画完成后，翻开每列的最后一张卡牌（最下面的卡牌）
     console.log('🎮 CardDealSequencer: Flipping bottom cards');
     await this.flipBottomCards();
+  }
+
+  /**
+   * 按张发牌模式（快速连续发牌）
+   */
+  private async dealCardByCard(): Promise<void> {
+    console.log('🎮 CardDealSequencer: Starting card-by-card deal mode');
+    
+    // 1. 计算发牌序列（28张卡牌的顺序和延迟）
+    const cardSequence = this.calculateCardByCardSequence();
+    console.log(`🎮 CardDealSequencer: Card sequence calculated, ${cardSequence.length} cards`);
+    
+    // 2. 准备所有卡牌动画数据
+    const allAnimationData: CardAnimationData[] = [];
+    
+    for (const sequenceItem of cardSequence) {
+      const card = this.getCardForPosition(sequenceItem.rowIndex, sequenceItem.columnIndex);
+      if (card) {
+        // 确保卡牌是背面朝上
+        card.setFaceUp(false);
+        
+        const targetPosition = this.calculateTargetPosition(sequenceItem.rowIndex, sequenceItem.columnIndex);
+        const animationData: CardAnimationData = {
+          card,
+          startPosition: this.getStockPosition(),
+          targetPosition,
+          rowIndex: sequenceItem.rowIndex,
+          columnIndex: sequenceItem.columnIndex,
+          delay: sequenceItem.delay
+        };
+        
+        console.log(`🎮 CardDealSequencer: Card ${card.suit}${card.value} [${sequenceItem.rowIndex},${sequenceItem.columnIndex}] delay: ${sequenceItem.delay}ms`);
+        allAnimationData.push(animationData);
+      }
+    }
+    
+    // 3. 开始所有卡牌的动画（带不同延迟）
+    console.log(`🎮 CardDealSequencer: Starting ${allAnimationData.length} card-by-card animations`);
+    await this.animationController.animateCards(allAnimationData);
+    
+    // 4. 翻开每列的最后一张卡牌
+    console.log('🎮 CardDealSequencer: Flipping bottom cards');
+    await this.flipBottomCards();
+  }
+
+  /**
+   * 计算按张发牌序列
+   * 按行遍历，每行从该行的起始列开始，全局连续计数，每张卡牌延迟30ms
+   */
+  private calculateCardByCardSequence(): Array<{rowIndex: number, columnIndex: number, delay: number}> {
+    const sequence: Array<{rowIndex: number, columnIndex: number, delay: number}> = [];
+    let globalCardIndex = 0;
+    
+    // 按行遍历：
+    // 第1行: (0,0), (0,1), (0,2), (0,3), (0,4), (0,5), (0,6) - 7张
+    // 第2行: (1,1), (1,2), (1,3), (1,4), (1,5), (1,6) - 6张
+    // 第3行: (2,2), (2,3), (2,4), (2,5), (2,6) - 5张
+    // 第4行: (3,3), (3,4), (3,5), (3,6) - 4张
+    // 第5行: (4,4), (4,5), (4,6) - 3张
+    // 第6行: (5,5), (5,6) - 2张
+    // 第7行: (6,6) - 1张
+    
+    for (let rowIndex = 0; rowIndex < 7; rowIndex++) {
+      const startColumn = rowIndex;
+      const endColumn = 6;
+      
+      for (let columnIndex = startColumn; columnIndex <= endColumn; columnIndex++) {
+        const delay = globalCardIndex * this.config.cardByCardDelay;
+        
+        sequence.push({
+          rowIndex,
+          columnIndex,
+          delay
+        });
+        
+        console.log(`🎮 CardDealSequencer: Sequence[${globalCardIndex}]: Row ${rowIndex}, Col ${columnIndex}, Delay ${delay}ms`);
+        globalCardIndex++;
+      }
+    }
+    
+    return sequence;
   }
 
   /**
