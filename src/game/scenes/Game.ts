@@ -64,6 +64,8 @@ export class Game extends Scene {
     private moves: number = 0;
     private startTime: number = 0;
     private isTimerStarted: boolean = false;
+    private isTimerStopped: boolean = false; // 新增：标记计时器是否已停止
+    private stoppedTime: number = 0; // 新增：停止时的时间
     
     // 计分板UI元素
     private scoreboardBackground: Phaser.GameObjects.Image;
@@ -1226,14 +1228,21 @@ export class Game extends Scene {
 
     // 更新时间显示
     private updateTimeDisplay(): void {
-        if (!this.isTimerStarted) {
+        let elapsedSeconds: number;
+        
+        if (this.isTimerStopped) {
+            // 计时器已停止，显示停止时的时间
+            elapsedSeconds = this.stoppedTime;
+        } else if (!this.isTimerStarted) {
             // 计时器未启动时显示 00:00
             this.timeValue.setText('00:00');
             return;
+        } else {
+            // 计时器正在运行，计算当前时间
+            const currentTime = Date.now();
+            elapsedSeconds = Math.floor((currentTime - this.startTime) / 1000);
         }
         
-        const currentTime = Date.now();
-        const elapsedSeconds = Math.floor((currentTime - this.startTime) / 1000);
         const minutes = Math.floor(elapsedSeconds / 60);
         const seconds = elapsedSeconds % 60;
         
@@ -1248,6 +1257,7 @@ export class Game extends Scene {
         if (!this.isTimerStarted) {
             this.startTime = Date.now();
             this.isTimerStarted = true;
+            this.isTimerStopped = false; // 重置停止状态
             console.log('🕐 Game: Timer started');
             console.log('🔍 [TIMER_DEBUG] Timer started at:', new Date(this.startTime).toISOString());
             console.log('🔍 [TIMER_DEBUG] Tutorial mode:', this.isTutorialMode);
@@ -1255,6 +1265,18 @@ export class Game extends Scene {
         } else {
             console.log('🔍 [TIMER_DEBUG] Timer start attempted but already started');
             console.log('🔍 [TIMER_DEBUG] Current timer state - started:', this.isTimerStarted, 'startTime:', this.startTime);
+        }
+    }
+
+    /**
+     * 停止计时器（保持当前时间显示）
+     */
+    public stopTimer(): void {
+        if (this.isTimerStarted && !this.isTimerStopped) {
+            const currentTime = Date.now();
+            this.stoppedTime = Math.floor((currentTime - this.startTime) / 1000);
+            this.isTimerStopped = true;
+            console.log('⏱️ Game: Timer stopped at', this.stoppedTime, 'seconds');
         }
     }
 
@@ -1536,9 +1558,8 @@ export class Game extends Scene {
 
     // 游戏胜利处理
     private onGameWin(): void {
-        // 停止计时器
-        this.isTimerStarted = false;
-        console.log('⏱️ Timer stopped for game win');
+        // 停止计时器（保持当前时间显示）
+        this.stopTimer();
         
         // 播放胜利音效
         EventBus.emit('play-victory');
@@ -1575,6 +1596,8 @@ export class Game extends Scene {
         this.moves = 0;
         this.startTime = 0;
         this.isTimerStarted = false;
+        this.isTimerStopped = false;
+        this.stoppedTime = 0;
         console.log('🔍 [RESET_DEBUG] Game reset - timer state reset to:', this.isTimerStarted);
         
         // 重新初始化游戏
@@ -1806,9 +1829,8 @@ export class Game extends Scene {
         this.gameOverTriggered = true;
         console.log(`🏁 Game Over triggered after ${this.gameOverTime} seconds`);
 
-        // 停止计时器
-        this.isTimerStarted = false;
-        console.log('⏱️ Timer stopped for game over');
+        // 停止计时器（保持当前时间显示）
+        this.stopTimer();
 
         // 播放胜利音效
         EventBus.emit('play-victory');
