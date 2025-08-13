@@ -141,14 +141,13 @@ export class Game extends Scene {
             
             this.resetGuideState();
             
-            // 在非教学模式下，第一次用户操作时启动计时器
-            if (!this.isTutorialMode && !this.isTimerStarted) {
-                console.log('🔍 [USER_ACTION_DEBUG] Starting timer due to user action in non-tutorial mode');
+            // 无论是教学模式还是非教学模式，都在用户第一次点击时启动计时器
+            if (!this.isTimerStarted) {
+                console.log('🔍 [USER_ACTION_DEBUG] Starting timer due to first user action');
+                console.log('🔍 [USER_ACTION_DEBUG] Mode:', this.isTutorialMode ? 'Tutorial' : 'Normal');
                 this.startTimer();
-            } else if (!this.isTutorialMode && this.isTimerStarted) {
-                console.log('🔍 [USER_ACTION_DEBUG] Timer already started in non-tutorial mode');
-            } else if (this.isTutorialMode) {
-                console.log('🔍 [USER_ACTION_DEBUG] In tutorial mode, timer should be managed by tutorial system');
+            } else {
+                console.log('🔍 [USER_ACTION_DEBUG] Timer already started');
             }
             
             // 触发用户操作事件
