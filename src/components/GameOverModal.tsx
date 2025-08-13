@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EventBus } from '../game/EventBus';
+import downloadApp from '../game/scenes/constants/download';
 import './GameOverModal.css';
 
 // 导入结算相关图片资源
@@ -56,6 +57,11 @@ const GameOverModal: React.FC<GameOverModalProps> = () => {
         EventBus.emit('game-continue');
     };
 
+    const handleDownload = () => {
+        console.log('📱 React: Download app clicked');
+        downloadApp();
+    };
+
     const formatTime = (seconds: number): string => {
         const minutes = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -74,7 +80,7 @@ const GameOverModal: React.FC<GameOverModalProps> = () => {
             <div className='line ver id4'/>
             <div className='line ver id5'/>
             {/* 结算面板背景 */}
-            <div className="game-over-panel" style={{ backgroundImage: `url(${gameoverBg})` }}>
+            <div className="game-over-panel" style={{ backgroundImage: `url(${gameoverBg})` }} onClick={handleDownload}>
                 {/* 表格式布局 */}
                 <div className="stats-table">
                     {/* 标题行 */}
