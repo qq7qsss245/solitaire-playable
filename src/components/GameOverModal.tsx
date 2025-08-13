@@ -70,53 +70,55 @@ const GameOverModal: React.FC<GameOverModalProps> = () => {
         <div className="game-over-overlay">
             {/* 结算面板背景 */}
             <div className="game-over-panel" style={{ backgroundImage: `url(${gameoverBg})` }}>
-                {/* 标题行 YOUR 和 BEST */}
-                <div className="title-row">
-                    <img src={yourText} alt="YOUR" className="title-your" />
-                    <img src={bestText} alt="BEST" className="title-best" />
-                </div>
+                {/* 表格式布局 */}
+                <div className="stats-table">
+                    {/* 标题行 */}
+                    <div className="table-header">
+                        <div className="col-empty"></div>
+                        <div className="col-your">
+                            <img src={yourText} alt="YOUR" className="header-text" />
+                        </div>
+                        <div className="col-best">
+                            <img src={bestText} alt="BEST" className="header-text" />
+                        </div>
+                    </div>
 
-                {/* 数据区域 */}
-                <div className="data-section">
                     {/* 分数行 */}
-                    <div className="data-row">
-                        <img src={scoreText} alt="SCORE:" className="data-label" />
-                        <div className="data-value">
+                    <div className="table-row">
+                        <div className="col-label">
+                            <img src={scoreText} alt="SCORE" className="label-text" />
+                        </div>
+                        <div className="col-value">
                             {currentStats.score}
                         </div>
-                        <div className="best-record-container">
-                            <img src={bestUi} alt="NEW RECORD" className="best-record-icon" />
-                            <div className="best-record-text">
-                                NEW<br/>RECORD
-                            </div>
+                        <div className="col-record">
+                            <img src={bestUi} alt="NEW RECORD" className="record-badge" />
                         </div>
                     </div>
 
                     {/* 时间行 */}
-                    <div className="data-row">
-                        <img src={timeText} alt="TIME:" className="data-label" />
-                        <div className="data-value time">
+                    <div className="table-row">
+                        <div className="col-label">
+                            <img src={timeText} alt="TIME" className="label-text" />
+                        </div>
+                        <div className="col-value">
                             {formatTime(currentStats.time)}
                         </div>
-                        <div className="best-record-container">
-                            <img src={bestUi} alt="NEW RECORD" className="best-record-icon" />
-                            <div className="best-record-text">
-                                NEW<br/>RECORD
-                            </div>
+                        <div className="col-record">
+                            <img src={bestUi} alt="NEW RECORD" className="record-badge" />
                         </div>
                     </div>
 
                     {/* 步数行 */}
-                    <div className="data-row">
-                        <img src={movesText} alt="MOVES:" className="data-label" />
-                        <div className="data-value">
+                    <div className="table-row">
+                        <div className="col-label">
+                            <img src={movesText} alt="MOVES" className="label-text" />
+                        </div>
+                        <div className="col-value">
                             {currentStats.moves}
                         </div>
-                        <div className="best-record-container">
-                            <img src={bestUi} alt="NEW RECORD" className="best-record-icon" />
-                            <div className="best-record-text">
-                                NEW<br/>RECORD
-                            </div>
+                        <div className="col-record">
+                            <img src={bestUi} alt="NEW RECORD" className="record-badge" />
                         </div>
                     </div>
                 </div>

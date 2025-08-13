@@ -31,113 +31,94 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 80px;
 }
 
-/* 顶部标题 GREAT! */
-.great-title {
-    position: absolute;
-    top: 60px;
-    width: 120px;
-    height: auto;
-}
-
-/* 标题行容器 */
-.title-row {
-    position: absolute;
-    top: 140px;
-    display: flex;
-    width: 280px;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.title-your {
-    width: 60px;
-    height: auto;
-}
-
-.title-best {
-    width: 60px;
-    height: auto;
-}
-
-/* 数据区域 */
-.data-section {
-    position: absolute;
-    top: 180px;
+/* 表格式布局样式 */
+.stats-table {
     width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 40px;
+    margin-top: 150px;
 }
 
-/* 数据行 */
-.data-row {
-    display: flex;
+/* 表格标题行 */
+.table-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 80px;
     align-items: center;
     margin-bottom: 15px;
+}
+
+.col-empty {
+    /* 第一列空白 */
+}
+
+.col-your,
+.col-best {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.header-text {
     height: 30px;
+    width: auto;
 }
 
-.data-label {
-    width: 80px;
-    height: auto;
+/* 表格数据行 */
+.table-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 80px;
+    align-items: center;
+    height: 35px;
 }
 
-.data-value {
-    flex: 1;
-    text-align: center;
-    font-size: 20px;
-    font-weight: bold;
+.col-label {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.label-text {
+    height: 25px;
+    width: auto;
+}
+
+.col-value {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     color: #000000;
-}
-
-.data-value.time {
-    color: #4A90E2;
-}
-
-/* 最佳记录区域 */
-.best-record-container {
-    position: relative;
-    width: 60px;
-    text-align: center;
-}
-
-.best-record-icon {
-    width: 50px;
-    height: auto;
-}
-
-.best-record-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 8px;
+    font-size: 18px;
     font-weight: bold;
-    color: #FFFFFF;
-    text-align: center;
-    line-height: 1;
 }
 
-.best-record-value {
-    font-size: 16px;
-    font-weight: bold;
-    color: #000000;
+.col-record {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.record-badge {
+    height: 40px;
+    width: auto;
 }
 
 /* 继续提示 */
 .continue-prompt {
-    position: absolute;
-    top: 320px;
     font-size: 18px;
     font-weight: bold;
     color: #FF8C00;
     text-align: center;
+    margin-bottom: 20px;
 }
 
 /* 继续按钮 */
 .continue-button-container {
-    position: absolute;
-    bottom: 60px;
     cursor: pointer;
     transition: transform 0.1s ease;
 }
@@ -151,9 +132,53 @@
     height: auto;
 }
 
-/* 蓝色分隔线 */
-.blue-line {
-    position: absolute;
-    border-radius: 5px;
-    background-color: rgb(0, 135, 143);
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .game-over-panel {
+        width: 90%;
+        height: auto;
+        min-height: 450px;
+        padding-top: 60px;
+    }
+    
+    .stats-table {
+        width: 280px;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .table-header {
+        grid-template-columns: 80px 1fr 70px;
+        margin-bottom: 12px;
+    }
+    
+    .header-text {
+        height: 25px;
+    }
+    
+    .table-row {
+        grid-template-columns: 80px 1fr 70px;
+        height: 30px;
+    }
+    
+    .label-text {
+        height: 20px;
+    }
+    
+    .col-value {
+        font-size: 16px;
+    }
+    
+    .record-badge {
+        height: 32px;
+    }
+    
+    .continue-prompt {
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+    
+    .continue-button {
+        width: 160px;
+    }
 }
