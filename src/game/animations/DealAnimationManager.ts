@@ -147,19 +147,19 @@ export class DealAnimationManager {
       // 3. 启动交互控制
       this.interactionController.startDealAnimation();
 
-      // 4. 播放音效
-      this.playDealSound();
+      // 4. 等待动画开始延迟
+      await this.wait(this.config.startDelay);
 
-      // 5. 等待音效启动
-      await this.wait(this.audioConfig.animationStartDelay);
-
-      // 6. 检查是否已被跳过
+      // 5. 检查是否已被跳过
       if (this.state.isSkipped) {
         return;
       }
 
-      // 7. 等待动画开始延迟
-      await this.wait(this.config.startDelay);
+      // 6. 播放音效（在卡牌开始飞入动画时播放）
+      this.playDealSound();
+
+      // 7. 等待音效启动延迟（让音效和动画同步开始）
+      await this.wait(this.audioConfig.animationStartDelay);
 
       // 8. 检查是否已被跳过
       if (this.state.isSkipped) {
