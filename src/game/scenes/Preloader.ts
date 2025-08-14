@@ -105,6 +105,33 @@ export class Preloader extends Scene {
         this.load.image(AssetKeys.GUIDE_STOCK_HINT, Assets.tutorial.guideTexts.stockHint); // 加载"Hmmm..."文案
         this.load.image(AssetKeys.GUIDE_COMPLETE, Assets.tutorial.guideTexts.complete);
 
+        // 加载新增按钮资源
+        this.load.image(AssetKeys.AUTO_COMPLETE_BUTTON, Assets.ui.buttons.autoComplete);
+        this.load.image(AssetKeys.AGAIN_BUTTON, Assets.ui.buttons.again);
+        this.load.image(AssetKeys.PLAY_NOW_BUTTON, Assets.ui.buttons.playNow);
+
+        // 加载新增文案资源
+        this.load.image(AssetKeys.GURU_SOLITAIRE, Assets.ui.texts.guruSolitaire);
+        this.load.image(AssetKeys.MOVES_TEXT_NEW, Assets.ui.texts.moves);
+        this.load.image(AssetKeys.SCORE_TEXT_NEW, Assets.ui.texts.score);
+        this.load.image(AssetKeys.SOLITAIRE_TEXT, Assets.ui.texts.solitaire);
+        this.load.image(AssetKeys.TIME_TEXT_NEW, Assets.ui.texts.time);
+
+        // 加载花色爆炸动画帧
+        // 直接加载花色爆炸动画帧
+        Assets.animations.explosions.diamond.forEach((frame, index) => {
+            this.load.image(`explosion-diamond-${index}`, frame);
+        });
+        Assets.animations.explosions.club.forEach((frame, index) => {
+            this.load.image(`explosion-club-${index}`, frame);
+        });
+        Assets.animations.explosions.heart.forEach((frame, index) => {
+            this.load.image(`explosion-heart-${index}`, frame);
+        });
+        Assets.animations.explosions.spade.forEach((frame, index) => {
+            this.load.image(`explosion-spade-${index}`, frame);
+        });
+
         // 音频文件现在通过React组件(src/sound.tsx)直接导入，不需要在Phaser中加载
 
         // 兼容性：保持原有的键名以确保现有代码正常工作

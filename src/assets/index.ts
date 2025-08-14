@@ -54,6 +54,90 @@ import playFree from './images/ui/play-free.png';
 import productName from './images/ui/product-name.png';
 import fiveStars from './images/ui/five-stars.png';
 
+// 新增按钮资源
+import autoCompleteButton from './images/ui/buttons/auto-complete.png';
+import againButton from './images/ui/buttons/again.png';
+import playNowButton from './images/ui/buttons/play-now.png';
+
+// 新增文案资源
+import guruSolitaire from './images/ui/texts/guru-solitaire.png';
+import movesTextNew from './images/ui/texts/moves.png';
+import scoreTextNew from './images/ui/texts/score.png';
+import solitaireText from './images/ui/texts/solitaire.png';
+import timeTextNew from './images/ui/texts/time.png';
+
+// 花色爆炸动画帧 - 方块
+import diamondExplosion00 from './images/animations/explosions/方块/爆炸方块粒子_00000.png';
+import diamondExplosion01 from './images/animations/explosions/方块/爆炸方块粒子_00001.png';
+import diamondExplosion02 from './images/animations/explosions/方块/爆炸方块粒子_00002.png';
+import diamondExplosion03 from './images/animations/explosions/方块/爆炸方块粒子_00003.png';
+import diamondExplosion04 from './images/animations/explosions/方块/爆炸方块粒子_00004.png';
+import diamondExplosion05 from './images/animations/explosions/方块/爆炸方块粒子_00005.png';
+import diamondExplosion06 from './images/animations/explosions/方块/爆炸方块粒子_00006.png';
+import diamondExplosion07 from './images/animations/explosions/方块/爆炸方块粒子_00007.png';
+import diamondExplosion08 from './images/animations/explosions/方块/爆炸方块粒子_00008.png';
+import diamondExplosion09 from './images/animations/explosions/方块/爆炸方块粒子_00009.png';
+import diamondExplosion10 from './images/animations/explosions/方块/爆炸方块粒子_00010.png';
+import diamondExplosion11 from './images/animations/explosions/方块/爆炸方块粒子_00011.png';
+import diamondExplosion12 from './images/animations/explosions/方块/爆炸方块粒子_00012.png';
+import diamondExplosion13 from './images/animations/explosions/方块/爆炸方块粒子_00013.png';
+import diamondExplosion14 from './images/animations/explosions/方块/爆炸方块粒子_00014.png';
+import diamondExplosion15 from './images/animations/explosions/方块/爆炸方块粒子_00015.png';
+
+// 花色爆炸动画帧 - 梅花
+import clubExplosion00 from './images/animations/explosions/梅花/爆炸梅花粒子_00000.png';
+import clubExplosion01 from './images/animations/explosions/梅花/爆炸梅花粒子_00001.png';
+import clubExplosion02 from './images/animations/explosions/梅花/爆炸梅花粒子_00002.png';
+import clubExplosion03 from './images/animations/explosions/梅花/爆炸梅花粒子_00003.png';
+import clubExplosion04 from './images/animations/explosions/梅花/爆炸梅花粒子_00004.png';
+import clubExplosion05 from './images/animations/explosions/梅花/爆炸梅花粒子_00005.png';
+import clubExplosion06 from './images/animations/explosions/梅花/爆炸梅花粒子_00006.png';
+import clubExplosion07 from './images/animations/explosions/梅花/爆炸梅花粒子_00007.png';
+import clubExplosion08 from './images/animations/explosions/梅花/爆炸梅花粒子_00008.png';
+import clubExplosion09 from './images/animations/explosions/梅花/爆炸梅花粒子_00009.png';
+import clubExplosion10 from './images/animations/explosions/梅花/爆炸梅花粒子_00010.png';
+import clubExplosion11 from './images/animations/explosions/梅花/爆炸梅花粒子_00011.png';
+import clubExplosion12 from './images/animations/explosions/梅花/爆炸梅花粒子_00012.png';
+import clubExplosion13 from './images/animations/explosions/梅花/爆炸梅花粒子_00013.png';
+import clubExplosion14 from './images/animations/explosions/梅花/爆炸梅花粒子_00014.png';
+import clubExplosion15 from './images/animations/explosions/梅花/爆炸梅花粒子_00015.png';
+
+// 花色爆炸动画帧 - 红桃
+import heartExplosion00 from './images/animations/explosions/红桃/爆炸红桃粒子_00000.png';
+import heartExplosion01 from './images/animations/explosions/红桃/爆炸红桃粒子_00001.png';
+import heartExplosion02 from './images/animations/explosions/红桃/爆炸红桃粒子_00002.png';
+import heartExplosion03 from './images/animations/explosions/红桃/爆炸红桃粒子_00003.png';
+import heartExplosion04 from './images/animations/explosions/红桃/爆炸红桃粒子_00004.png';
+import heartExplosion05 from './images/animations/explosions/红桃/爆炸红桃粒子_00005.png';
+import heartExplosion06 from './images/animations/explosions/红桃/爆炸红桃粒子_00006.png';
+import heartExplosion07 from './images/animations/explosions/红桃/爆炸红桃粒子_00007.png';
+import heartExplosion08 from './images/animations/explosions/红桃/爆炸红桃粒子_00008.png';
+import heartExplosion09 from './images/animations/explosions/红桃/爆炸红桃粒子_00009.png';
+import heartExplosion10 from './images/animations/explosions/红桃/爆炸红桃粒子_00010.png';
+import heartExplosion11 from './images/animations/explosions/红桃/爆炸红桃粒子_00011.png';
+import heartExplosion12 from './images/animations/explosions/红桃/爆炸红桃粒子_00012.png';
+import heartExplosion13 from './images/animations/explosions/红桃/爆炸红桃粒子_00013.png';
+import heartExplosion14 from './images/animations/explosions/红桃/爆炸红桃粒子_00014.png';
+import heartExplosion15 from './images/animations/explosions/红桃/爆炸红桃粒子_00015.png';
+
+// 花色爆炸动画帧 - 黑桃
+import spadeExplosion00 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00000.png';
+import spadeExplosion01 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00001.png';
+import spadeExplosion02 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00002.png';
+import spadeExplosion03 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00003.png';
+import spadeExplosion04 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00004.png';
+import spadeExplosion05 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00005.png';
+import spadeExplosion06 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00006.png';
+import spadeExplosion07 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00007.png';
+import spadeExplosion08 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00008.png';
+import spadeExplosion09 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00009.png';
+import spadeExplosion10 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00010.png';
+import spadeExplosion11 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00011.png';
+import spadeExplosion12 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00012.png';
+import spadeExplosion13 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00013.png';
+import spadeExplosion14 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00014.png';
+import spadeExplosion15 from './images/animations/explosions/黑桃/爆炸黑桃粒子_00015.png';
+
 // 卡槽图片 - 使用新的单独花色卡槽
 import slotHeart from './images/ui/卡槽/红桃.png';
 import slotDiamond from './images/ui/卡槽/方块.png';
@@ -155,6 +239,18 @@ export const Assets = {
     playFree,
     productName,
     fiveStars,
+    buttons: {
+      autoComplete: autoCompleteButton,
+      again: againButton,
+      playNow: playNowButton,
+    },
+    texts: {
+      guruSolitaire,
+      moves: movesTextNew,
+      score: scoreTextNew,
+      solitaire: solitaireText,
+      time: timeTextNew,
+    },
     slots: {
       heart: slotHeart,
       diamond: slotDiamond,
@@ -195,6 +291,36 @@ export const Assets = {
       stockHint: guideText6, // 添加stockHint映射到"Hmmm..."图片
       complete: guideText7,
     },
+  },
+  
+  // 花色爆炸动画
+  animations: {
+    explosions: {
+      diamond: [
+        diamondExplosion00, diamondExplosion01, diamondExplosion02, diamondExplosion03,
+        diamondExplosion04, diamondExplosion05, diamondExplosion06, diamondExplosion07,
+        diamondExplosion08, diamondExplosion09, diamondExplosion10, diamondExplosion11,
+        diamondExplosion12, diamondExplosion13, diamondExplosion14, diamondExplosion15
+      ],
+      club: [
+        clubExplosion00, clubExplosion01, clubExplosion02, clubExplosion03,
+        clubExplosion04, clubExplosion05, clubExplosion06, clubExplosion07,
+        clubExplosion08, clubExplosion09, clubExplosion10, clubExplosion11,
+        clubExplosion12, clubExplosion13, clubExplosion14, clubExplosion15
+      ],
+      heart: [
+        heartExplosion00, heartExplosion01, heartExplosion02, heartExplosion03,
+        heartExplosion04, heartExplosion05, heartExplosion06, heartExplosion07,
+        heartExplosion08, heartExplosion09, heartExplosion10, heartExplosion11,
+        heartExplosion12, heartExplosion13, heartExplosion14, heartExplosion15
+      ],
+      spade: [
+        spadeExplosion00, spadeExplosion01, spadeExplosion02, spadeExplosion03,
+        spadeExplosion04, spadeExplosion05, spadeExplosion06, spadeExplosion07,
+        spadeExplosion08, spadeExplosion09, spadeExplosion10, spadeExplosion11,
+        spadeExplosion12, spadeExplosion13, spadeExplosion14, spadeExplosion15
+      ]
+    }
   },
   
   // 音频现在通过React组件(src/sound.tsx)管理，不需要在这里导出
@@ -258,6 +384,18 @@ export const AssetKeys = {
   PRODUCT_NAME: 'product-name',
   FIVE_STARS: 'five-stars',
   
+  // 新增按钮
+  AUTO_COMPLETE_BUTTON: 'auto-complete-button',
+  AGAIN_BUTTON: 'again-button',
+  PLAY_NOW_BUTTON: 'play-now-button',
+  
+  // 新增文案
+  GURU_SOLITAIRE: 'guru-solitaire',
+  MOVES_TEXT_NEW: 'moves-text-new',
+  SCORE_TEXT_NEW: 'score-text-new',
+  SOLITAIRE_TEXT: 'solitaire-text',
+  TIME_TEXT_NEW: 'time-text-new',
+  
   // 卡槽 - 按花色分别定义
   SLOT_HEART: 'slot-heart',
   SLOT_DIAMOND: 'slot-diamond',
@@ -293,6 +431,12 @@ export const AssetKeys = {
   GUIDE_CHECK_STOCK: 'guide-check-stock',
   GUIDE_STOCK_HINT: 'guide-stock-hint', // 添加stockHint的键名
   GUIDE_COMPLETE: 'guide-complete',
+  
+  // 花色爆炸动画
+  EXPLOSION_DIAMOND: 'explosion-diamond',
+  EXPLOSION_CLUB: 'explosion-club',
+  EXPLOSION_HEART: 'explosion-heart',
+  EXPLOSION_SPADE: 'explosion-spade',
   
   // 音频
   BGM: 'bgm',
