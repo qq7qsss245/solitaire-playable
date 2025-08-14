@@ -356,109 +356,28 @@ export class DealAnimationManager {
   /**
    * 教学系统集成处理
    */
+  // 🚫 教学系统已禁用 - 移除教学系统集成处理
   private handleTutorialIntegration(): void {
-    const gameScene = this.scene as any;
-    
-    console.log('🔍 DealAnimationManager: handleTutorialIntegration called');
-    console.log('🔍 DealAnimationManager: isTutorialMode =', gameScene.isTutorialMode);
-    console.log('🔍 DealAnimationManager: tutorialManager exists =', !!gameScene.tutorialManager);
-    
-    if (gameScene.isTutorialMode) {
-      console.log('🔍 DealAnimationManager: Tutorial mode detected, attempting to start tutorial');
-      
-      // 使用更可靠的启动机制，包含重试逻辑
-      this.startTutorialWithRetry(gameScene, 0);
-    } else {
-      console.log('🔍 DealAnimationManager: Not in tutorial mode, skipping tutorial start');
-    }
+    console.log('🚫 [TUTORIAL DISABLED] DealAnimationManager: 教学系统集成已禁用');
+    // 不再处理教学系统集成
   }
 
   /**
    * 带重试机制的教学启动
    */
+  // 🚫 教学系统已禁用 - 移除教学启动重试机制
   private startTutorialWithRetry(gameScene: any, retryCount: number): void {
-    const maxRetries = 3;
-    const retryDelay = 500; // 每次重试间隔500ms
-    const initialDelay = retryCount === 0 ? 800 : 0; // 首次尝试延迟800ms
-    
-    this.scene.time.delayedCall(initialDelay, () => {
-      try {
-        console.log(`🔍 DealAnimationManager: Tutorial start attempt ${retryCount + 1}/${maxRetries + 1}`);
-        
-        // 检查教学管理器是否存在
-        if (!gameScene.tutorialManager) {
-          console.warn('🔍 DealAnimationManager: tutorialManager not found, checking if we should retry');
-          
-          if (retryCount < maxRetries) {
-            console.log(`🔍 DealAnimationManager: Retrying in ${retryDelay}ms (attempt ${retryCount + 2})`);
-            this.startTutorialWithRetry(gameScene, retryCount + 1);
-            return;
-          } else {
-            console.error('🔍 DealAnimationManager: tutorialManager still not found after max retries');
-            // 尝试手动初始化教学系统
-            this.fallbackTutorialInitialization(gameScene);
-            return;
-          }
-        }
-        
-        // 检查教学系统状态
-        const isActive = gameScene.tutorialManager.isActive();
-        console.log('🔍 DealAnimationManager: tutorialManager.isActive() =', isActive);
-        
-        if (!isActive) {
-          console.log('🎮 DealAnimationManager: Starting tutorial after deal animation');
-          gameScene.tutorialManager.startTutorial();
-          console.log('🎮 DealAnimationManager: Tutorial startTutorial() called successfully');
-          
-          // 验证启动是否成功
-          this.scene.time.delayedCall(100, () => {
-            const isNowActive = gameScene.tutorialManager?.isActive();
-            console.log('🔍 DealAnimationManager: Tutorial start verification, isActive =', isNowActive);
-            if (!isNowActive) {
-              console.warn('🔍 DealAnimationManager: Tutorial failed to start, may need manual intervention');
-            }
-          });
-        } else {
-          console.warn('🔍 DealAnimationManager: Tutorial already active, skipping start');
-        }
-        
-      } catch (error) {
-        console.error(`Error starting tutorial (attempt ${retryCount + 1}):`, error);
-        
-        if (retryCount < maxRetries) {
-          console.log(`🔍 DealAnimationManager: Error occurred, retrying in ${retryDelay}ms`);
-          this.startTutorialWithRetry(gameScene, retryCount + 1);
-        } else {
-          console.error('🔍 DealAnimationManager: Max retries reached, tutorial start failed');
-        }
-      }
-    });
+    console.log('🚫 [TUTORIAL DISABLED] DealAnimationManager: 教学启动重试机制已禁用');
+    // 不再启动教学系统
   }
 
   /**
    * 后备教学初始化方案
    */
+  // 🚫 教学系统已禁用 - 移除后备教学初始化方案
   private fallbackTutorialInitialization(gameScene: any): void {
-    console.log('🔍 DealAnimationManager: Attempting fallback tutorial initialization');
-    
-    try {
-      // 尝试重新初始化教学系统
-      if (typeof gameScene.initializeTutorial === 'function') {
-        gameScene.initializeTutorial();
-        
-        // 延迟启动
-        this.scene.time.delayedCall(200, () => {
-          if (gameScene.tutorialManager && !gameScene.tutorialManager.isActive()) {
-            console.log('🎮 DealAnimationManager: Fallback tutorial start');
-            gameScene.tutorialManager.startTutorial();
-          }
-        });
-      } else {
-        console.error('🔍 DealAnimationManager: initializeTutorial method not found');
-      }
-    } catch (error) {
-      console.error('Fallback tutorial initialization failed:', error);
-    }
+    console.log('🚫 [TUTORIAL DISABLED] DealAnimationManager: 后备教学初始化已禁用');
+    // 不再初始化教学系统
   }
 
   /**

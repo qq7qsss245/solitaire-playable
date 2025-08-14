@@ -124,13 +124,15 @@ export class Game extends Scene {
         this.debugMode = urlParams.get('debug') === 'true';
         const randomMode = urlParams.get('random') === 'true';
         
-        // 调试模式下强制使用随机牌局并禁用教学
-        const tutorialMode = this.debugMode ? false : !randomMode;
+        // 🚫 教学系统已禁用 - 始终使用固定牌局但不启用教学模式
+        // 保留固定牌局以确保游戏的可玩性和关卡设计
+        const tutorialMode = false; // 强制禁用教学模式
         
         // 调试日志
         if (this.debugMode) {
-            console.log('🐛 [DEBUG MODE] 调试模式已启用 - 教学系统已禁用，使用随机牌局');
+            console.log('🐛 [DEBUG MODE] 调试模式已启用 - 教学系统已禁用，使用固定牌局');
         }
+        console.log('🚫 [TUTORIAL DISABLED] 教学系统已全局禁用，游戏将直接进入正常模式');
 
         // 异步初始化游戏布局（包含发牌动画）
         this.initializeGameAsync(tutorialMode);
@@ -223,14 +225,12 @@ export class Game extends Scene {
     }
 
     private async initializeGame(tutorialMode: boolean = true): Promise<void> {
-        // 默认使用教学牌局，除非明确指定使用随机牌局
-        if (tutorialMode) {
-            this.gameLayout = generateTutorialLayout();
-            this.isTutorialMode = true;
-        } else {
-            this.gameLayout = generateKlondikeLayout();
-            this.isTutorialMode = false;
-        }
+        // 🚫 教学系统已禁用 - 始终使用固定牌局但不启用教学模式
+        // 保留generateTutorialLayout()以确保固定牌局和关卡设计正常工作
+        this.gameLayout = generateTutorialLayout(); // 使用固定的教学牌局布局
+        this.isTutorialMode = false; // 强制禁用教学模式
+        
+        console.log('🚫 [TUTORIAL DISABLED] 使用固定牌局但禁用教学模式');
         
         // 初始化游戏区域
         this.initializeTableau();
@@ -247,18 +247,20 @@ export class Game extends Scene {
         // 启动发牌动画
         await this.startDealAnimation();
         
-        // 初始化教学系统（在发牌动画完成后）
-        if (this.isTutorialMode) {
-            this.initializeTutorial();
-            
-            // 在开发环境下运行教学牌局测试
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                this.time.delayedCall(500, () => {
-                    console.log('🎮 运行教学牌局测试...');
-                    TutorialTest.runAllTests();
-                });
-            }
-        }
+        // 🚫 教学系统已禁用 - 注释掉教学系统初始化
+        // 保留代码结构以备后续可能需要重新启用
+        // if (this.isTutorialMode) {
+        //     this.initializeTutorial();
+        //
+        //     // 在开发环境下运行教学牌局测试
+        //     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        //         this.time.delayedCall(500, () => {
+        //             console.log('🎮 运行教学牌局测试...');
+        //             TutorialTest.runAllTests();
+        //         });
+        //     }
+        // }
+        console.log('🚫 [TUTORIAL DISABLED] 教学系统初始化已跳过');
         
         // 在开发环境下运行发牌动画测试
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -281,13 +283,12 @@ export class Game extends Scene {
         });
     }
 
+    // 🚫 教学系统已禁用 - 保留方法定义但不执行任何操作
     private initializeTutorial(): void {
-        console.log('🔍 Game: initializeTutorial() called');
-        this.tutorialManager = new TutorialManager(this);
-        console.log('🔍 Game: TutorialManager created, isActive =', this.tutorialManager.isActive());
-        
-        // 注意：教学系统的启动现在由发牌动画完成后触发
-        // 不在这里立即启动，避免与发牌动画冲突
+        console.log('🚫 [TUTORIAL DISABLED] initializeTutorial() 被调用但已禁用');
+        // this.tutorialManager = new TutorialManager(this);
+        // 教学管理器不再创建，保持为null
+        this.tutorialManager = null;
     }
     
     /**
@@ -667,10 +668,10 @@ export class Game extends Scene {
         // 更新所有组件位置
         this.updateAllPositions();
         
-        // 通知教学系统布局已更新（如果教学系统存在）
-        if (this.tutorialManager) {
-            EventBus.emit('layout-updated', this.currentLayout);
-        }
+        // 🚫 教学系统已禁用 - 移除教学系统布局更新通知
+        // if (this.tutorialManager) {
+        //     EventBus.emit('layout-updated', this.currentLayout);
+        // }
     }
 
     private updateAllPositions(): void {
@@ -803,11 +804,11 @@ export class Game extends Scene {
     private onResize(): void {
         this.updateGameSize();
         
-        // 通知教学系统布局已更新
-        if (this.tutorialManager) {
-            // 使用EventBus通知GuideSystem布局更新
-            EventBus.emit('layout-updated', this.currentLayout);
-        }
+        // 🚫 教学系统已禁用 - 移除教学系统布局更新通知
+        // if (this.tutorialManager) {
+        //     // 使用EventBus通知GuideSystem布局更新
+        //     EventBus.emit('layout-updated', this.currentLayout);
+        // }
     }
 
     // 动画状态管理
@@ -824,15 +825,15 @@ export class Game extends Scene {
             return;
         }
         
-        // 检查教学模式下的交互权限
-        const canInteract = this.canStockInteractInTutorial();
-        if (!canInteract) {
-            console.log('🔍 [DEBUG] onStockClick - 交互被阻止');
-            return;
-        }
+        // 🚫 教学系统已禁用 - 移除教学模式交互权限检查
+        // const canInteract = this.canStockInteractInTutorial();
+        // if (!canInteract) {
+        //     console.log('🔍 [DEBUG] onStockClick - 交互被阻止');
+        //     return;
+        // }
         
-        // 触发教学事件
-        EventBus.emit('stock-clicked');
+        // 🚫 教学系统已禁用 - 移除教学事件触发
+        // EventBus.emit('stock-clicked');
         
         if (this.stock.cards.length > 0) {
             // 执行翻牌动画序列
@@ -1269,39 +1270,24 @@ export class Game extends Scene {
         this.handGuide.setVisible(false);
     }
 
+    // 🚫 教学系统已禁用 - 手势引导功能已完全禁用
     private showGuideHand(x: number, y: number): void {
-        // 🔧 修复：添加教学模式验证，防止在非教学模式下显示手势
-        if (!this.isTutorialMode) {
-            console.log('🔍 [DEBUG] showGuideHand - 非教学模式，拒绝显示手势');
-            return;
-        }
-        
-        this.handGuide.setPosition(x, y);
-        this.handGuide.setVisible(true);
-        
-        // 添加手指动画
-        this.tweens.add({
-            targets: this.handGuide,
-            y: y + 20,
-            duration: 750,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        console.log('🚫 [TUTORIAL DISABLED] showGuideHand - 手势引导已禁用');
+        // 不再显示任何手势引导
+        return;
     }
 
     update(time: number, delta: number): void {
         // 更新时间显示
         this.updateTimeDisplay();
         
+        // 🚫 教学系统已禁用 - 移除教学系统更新逻辑
+        // if (this.tutorialManager && this.isTutorialMode) {
+        //     this.tutorialManager.update(time, delta);
+        // }
         
-        // 更新教学系统
-        if (this.tutorialManager && this.isTutorialMode) {
-            this.tutorialManager.update(time, delta);
-        }
-        // 🔧 修复：完全禁用非教学模式下的手势提示
-        // 手势图片应该只在教学模式下由GuideSystem控制显示
-        // 移除了 updateHandGuide() 调用，确保手势图片不会在正常游戏中出现
+        // 🚫 手势提示系统已禁用 - 不再显示任何引导手势
+        // 确保手势图片不会在游戏中出现
     }
 
     // 🔧 修复：移除updateHandGuide方法，因为手势提示应该只在教学模式下显示
@@ -1396,8 +1382,8 @@ export class Game extends Scene {
     public addToFoundation(card: CardComponent, foundationIndex: number, countMove: boolean = true): void {
         const foundation = this.foundation[foundationIndex];
         
-        // 触发教学事件
-        EventBus.emit('card-to-foundation', { card, foundationIndex });
+        // 🚫 教学系统已禁用 - 移除教学事件触发
+        // EventBus.emit('card-to-foundation', { card, foundationIndex });
         
         // 从原来的位置移除卡牌
         this.removeCardFromTableau(card);
@@ -1509,8 +1495,8 @@ export class Game extends Scene {
         // 获取原列索引
         const fromColumnIndex = this.getColumnIndex(card);
         
-        // 触发教学事件
-        EventBus.emit('card-moved', { card, fromColumn: fromColumnIndex, toColumn: columnIndex });
+        // 🚫 教学系统已禁用 - 移除教学事件触发
+        // EventBus.emit('card-moved', { card, fromColumn: fromColumnIndex, toColumn: columnIndex });
         
         // 从原来的位置移除卡牌和附带卡牌
         const attachedCards = this.getAttachedCards(card);
@@ -1598,61 +1584,41 @@ export class Game extends Scene {
         this.initializeGame();
     }
 
-    // 教学模式相关的公共方法
+    // 🚫 教学系统已禁用 - 教学模式相关的公共方法已禁用
     public startTutorial(): void {
-        if (!this.isTutorialMode) {
-            // 重新初始化为教学模式
-            this.resetGame();
-            this.initializeGame(true);
-        } else if (this.tutorialManager) {
-            this.tutorialManager.startTutorial();
-        }
+        console.log('🚫 [TUTORIAL DISABLED] startTutorial - 教学系统已禁用');
+        // 不再启动教学系统
     }
 
     public stopTutorial(): void {
-        if (this.tutorialManager) {
-            this.tutorialManager.stopTutorial();
-        }
+        console.log('🚫 [TUTORIAL DISABLED] stopTutorial - 教学系统已禁用');
+        // 不再停止教学系统
     }
 
     public isTutorialActive(): boolean {
-        return this.tutorialManager ? this.tutorialManager.isActive() : false;
+        return false; // 教学系统永远不活跃
     }
 
     public getTutorialState(): string {
-        return this.tutorialManager ? this.tutorialManager.getCurrentState() : 'inactive';
+        return 'disabled'; // 返回禁用状态
     }
 
     public getTutorialManager(): TutorialManager | null {
-        return this.tutorialManager;
+        return null; // 教学管理器始终为null
     }
 
     public getIsTutorialMode(): boolean {
-        return this.isTutorialMode;
+        return false; // 永远不是教学模式
     }
 
     public setIsTutorialMode(value: boolean): void {
-        console.log(`🔍 [DEBUG] setIsTutorialMode - 设置教学模式: ${this.isTutorialMode} -> ${value}`);
-        this.isTutorialMode = value;
+        console.log('🚫 [TUTORIAL DISABLED] setIsTutorialMode - 教学系统已禁用，忽略设置');
+        // 强制保持非教学模式
+        this.isTutorialMode = false;
         
-        if (!value) {
-            console.log('🔍 [DEBUG] setIsTutorialMode - 教学模式已结束，开始清理手势图片');
-            
-            // 🐛 DEBUG: 检查当前手势状态
-            console.log('🔍 [DEBUG] setIsTutorialMode - handGuide.visible =', this.handGuide?.visible);
-            console.log('🔍 [DEBUG] setIsTutorialMode - tutorialManager存在 =', !!this.tutorialManager);
-            
-            // 隐藏Game.ts中的手势图片
-            if (this.handGuide) {
-                this.handGuide.setVisible(false);
-                console.log('🔍 [DEBUG] setIsTutorialMode - 已隐藏Game.ts中的handGuide');
-            }
-            
-            // 重置引导计时器，防止立即显示手势
-            this.guideTimer = 0;
-            this.lastMoves = this.moves;
-            
-            console.log('🔍 [DEBUG] setIsTutorialMode - 教学模式已结束，用户现在可以自由游戏');
+        // 确保手势图片始终隐藏
+        if (this.handGuide) {
+            this.handGuide.setVisible(false);
         }
     }
     
@@ -1660,74 +1626,10 @@ export class Game extends Scene {
         return this.debugMode;
     }
 
-    // 检查库存牌堆在教学模式下是否可以交互
+    // 🚫 教学系统已禁用 - 移除教学模式交互权限检查
     private canStockInteractInTutorial(): boolean {
-        console.log('🔍 [DEBUG] canStockInteractInTutorial - 权限检查:', {
-            debugMode: this.debugMode,
-            isTutorialMode: this.isTutorialMode,
-            tutorialManagerExists: !!this.tutorialManager,
-            tutorialManagerActive: this.tutorialManager?.isActive(),
-            currentState: this.tutorialManager?.getCurrentState()
-        });
-        
-        // 调试模式下允许所有交互
-        if (this.debugMode) {
-            console.log('🐛 [DEBUG MODE] canStockInteractInTutorial - 调试模式，允许交互');
-            return true;
-        }
-        
-        // 如果不是教学模式，允许所有交互
-        if (!this.isTutorialMode) {
-            console.log('🔍 [DEBUG] canStockInteractInTutorial - 非教学模式，允许交互');
-            return true;
-        }
-        
-        // 获取教学管理器
-        // 在教学模式下，如果教学管理器不存在或未激活，默认禁止交互
-        if (!this.tutorialManager || !this.tutorialManager.isActive()) {
-            console.log('🔍 [DEBUG] canStockInteractInTutorial - 教学管理器未激活，禁止交互');
-            return false;
-        }
-        
-        // 获取当前教学状态
-        const currentState = this.tutorialManager.getCurrentState();
-        console.log('🔍 [DEBUG] canStockInteractInTutorial - 当前教学状态:', currentState);
-        
-        // 根据教学步骤检查交互权限
-        switch (currentState) {
-            case 'step_intro':
-            case 'step_rules':
-            case 'step_ace_to_foundation':
-            case 'step_card_to_pile':
-                // 前几步不允许点击库存牌堆
-                console.log('🔍 [DEBUG] canStockInteractInTutorial - 教学前期步骤，禁止交互');
-                return false;
-                
-            case 'step_stock_flip':
-                // 第五步：允许点击库存牌堆
-                console.log('🔍 [DEBUG] canStockInteractInTutorial - stock翻牌步骤，允许交互');
-                return true;
-                
-            case 'step_stock_to_pile':
-                // 在这个步骤中禁止stock交互
-                console.log('🔍 [DEBUG] canStockInteractInTutorial - stock到pile步骤，禁止stock交互');
-                return false;
-                
-            case 'step_pile_to_pile':
-                // 第六步：允许点击库存牌堆
-                console.log('🔍 [DEBUG] canStockInteractInTutorial - pile间移动步骤，允许交互');
-                return true;
-                
-            case 'step_free_play':
-                // 自由游戏模式：允许所有交互
-                console.log('🔍 [DEBUG] canStockInteractInTutorial - 自由游戏模式，允许交互');
-                return true;
-                
-            default:
-                // 默认不允许交互
-                console.log('🔍 [DEBUG] canStockInteractInTutorial - 未知状态，禁止交互');
-                return false;
-        }
+        // 教学系统已禁用，始终允许交互
+        return true;
     }
 
     // 智能提示系统（教学完成后启用）
@@ -1763,18 +1665,9 @@ export class Game extends Scene {
         return allCards.find(card => card.suit === suit && card.value === value) || null;
     }
 
-    // 检查操作是否被教学系统允许
+    // 🚫 教学系统已禁用 - 始终允许所有操作
     public isActionAllowed(actionType: string): boolean {
-        // 调试模式下允许所有操作
-        if (this.debugMode) {
-            return true;
-        }
-        
-        if (!this.isTutorialMode || !this.tutorialManager) {
-            return true; // 非教学模式允许所有操作
-        }
-        
-        return this.tutorialManager.isActive() ? false : true; // 简化版本
+        return true; // 教学系统已禁用，允许所有操作
     }
 
 }
