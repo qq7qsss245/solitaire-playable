@@ -454,8 +454,17 @@ export class CardDealSequencer {
     const allCards: CardComponent[] = [];
     const gameScene = this.scene as any;
 
+    // 修复逻辑：正确的tableau布局
+    // 第0行：第0-6列都有卡牌（7张）
+    // 第1行：第1-6列有卡牌（6张）
+    // 第2行：第2-6列有卡牌（5张）
+    // ...
+    // 第6行：第6列有卡牌（1张）
     for (let rowIndex = 0; rowIndex < 7; rowIndex++) {
-      for (let columnIndex = 0; columnIndex <= rowIndex; columnIndex++) {
+      const startColumn = rowIndex; // 每行从该行索引开始
+      const endColumn = 6; // 每行都到第6列结束
+      
+      for (let columnIndex = startColumn; columnIndex <= endColumn; columnIndex++) {
         const card = this.getCardForPosition(rowIndex, columnIndex);
         if (card) {
           allCards.push(card);
@@ -463,21 +472,30 @@ export class CardDealSequencer {
       }
     }
 
+    console.log(`🎮 CardDealSequencer: Completing sequence immediately with ${allCards.length} cards`);
+
     // 立即移动所有卡牌到最终位置
     this.animationController.snapCardsToFinalPositions(
       allCards,
       (card) => {
         // 找到卡牌在tableau中的位置
         for (let rowIndex = 0; rowIndex < 7; rowIndex++) {
-          for (let columnIndex = 0; columnIndex <= rowIndex; columnIndex++) {
+          const startColumn = rowIndex;
+          const endColumn = 6;
+          
+          for (let columnIndex = startColumn; columnIndex <= endColumn; columnIndex++) {
             if (this.getCardForPosition(rowIndex, columnIndex) === card) {
               return this.calculateTargetPosition(rowIndex, columnIndex);
             }
           }
         }
+        console.warn(`🎮 CardDealSequencer: Could not find position for card ${card.suit}${card.value}`);
         return { x: 0, y: 0 };
       }
     );
+
+    // 立即翻开每列的底部卡牌（最后一张卡牌）
+    this.flipBottomCardsImmediately();
 
     // 触发完成事件
     this.emitAnimationEvent('animation-complete', { totalRows: 7 });
@@ -488,6 +506,22 @@ export class CardDealSequencer {
    */
   public updateConfig(newConfig: Partial<DealAnimationConfig>): void {
     this.config = { ...this.config, ...newConfig };
+  }
+
+  /**
+   * 立即翻开每列的底部卡牌（跳过动画时使用）
+   */
+  private flipBottomCardsImmediately(): void {
+    console.log('🎮 CardDealSequencer: Flipping bottom cards immediately');
+    
+    for (let columnIndex = 0; columnIndex < 7; columnIndex++) {
+      const bottomCard = this.getBottomCardForColumn(columnIndex);
+      if (bottomCard) {
+        // 立即翻开卡牌，不使用动画
+        bottomCard.setFaceUp(true);
+        console.log(`🎮 CardDealSequencer: Flipped bottom card in column ${columnIndex}: ${bottomCard.suit}${bottomCard.value}`);
+      }
+    }
   }
 
   /**

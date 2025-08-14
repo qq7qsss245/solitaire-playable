@@ -54,6 +54,12 @@ export class InteractionController {
    * 结束动画时恢复交互
    */
   public endDealAnimation(): void {
+    // 防止重复调用
+    if (!this.state.isDealAnimationPlaying) {
+      console.log('🎮 InteractionController: Deal animation already ended, skipping');
+      return;
+    }
+
     this.state.isDealAnimationPlaying = false;
     this.state.isUserInteractionBlocked = false;
 
@@ -137,8 +143,8 @@ export class InteractionController {
     // 触发跳过事件
     EventBus.emit('deal-animation-skipped');
 
-    // 立即结束动画状态
-    this.endDealAnimation();
+    // 注意：不在这里调用 endDealAnimation()，让跳过回调来处理动画结束
+    // 这样避免了重复调用导致的状态混乱
   }
 
   /**
