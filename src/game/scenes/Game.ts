@@ -876,6 +876,11 @@ export class Game extends Scene {
             // 获取要翻的卡牌
             const card = this.stock.cards.pop()!;
             
+            // 获取标准卡牌尺寸（与Card组件保持一致）
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const cardWidth = isLandscape ? landscapeLayout.cardWidth : portraitLayout.cardWidth;
+            const cardHeight = isLandscape ? landscapeLayout.cardHeight : portraitLayout.cardHeight;
+            
             // 创建临时动画卡牌（背面）
             this.animationCard = this.add.sprite(
                 this.currentLayout.stock.x,
@@ -883,7 +888,7 @@ export class Game extends Scene {
                 AssetKeys.CARD_BACK
             );
             this.animationCard.setDepth(100); // 确保在最上层
-            this.animationCard.setScale(1.0); // 与游戏卡牌相同的缩放
+            this.animationCard.setDisplaySize(cardWidth, cardHeight); // 使用与Card组件相同的尺寸设置
             
             // 确保动画卡牌可见
             this.animationCard.setVisible(true);
