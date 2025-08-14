@@ -4,7 +4,6 @@ import './index.css';
 import { EventBus } from './game/EventBus';
 import Sound from './sound';
 import { Start } from './viewable-handler';
-import GameOverModal from './components/GameOverModal';
 import bgPortrait from './assets/images/backgrounds/bg-portrait.png';
 import bgLandscape from './assets/images/backgrounds/bg-landscape.png';
 
@@ -62,7 +61,6 @@ function App() {
         }}>
             <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
             <Sound />
-            <GameOverModal />
         </div>
     )
 }

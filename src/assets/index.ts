@@ -152,17 +152,6 @@ import movesText from './images/ui/scoreboard/MOVES_.png';
 import scoreText from './images/ui/scoreboard/SCORE_.png';
 import timeText from './images/ui/scoreboard/TIME_.png';
 
-// 结算界面图片
-import gameoverBg from './images/ui/gameover/结算bg.png';
-import bestUi from './images/ui/gameover/best ui.png';
-import continueButton from './images/ui/gameover/continue button.png';
-import greatText from './images/ui/gameover/GREAT!.png';
-import bestText from './images/ui/gameover/BEST.png';
-import continueSmallText from './images/ui/gameover/CONTINUE_小.png';
-import movesGameoverText from './images/ui/gameover/MOVES_.png';
-import scoreGameoverText from './images/ui/gameover/SCORE_.png';
-import timeGameoverText from './images/ui/gameover/TIME_.png';
-import yourText from './images/ui/gameover/YOUR.png';
 
 // 引导文案图片
 import guideText1 from './images/tutorial/guide-texts/This classical card game is also called Klondike or Patience_.png';
@@ -264,18 +253,6 @@ export const Assets = {
       moves: movesText,
       score: scoreText,
       time: timeText,
-    },
-    gameover: {
-      bg: gameoverBg,
-      bestUi,
-      continueButton,
-      great: greatText,
-      best: bestText,
-      continueSmall: continueSmallText,
-      moves: movesGameoverText,
-      score: scoreGameoverText,
-      time: timeGameoverText,
-      your: yourText,
     },
   },
   
@@ -410,17 +387,6 @@ export const AssetKeys = {
   SCORE_TEXT: 'score-text',
   TIME_TEXT: 'time-text',
   
-  // 结算界面
-  GAMEOVER_BG: 'gameover-bg',
-  BEST_UI: 'best-ui',
-  CONTINUE_BUTTON: 'continue-button',
-  GREAT_TEXT: 'great-text',
-  BEST_TEXT: 'best-text',
-  CONTINUE_SMALL_TEXT: 'continue-small-text',
-  MOVES_GAMEOVER_TEXT: 'moves-gameover-text',
-  SCORE_GAMEOVER_TEXT: 'score-gameover-text',
-  TIME_GAMEOVER_TEXT: 'time-gameover-text',
-  YOUR_TEXT: 'your-text',
   
   // 引导文案
   GUIDE_INTRO: 'guide-intro',

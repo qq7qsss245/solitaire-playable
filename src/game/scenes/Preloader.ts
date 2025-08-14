@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { Global } from './constants/state';
 import { Assets, AssetKeys } from '../../assets';
+import { SuitExplosionManager } from '../animations/SuitExplosionManager';
 
 export class Preloader extends Scene {
     constructor() {
@@ -83,17 +84,6 @@ export class Preloader extends Scene {
         this.load.image(AssetKeys.SCORE_TEXT, Assets.ui.scoreboard.score);
         this.load.image(AssetKeys.TIME_TEXT, Assets.ui.scoreboard.time);
 
-        // 加载结算界面图片
-        this.load.image(AssetKeys.GAMEOVER_BG, Assets.ui.gameover.bg);
-        this.load.image(AssetKeys.BEST_UI, Assets.ui.gameover.bestUi);
-        this.load.image(AssetKeys.CONTINUE_BUTTON, Assets.ui.gameover.continueButton);
-        this.load.image(AssetKeys.GREAT_TEXT, Assets.ui.gameover.great);
-        this.load.image(AssetKeys.BEST_TEXT, Assets.ui.gameover.best);
-        this.load.image(AssetKeys.CONTINUE_SMALL_TEXT, Assets.ui.gameover.continueSmall);
-        this.load.image(AssetKeys.MOVES_GAMEOVER_TEXT, Assets.ui.gameover.moves);
-        this.load.image(AssetKeys.SCORE_GAMEOVER_TEXT, Assets.ui.gameover.score);
-        this.load.image(AssetKeys.TIME_GAMEOVER_TEXT, Assets.ui.gameover.time);
-        this.load.image(AssetKeys.YOUR_TEXT, Assets.ui.gameover.your);
 
         // 加载引导文案图片
         this.load.image(AssetKeys.GUIDE_INTRO, Assets.tutorial.guideTexts.intro);
