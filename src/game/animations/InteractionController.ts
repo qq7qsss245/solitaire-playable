@@ -24,8 +24,8 @@ export class InteractionController {
     this.state = {
       isDealAnimationPlaying: false,
       isUserInteractionBlocked: false,
-      allowSkip: true,
-      showSkipHint: true
+      allowSkip: false,  // 禁用跳过功能
+      showSkipHint: false  // 不显示跳过提示
     };
   }
 

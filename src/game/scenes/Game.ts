@@ -900,7 +900,7 @@ export class Game extends Scene {
                 y: this.currentLayout.stock.y - 12,
                 x: this.currentLayout.stock.x + (this.currentLayout.waste.x - this.currentLayout.stock.x) * 0.3,
                 scaleX: 0,
-                duration: 50,
+                duration: 150,
                 ease: 'Power2',
                 onComplete: () => {
                     // 更新卡牌状态
@@ -930,7 +930,7 @@ export class Game extends Scene {
                         scaleX: 1.0,
                         x: this.currentLayout.waste.x,
                         y: this.currentLayout.waste.y,
-                        duration: 50,
+                        duration: 150,
                         ease: 'Power2',
                         onComplete: () => {
                             // 将卡牌添加到waste
