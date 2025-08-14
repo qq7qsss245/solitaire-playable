@@ -899,7 +899,7 @@ export class Game extends Scene {
                 AssetKeys.CARD_BACK
             );
             this.animationCard.setDepth(100); // 确保在最上层
-            this.animationCard.setScale(0.8); // 与游戏卡牌相同的缩放
+            this.animationCard.setScale(1.0); // 与游戏卡牌相同的缩放
             
             // 确保动画卡牌可见
             this.animationCard.setVisible(true);
@@ -925,9 +925,9 @@ export class Game extends Scene {
                     renderedCard.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y - 12);
                     renderedCard.setDepth(100);
                     
-                    // 初始时scaleX为0（翻转状态），scaleY保持0.8
+                    // 初始时scaleX为0（翻转状态），scaleY保持1.0
                     renderedCard.scaleX = 0;
-                    renderedCard.scaleY = 0.8;
+                    renderedCard.scaleY = 1.0;
                     
                     // 将容器赋值给animationCard以便后续处理
                     this.animationCard = renderedCard as any;
@@ -935,7 +935,7 @@ export class Game extends Scene {
                     // 第二阶段翻转（50-100ms）
                     this.tweens.add({
                         targets: renderedCard,
-                        scaleX: 0.8,
+                        scaleX: 1.0,
                         duration: 50,
                         ease: 'Power2',
                         onComplete: () => {
@@ -1095,21 +1095,31 @@ export class Game extends Scene {
         const TOP_LEFT_VALUE_POS = { x: -42, y: -70 };
         const TOP_RIGHT_SUIT_POS = { x: 36, y: -65 };
         const CENTER_SUIT_POS = { x: 0, y: 35 };
+        
+        // 缩放常量（与Card.ts保持一致）
+        const TOP_LEFT_SUIT_SCALE = 0.6;
+        const TOP_LEFT_VALUE_SCALE = 0.6;
+        const TOP_RIGHT_SUIT_SCALE = 1;
+        const TOP_RIGHT_SUIT_ALPHA = 1.0;
+        const CENTER_SUIT_SCALE = 1.5;
+        const CENTER_FACE_SCALE = 0.6;
+        const CENTER_SUIT_ALPHA = 1.0;
+        const CENTER_FACE_ALPHA = 1.0;
 
         // 创建花色图标 - 左上角
         const suitTopLeft = this.add.image(TOP_LEFT_SUIT_POS.x, TOP_LEFT_SUIT_POS.y, suitKey);
-        suitTopLeft.setScale(0.6);
+        suitTopLeft.setScale(TOP_LEFT_SUIT_SCALE);
         container.add(suitTopLeft);
 
         // 创建数值图标 - 左上角
         const valueTopLeft = this.add.image(TOP_LEFT_VALUE_POS.x, TOP_LEFT_VALUE_POS.y, valueKey);
-        valueTopLeft.setScale(0.6);
+        valueTopLeft.setScale(TOP_LEFT_VALUE_SCALE);
         container.add(valueTopLeft);
 
         // 创建花色图标 - 右上角装饰
         const suitTopRight = this.add.image(TOP_RIGHT_SUIT_POS.x, TOP_RIGHT_SUIT_POS.y, suitKey);
-        suitTopRight.setScale(1);
-        suitTopRight.setAlpha(1.0);
+        suitTopRight.setScale(TOP_RIGHT_SUIT_SCALE);
+        suitTopRight.setAlpha(TOP_RIGHT_SUIT_ALPHA);
         container.add(suitTopRight);
 
         // 创建中心图标
@@ -1120,14 +1130,14 @@ export class Game extends Scene {
             const faceCardKey = getFaceCardKey(value);
             if (faceCardKey) {
                 centerSuit.setTexture(faceCardKey);
-                centerSuit.setScale(0.6);
-                centerSuit.setAlpha(1.0);
+                centerSuit.setScale(CENTER_FACE_SCALE);
+                centerSuit.setAlpha(CENTER_FACE_ALPHA);
             }
         } else {
             // 其他牌显示花色
             centerSuit.setTexture(suitKey);
-            centerSuit.setScale(1.5);
-            centerSuit.setAlpha(1.0);
+            centerSuit.setScale(CENTER_SUIT_SCALE);
+            centerSuit.setAlpha(CENTER_SUIT_ALPHA);
         }
         container.add(centerSuit);
 
