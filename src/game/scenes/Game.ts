@@ -839,7 +839,7 @@ export class Game extends Scene {
         }
     }
 
-    // 执行优化的翻牌动画序列（总计200ms）
+    // 执行优化的翻牌动画序列（总计150ms）
     private async playStockFlipAnimation(): Promise<void> {
         this.isStockAnimating = true;
         
@@ -847,11 +847,8 @@ export class Game extends Scene {
             // 阶段1：点击反馈（0-50ms）
             await this.playClickFeedback();
             
-            // 阶段2：卡牌翻出动画（50-150ms）
-            await this.playCardFlipAnimation();
-            
-            // 阶段3：移动到waste（150-200ms）
-            await this.playMoveToWasteAnimation();
+            // 阶段2：卡牌翻转和移动同时进行（50-150ms）
+            await this.playCardFlipAndMoveAnimation();
             
             // 完成处理
             this.completeStockAnimation();
@@ -868,29 +865,16 @@ export class Game extends Scene {
             // 播放点击音效
             EventBus.emit('play-ui-click');
             
-            // stock区域缩放反馈
-            this.tweens.add({
-                targets: this.stockZone,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 25,
-                ease: 'Power2',
-                yoyo: true,
-                onComplete: () => {
-                    resolve();
-                }
-            });
+            // 移除缩放动画，直接完成
+            resolve();
         });
     }
 
-    // 阶段2：卡牌翻出动画（50-150ms）
-    private playCardFlipAnimation(): Promise<void> {
+    // 阶段2：卡牌翻转和移动同时进行（50-150ms）
+    private playCardFlipAndMoveAnimation(): Promise<void> {
         return new Promise((resolve) => {
             // 获取要翻的卡牌
             const card = this.stock.cards.pop()!;
-            
-            // 发牌音效已移除，保留用于之后的发牌动画
-            // EventBus.emit('play-card-deal');
             
             // 创建临时动画卡牌（背面）
             this.animationCard = this.add.sprite(
@@ -905,11 +889,11 @@ export class Game extends Scene {
             this.animationCard.setVisible(true);
             this.animationCard.setAlpha(1);
             
-            // 使用连续的tween动画来替代Timeline
-            // 向上弹跳 + 第一阶段翻转（0-50ms）
+            // 第一阶段：向上弹跳 + 翻转到一半 + 开始移动（0-50ms）
             this.tweens.add({
                 targets: this.animationCard,
                 y: this.currentLayout.stock.y - 12,
+                x: this.currentLayout.stock.x + (this.currentLayout.waste.x - this.currentLayout.stock.x) * 0.3,
                 scaleX: 0,
                 duration: 50,
                 ease: 'Power2',
@@ -922,7 +906,10 @@ export class Game extends Scene {
                     
                     // 创建完整渲染的卡牌容器
                     const renderedCard = this.createRenderedCardContainer(card);
-                    renderedCard.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y - 12);
+                    renderedCard.setPosition(
+                        this.currentLayout.stock.x + (this.currentLayout.waste.x - this.currentLayout.stock.x) * 0.3,
+                        this.currentLayout.stock.y - 12
+                    );
                     renderedCard.setDepth(100);
                     
                     // 初始时scaleX为0（翻转状态），scaleY保持1.0
@@ -932,47 +919,17 @@ export class Game extends Scene {
                     // 将容器赋值给animationCard以便后续处理
                     this.animationCard = renderedCard as any;
                     
-                    // 第二阶段翻转（50-100ms）
+                    // 第二阶段：完成翻转 + 移动到waste位置（50-100ms）
                     this.tweens.add({
                         targets: renderedCard,
                         scaleX: 1.0,
+                        x: this.currentLayout.waste.x,
+                        y: this.currentLayout.waste.y,
                         duration: 50,
                         ease: 'Power2',
                         onComplete: () => {
                             // 将卡牌添加到waste
                             this.waste.cards.push(card);
-                            resolve();
-                        }
-                    });
-                }
-            });
-        });
-    }
-
-    // 阶段3：移动到waste动画（150-200ms）
-    private playMoveToWasteAnimation(): Promise<void> {
-        return new Promise((resolve) => {
-            if (!this.animationCard) {
-                resolve();
-                return;
-            }
-            
-            // 平滑移动到waste位置
-            this.tweens.add({
-                targets: this.animationCard,
-                x: this.currentLayout.waste.x,
-                y: this.currentLayout.waste.y,
-                duration: 50,
-                ease: 'Power2.easeOut',
-                onComplete: () => {
-                    // 轻微弹跳效果
-                    this.tweens.add({
-                        targets: this.animationCard,
-                        y: this.currentLayout.waste.y - 3,
-                        duration: 15,
-                        ease: 'Power1',
-                        yoyo: true,
-                        onComplete: () => {
                             resolve();
                         }
                     });
