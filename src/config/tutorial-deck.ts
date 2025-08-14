@@ -51,25 +51,25 @@ export function generateTutorialLayout(): KlondikeLayout {
             { suit: 'c' as CardSuit, value: 'A' as CardValue, faceUp: true }
         ],
         
-        // 第7列：红桃8 (背面) + 黑桃5 (背面) + 方块8 (背面) + 红桃Q (背面) + 黑桃K (背面) + 方块3 (背面) + 梅花5 (正面)
+        // 第7列：红桃8 (背面) + 黑桃5 (背面) + 方块8 (背面) + 梅花Q (背面) + 黑桃J (背面) + 方块3 (背面) + 红桃K (正面)
         [
             { suit: 'h' as CardSuit, value: '8' as CardValue, faceUp: false },
             { suit: 's' as CardSuit, value: '5' as CardValue, faceUp: false },
             { suit: 'd' as CardSuit, value: '8' as CardValue, faceUp: false },
-            { suit: 'h' as CardSuit, value: 'Q' as CardValue, faceUp: false },
-            { suit: 's' as CardSuit, value: 'K' as CardValue, faceUp: false },
+            { suit: 'c' as CardSuit, value: 'Q' as CardValue, faceUp: false }, // 替换重复的hQ
+            { suit: 's' as CardSuit, value: 'J' as CardValue, faceUp: false }, // 替换重复的sK
             { suit: 'd' as CardSuit, value: '3' as CardValue, faceUp: false },
-            { suit: 'c' as CardSuit, value: '5' as CardValue, faceUp: true }
+            { suit: 'h' as CardSuit, value: 'K' as CardValue, faceUp: true } // 替换重复的c5，并移动hK到这里
         ]
     ];
 
-    // 库存牌堆：剩余24张牌，红桃Q在末尾（第一张翻出）
+    // 库存牌堆：剩余23张牌，红桃Q在末尾（第一张翻出）
     const stock: Card[] = [
         // 其他剩余卡牌（按教学需要排列）
         { suit: 'd' as CardSuit, value: '2' as CardValue, faceUp: false },
         { suit: 'c' as CardSuit, value: '3' as CardValue, faceUp: false },
         { suit: 'h' as CardSuit, value: '5' as CardValue, faceUp: false },
-        { suit: 'd' as CardSuit, value: '7' as CardValue, faceUp: false },
+        // 删除重复的d7，因为tableau第2列已经有了
         { suit: 'c' as CardSuit, value: '9' as CardValue, faceUp: false },
         { suit: 'h' as CardSuit, value: 'J' as CardValue, faceUp: false },
         
@@ -79,12 +79,12 @@ export function generateTutorialLayout(): KlondikeLayout {
         { suit: 'h' as CardSuit, value: '9' as CardValue, faceUp: false },
         { suit: 's' as CardSuit, value: '8' as CardValue, faceUp: false },
         { suit: 'd' as CardSuit, value: '10' as CardValue, faceUp: false },
-        { suit: 'c' as CardSuit, value: 'A' as CardValue, faceUp: false },
+        { suit: 's' as CardSuit, value: '7' as CardValue, faceUp: false },
         
-        // 黑桃A放在第3步教学需要的位置（第14张）
+        // 黑桃A放在第3步教学需要的位置（第13张）
         { suit: 's' as CardSuit, value: 'A' as CardValue, faceUp: false },
         { suit: 'h' as CardSuit, value: '2' as CardValue, faceUp: false },
-        { suit: 's' as CardSuit, value: '4' as CardValue, faceUp: false },
+        { suit: 's' as CardSuit, value: '9' as CardValue, faceUp: false },
         { suit: 'd' as CardSuit, value: '5' as CardValue, faceUp: false },
         { suit: 'c' as CardSuit, value: '7' as CardValue, faceUp: false },
         { suit: 'h' as CardSuit, value: '6' as CardValue, faceUp: false },
@@ -213,7 +213,7 @@ export class TutorialValidator {
 export const TUTORIAL_DECK_CONSTANTS = {
     TOTAL_CARDS: 52,
     TABLEAU_CARDS: 28, // 7列中的卡牌总数
-    STOCK_CARDS: 24,   // 库存牌堆中的卡牌数
+    STOCK_CARDS: 23,   // 库存牌堆中的卡牌数（修复重复后）
     FOUNDATION_PILES: 4,
     TABLEAU_COLUMNS: 7
 };
