@@ -7,7 +7,7 @@ import { AssetKeys } from '../../assets';
 
 // AutoComplete配置参数
 const AUTO_COMPLETE_CONFIG = {
-    CARD_MOVE_DELAY: 50,        // 收牌间隔时间(ms)
+    CARD_MOVE_DELAY: 100,        // 收牌间隔时间(ms)
     CARD_FLIGHT_DURATION: 300,  // 卡牌飞行时间(ms)
     STOCK_FLIP_DURATION: 200,   // Stock翻牌时间(ms)
     MAX_LOOP_ITERATIONS: 100,   // 最大循环次数保护
@@ -133,50 +133,44 @@ export class AutoCompleteManager {
             let foundAnyCard = false;
             loopIterations++;
 
-            // 对每个花色，尝试收集所有可收的牌（按A→K顺序）
+            // 对每个花色，每轮只收集一张牌（轮流收牌）
             for (const suit of this.suitOrder) {
                 if (completedSuits.has(suit)) {
                     continue; // 跳过已完成的花色
                 }
 
-                // 为当前花色连续收集所有可收的牌
-                let foundCardForSuit = true;
-                while (foundCardForSuit && !completedSuits.has(suit)) {
-                    const foundationIndex = this.getSuitFoundationIndex(suit);
-                    const nextCard = this.findNextCardForSuitWithExclusions(suit, virtualFoundationCounts[foundationIndex], usedCards);
+                const foundationIndex = this.getSuitFoundationIndex(suit);
+                const nextCard = this.findNextCardForSuitWithExclusions(suit, virtualFoundationCounts[foundationIndex], usedCards);
+                
+                if (nextCard) {
+                    actions.push({
+                        card: nextCard.card,
+                        targetFoundation: foundationIndex,
+                        delay: actionDelay,
+                        fromStock: nextCard.fromStock
+                    });
+
+                    // 模拟收牌：更新虚拟Foundation计数并标记卡牌为已使用
+                    virtualFoundationCounts[foundationIndex]++;
+                    usedCards.add(nextCard.card);
                     
-                    if (nextCard) {
-                        actions.push({
-                            card: nextCard.card,
-                            targetFoundation: foundationIndex,
-                            delay: actionDelay,
-                            fromStock: nextCard.fromStock
-                        });
+                    actionDelay += AUTO_COMPLETE_CONFIG.CARD_MOVE_DELAY;
+                    foundAnyCard = true;
 
-                        // 模拟收牌：更新虚拟Foundation计数并标记卡牌为已使用
-                        virtualFoundationCounts[foundationIndex]++;
-                        usedCards.add(nextCard.card);
-                        
-                        actionDelay += AUTO_COMPLETE_CONFIG.CARD_MOVE_DELAY;
-                        foundAnyCard = true;
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🎯 轮流收牌: ${nextCard.card.suit}${nextCard.card.value} -> Foundation ${foundationIndex} (虚拟计数: ${virtualFoundationCounts[foundationIndex]})`);
+                    }
 
+                    // 检查该花色是否完成（K已收集）
+                    if (virtualFoundationCounts[foundationIndex] >= 13) {
+                        completedSuits.add(suit);
                         if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-                            console.log(`🎯 添加收牌动作: ${nextCard.card.suit}${nextCard.card.value} -> Foundation ${foundationIndex} (虚拟计数: ${virtualFoundationCounts[foundationIndex]})`);
+                            console.log(`✅ 花色 ${suit} 将完成`);
                         }
-
-                        // 检查该花色是否完成（K已收集）
-                        if (virtualFoundationCounts[foundationIndex] >= 13) {
-                            completedSuits.add(suit);
-                            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-                                console.log(`✅ 花色 ${suit} 将完成`);
-                            }
-                            foundCardForSuit = false; // 该花色已完成，停止收集
-                        }
-                    } else {
-                        foundCardForSuit = false; // 该花色暂时没有可收的牌
-                        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-                            console.log(`🔍 花色 ${suit} 暂时没有可收的牌`);
-                        }
+                    }
+                } else {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🔍 花色 ${suit} 暂时没有可收的牌`);
                     }
                 }
             }
@@ -529,15 +523,22 @@ export class AutoCompleteManager {
      * 执行收牌动画序列
      */
     private async executeCollectionSequence(actions: CardMoveAction[]): Promise<void> {
-        for (const action of actions) {
-            // 等待延迟
-            if (action.delay > 0) {
-                await this.delay(action.delay);
-            }
+        // 创建所有动画的Promise数组，每个动画有自己的开始延迟
+        const animationPromises = actions.map(action => {
+            return new Promise<void>(async (resolve) => {
+                // 等待开始延迟
+                if (action.delay > 0) {
+                    await this.delay(action.delay);
+                }
 
-            // 执行单个收牌动作
-            await this.executeCardCollection(action);
-        }
+                // 执行单个收牌动作
+                await this.executeCardCollection(action);
+                resolve();
+            });
+        });
+
+        // 等待所有动画完成
+        await Promise.all(animationPromises);
     }
 
     /**
