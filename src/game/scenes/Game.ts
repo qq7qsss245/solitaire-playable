@@ -859,6 +859,16 @@ export class Game extends Scene {
         });
     }
 
+    /**
+     * 隐藏Stock区域（当最后一张牌被收走时）
+     */
+    public hideStockZone(): void {
+        if (this.stockZone) {
+            this.stockZone.setVisible(false);
+            console.log('🚫 Stock区域已隐藏 - 最后一张牌已收走');
+        }
+    }
+
     private updateScoreboardPosition(): void {
         const layout = this.currentLayout.scoreboard;
         const isLandscape = window.innerWidth / window.innerHeight > 1;

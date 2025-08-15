@@ -1,4 +1,8 @@
 {
   "maxMoves": 1000,
-  "gameOverModalDelay": 30
+  "gameOverModalDelay": 30,
+  "autoCompleteAnimation": {
+    "trajectory": "linear",
+    "description": "收牌动画轨迹类型: 'linear' 直线 | 'curve' 弧线"
+  }
 }

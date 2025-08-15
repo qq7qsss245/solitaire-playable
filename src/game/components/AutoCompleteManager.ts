@@ -4,6 +4,7 @@ import { Game } from '../scenes/Game';
 import { CardSuit, CardValue } from '../../config/klondike-layout';
 import { EventBus } from '../EventBus';
 import { AssetKeys } from '../../assets';
+import outputConfig from '../../config/output-config.json';
 
 // AutoComplete配置参数
 const AUTO_COMPLETE_CONFIG = {
@@ -554,15 +555,23 @@ export class AutoCompleteManager {
         const targetX = this.scene.foundationZones[targetFoundation].x;
         const targetY = this.scene.foundationZones[targetFoundation].y;
 
-        // 如果卡牌来自Stock且是背面朝上，播放翻牌+飞行动画
+        // 检查是否是Stock的最后一张牌
+        const isLastStockCard = fromStock && this.scene.stock.cards.length === 1;
+
+        // 如果卡牌来自Stock且是背面朝上
         if (fromStock && !card.faceUp) {
-            console.log(`🔄 Stock卡牌翻牌+飞行: ${card.suit}${card.value}`);
+            console.log(`🔄 Stock卡牌翻牌+飞行: ${card.suit}${card.value}${isLastStockCard ? ' (最后一张)' : ''}`);
             
             // 播放翻牌音效
             EventBus.emit('play-card-flip');
             
-            // 同时播放翻牌和飞行动画
-            await this.playStockFlipAndFlightAnimation(card, targetX, targetY);
+            if (isLastStockCard) {
+                // 最后一张牌：使用stockZone进行翻转飞出动画
+                await this.playStockZoneFlipAndFlyAnimation(card, targetX, targetY);
+            } else {
+                // 普通Stock卡牌：简化翻牌+飞行
+                await this.playStockFlipAndFlightAnimation(card, targetX, targetY);
+            }
         } else {
             // 普通卡牌只播放飞行动画
             await this.playCardFlightAnimation(card, targetX, targetY);
@@ -570,6 +579,9 @@ export class AutoCompleteManager {
 
         // 更新游戏状态
         this.updateGameState(card, targetFoundation);
+
+        // 如果是最后一张Stock卡牌，Stock区域会在动画中被隐藏
+        // （不需要在这里单独调用hideStockArea）
 
         // 播放音效
         EventBus.emit('play-slot-place');
@@ -638,9 +650,59 @@ export class AutoCompleteManager {
     }
 
     /**
-     * 播放卡牌飞行动画
+     * 播放卡牌飞行动画（根据配置选择轨迹）
      */
     private playCardFlightAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
+        const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
+        
+        if (trajectory === 'linear') {
+            return this.playLinearFlightAnimation(card, targetX, targetY);
+        } else {
+            return this.playCurveFlightAnimation(card, targetX, targetY);
+        }
+    }
+
+    /**
+     * 播放直线飞行动画
+     */
+    private playLinearFlightAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
+        return new Promise((resolve) => {
+            // 设置卡牌为最高层级
+            card.setDepth(1000);
+
+            // 直线飞行动画
+            this.scene.tweens.add({
+                targets: card,
+                x: targetX,
+                y: targetY,
+                duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION,
+                ease: 'Power2.easeInOut',
+                onComplete: () => {
+                    // 确保最终位置准确
+                    card.setPosition(targetX, targetY);
+                    resolve();
+                }
+            });
+
+            // 添加轻微的旋转效果
+            this.scene.tweens.add({
+                targets: card,
+                rotation: 0.05,
+                duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION / 2,
+                yoyo: true,
+                ease: 'Sine.easeInOut'
+            });
+
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎬 直线飞行动画: ${card.suit}${card.value} -> (${targetX}, ${targetY})`);
+            }
+        });
+    }
+
+    /**
+     * 播放弧线飞行动画
+     */
+    private playCurveFlightAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
         return new Promise((resolve) => {
             // 设置卡牌为最高层级
             card.setDepth(1000);
@@ -688,6 +750,10 @@ export class AutoCompleteManager {
                 yoyo: true,
                 ease: 'Sine.easeInOut'
             });
+
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎬 弧线飞行动画: ${card.suit}${card.value} -> (${targetX}, ${targetY})`);
+            }
         });
     }
 
@@ -945,22 +1011,166 @@ export class AutoCompleteManager {
                 ease: 'Power2.easeOut'
             });
 
-            // 飞行动画：整个过程移动到目标位置
-            this.scene.tweens.add({
-                targets: card,
-                x: targetX,
-                y: targetY,
-                duration: flightDuration,
-                ease: 'Power2.easeInOut',
-                onComplete: () => {
-                    resolve();
-                }
-            });
+            // 飞行动画：整个过程移动到目标位置（根据配置选择轨迹）
+            const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
+            
+            if (trajectory === 'linear') {
+                // 直线飞行
+                this.scene.tweens.add({
+                    targets: card,
+                    x: targetX,
+                    y: targetY,
+                    duration: flightDuration,
+                    ease: 'Power2.easeInOut',
+                    onComplete: () => {
+                        resolve();
+                    }
+                });
+            } else {
+                // 弧线飞行
+                const startX = card.x;
+                const startY = card.y;
+                const midY = Math.min(startY, targetY) - 50; // 弧形高度
+                
+                this.scene.tweens.add({
+                    targets: card,
+                    x: targetX,
+                    y: targetY,
+                    duration: flightDuration,
+                    ease: 'Power2.easeOut',
+                    onUpdate: (tween) => {
+                        // 实现弧形路径
+                        const progress = tween.progress;
+                        if (progress < 0.5) {
+                            // 前半段：从起点到中点
+                            const t = progress * 2;
+                            card.y = startY + (midY - startY) * t;
+                        } else {
+                            // 后半段：从中点到终点
+                            const t = (progress - 0.5) * 2;
+                            card.y = midY + (targetY - midY) * t;
+                        }
+                    },
+                    onComplete: () => {
+                        resolve();
+                    }
+                });
+            }
 
             if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
                 console.log(`🎬 优化翻牌+飞行动画: ${card.suit}${card.value} 前50%时间翻转，全程移动`);
             }
         });
+    }
+
+    /**
+     * 使用stockZone进行翻转飞出动画（用于最后一张牌）
+     */
+    private async playStockZoneFlipAndFlyAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
+        return new Promise(async (resolve) => {
+            // 获取stockZone的引用（通过Game场景的公共属性或方法）
+            const stockZone = (this.scene as any).stockZone;
+            if (!stockZone) {
+                console.warn('⚠️ stockZone不可用，回退到普通动画');
+                await this.playStockFlipAndFlightAnimation(card, targetX, targetY);
+                resolve();
+                return;
+            }
+
+            // 隐藏原始卡牌，使用stockZone进行动画
+            card.setVisible(false);
+            
+            // 确保stockZone在最高层级
+            stockZone.setDepth(1000);
+
+            // 第一阶段：翻转动画（stockZone从牌背变为正面）
+            this.scene.tweens.add({
+                targets: stockZone,
+                scaleX: 0,
+                duration: AUTO_COMPLETE_CONFIG.STOCK_FLIP_DURATION / 2,
+                ease: 'Power2.easeIn',
+                onComplete: () => {
+                    // 切换到卡牌正面纹理
+                    if (!card.faceUp) {
+                        card.flip().catch(error => console.warn('翻牌失败:', error));
+                    }
+                    // 将stockZone的纹理改为卡牌正面（使用通用的卡牌正面纹理）
+                    stockZone.setTexture('card-face');
+                    
+                    // 第二阶段：放大并飞行（根据配置选择轨迹）
+                    const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
+                    
+                    if (trajectory === 'linear') {
+                        // 直线飞行
+                        this.scene.tweens.add({
+                            targets: stockZone,
+                            scaleX: 1,
+                            x: targetX,
+                            y: targetY,
+                            duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION,
+                            ease: 'Power2.easeInOut',
+                            onComplete: () => {
+                                // 动画完成后隐藏stockZone，显示真实卡牌
+                                stockZone.setVisible(false);
+                                card.setVisible(true);
+                                card.setPosition(targetX, targetY);
+                                resolve();
+                            }
+                        });
+                    } else {
+                        // 弧线飞行
+                        const startX = stockZone.x;
+                        const startY = stockZone.y;
+                        const midY = Math.min(startY, targetY) - 50; // 弧形高度
+                        
+                        this.scene.tweens.add({
+                            targets: stockZone,
+                            scaleX: 1,
+                            x: targetX,
+                            y: targetY,
+                            duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION,
+                            ease: 'Power2.easeOut',
+                            onUpdate: (tween) => {
+                                // 实现弧形路径
+                                const progress = tween.progress;
+                                if (progress < 0.5) {
+                                    // 前半段：从起点到中点
+                                    const t = progress * 2;
+                                    stockZone.y = startY + (midY - startY) * t;
+                                } else {
+                                    // 后半段：从中点到终点
+                                    const t = (progress - 0.5) * 2;
+                                    stockZone.y = midY + (targetY - midY) * t;
+                                }
+                            },
+                            onComplete: () => {
+                                // 动画完成后隐藏stockZone，显示真实卡牌
+                                stockZone.setVisible(false);
+                                card.setVisible(true);
+                                card.setPosition(targetX, targetY);
+                                resolve();
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎬 stockZone翻转飞出动画: ${card.suit}${card.value} (最后一张Stock卡牌)`);
+            }
+        });
+    }
+
+    /**
+     * 隐藏Stock区域
+     */
+    private hideStockArea(): void {
+        // 通过Game场景的公共方法来隐藏Stock区域
+        this.scene.hideStockZone();
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log('🚫 AutoComplete: 调用隐藏Stock区域');
+        }
     }
 
     /**
