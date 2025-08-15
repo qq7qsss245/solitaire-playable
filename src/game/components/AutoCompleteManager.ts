@@ -549,23 +549,23 @@ export class AutoCompleteManager {
         
         console.log(`🎯 收集卡牌: ${card.suit}${card.value} -> Foundation ${targetFoundation}${fromStock ? ' (来自Stock)' : ''}`);
 
-        // 如果卡牌来自Stock且是背面朝上，先播放翻牌动画
-        if (fromStock && !card.faceUp) {
-            console.log(`🔄 Stock卡牌翻牌: ${card.suit}${card.value}`);
-            
-            // 播放翻牌动画
-            await this.playStockFlipAnimation(card);
-            
-            // 播放翻牌音效
-            EventBus.emit('play-card-flip');
-        }
-
         // 获取目标位置
         const targetX = this.scene.foundationZones[targetFoundation].x;
         const targetY = this.scene.foundationZones[targetFoundation].y;
 
-        // 播放卡牌飞行动画
-        await this.playCardFlightAnimation(card, targetX, targetY);
+        // 如果卡牌来自Stock且是背面朝上，播放翻牌+飞行动画
+        if (fromStock && !card.faceUp) {
+            console.log(`🔄 Stock卡牌翻牌+飞行: ${card.suit}${card.value}`);
+            
+            // 播放翻牌音效
+            EventBus.emit('play-card-flip');
+            
+            // 同时播放翻牌和飞行动画
+            await this.playStockFlipAndFlightAnimation(card, targetX, targetY);
+        } else {
+            // 普通卡牌只播放飞行动画
+            await this.playCardFlightAnimation(card, targetX, targetY);
+        }
 
         // 更新游戏状态
         this.updateGameState(card, targetFoundation);
@@ -912,6 +912,54 @@ export class AutoCompleteManager {
         }
         
         console.log('✅ AutoComplete测试完成');
+    }
+
+    /**
+     * 简化版Stock卡牌翻牌+飞行动画
+     * 反转在移动的前50%时间内完成，后50%时间以正面状态继续飞行
+     */
+    private async playStockFlipAndFlightAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
+        return new Promise((resolve) => {
+            // 确保卡牌在最高层级
+            card.setDepth(1000);
+
+            // 先翻面到正面
+            if (!card.faceUp) {
+                card.flip().catch(error => {
+                    console.warn('翻牌失败:', error);
+                });
+            }
+
+            // 设置初始状态：正面但scaleX=0（不可见）
+            card.setScale(0, 1);
+
+            const flightDuration = AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION;
+            const flipDuration = flightDuration * 0.5; // 翻转在前50%时间内完成
+
+            // 翻转动画：scaleX从0到1，在前50%时间内完成
+            this.scene.tweens.add({
+                targets: card,
+                scaleX: 1,
+                duration: flipDuration,
+                ease: 'Power2.easeOut'
+            });
+
+            // 飞行动画：整个过程移动到目标位置
+            this.scene.tweens.add({
+                targets: card,
+                x: targetX,
+                y: targetY,
+                duration: flightDuration,
+                ease: 'Power2.easeInOut',
+                onComplete: () => {
+                    resolve();
+                }
+            });
+
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎬 优化翻牌+飞行动画: ${card.suit}${card.value} 前50%时间翻转，全程移动`);
+            }
+        });
     }
 
     /**
