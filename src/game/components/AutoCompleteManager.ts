@@ -555,11 +555,11 @@ export class AutoCompleteManager {
         const targetX = this.scene.foundationZones[targetFoundation].x;
         const targetY = this.scene.foundationZones[targetFoundation].y;
 
-        // 检查是否是Stock的最后一张牌
-        const isLastStockCard = fromStock && this.scene.stock.cards.length === 1;
-
         // 如果卡牌来自Stock且是背面朝上
         if (fromStock && !card.faceUp) {
+            // 实时检查是否是Stock的最后一张牌（考虑用户可能手动操作了Stock）
+            const isLastStockCard = this.scene.stock.cards.length === 1;
+            
             console.log(`🔄 Stock卡牌翻牌+飞行: ${card.suit}${card.value}${isLastStockCard ? ' (最后一张)' : ''}`);
             
             // 播放翻牌音效
@@ -580,8 +580,10 @@ export class AutoCompleteManager {
         // 更新游戏状态
         this.updateGameState(card, targetFoundation);
 
-        // 如果是最后一张Stock卡牌，Stock区域会在动画中被隐藏
-        // （不需要在这里单独调用hideStockArea）
+        // 实时检查是否需要隐藏Stock区域（在更新游戏状态后重新检查）
+        if (fromStock && this.scene.stock.cards.length === 0) {
+            this.hideStockArea();
+        }
 
         // 播放音效
         EventBus.emit('play-slot-place');
@@ -763,6 +765,9 @@ export class AutoCompleteManager {
     private updateGameState(card: CardComponent, foundationIndex: number): void {
         // 从原位置移除卡牌
         this.removeCardFromOriginalPosition(card);
+        
+        // 禁用卡牌交互（Foundation区域的卡牌不应该可以拖拽）
+        card.disableInteractive();
         
         // 添加到foundation
         this.scene.foundation[foundationIndex].cards.push(card);
@@ -1110,10 +1115,12 @@ export class AutoCompleteManager {
                             duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION,
                             ease: 'Power2.easeInOut',
                             onComplete: () => {
-                                // 动画完成后隐藏stockZone，显示真实卡牌
+                                // 动画完成后stockZone已经飞到Foundation，直接隐藏即可
+                                // stockZone本身就是最后一张牌，不需要显示真实卡牌
                                 stockZone.setVisible(false);
-                                card.setVisible(true);
+                                // 将真实卡牌设置到目标位置（用于游戏逻辑）
                                 card.setPosition(targetX, targetY);
+                                card.setVisible(true);
                                 resolve();
                             }
                         });
@@ -1144,10 +1151,12 @@ export class AutoCompleteManager {
                                 }
                             },
                             onComplete: () => {
-                                // 动画完成后隐藏stockZone，显示真实卡牌
+                                // 动画完成后stockZone已经飞到Foundation，直接隐藏即可
+                                // stockZone本身就是最后一张牌，不需要显示真实卡牌
                                 stockZone.setVisible(false);
-                                card.setVisible(true);
+                                // 将真实卡牌设置到目标位置（用于游戏逻辑）
                                 card.setPosition(targetX, targetY);
+                                card.setVisible(true);
                                 resolve();
                             }
                         });
