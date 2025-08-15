@@ -1,0 +1,924 @@
+import { Scene } from 'phaser';
+import { Card as CardComponent } from './Card';
+import { Game } from '../scenes/Game';
+import { CardSuit, CardValue } from '../../config/klondike-layout';
+import { EventBus } from '../EventBus';
+import { AssetKeys } from '../../assets';
+
+// AutoComplete配置参数
+const AUTO_COMPLETE_CONFIG = {
+    CARD_MOVE_DELAY: 50,        // 收牌间隔时间(ms)
+    CARD_FLIGHT_DURATION: 300,  // 卡牌飞行时间(ms)
+    STOCK_FLIP_DURATION: 200,   // Stock翻牌时间(ms)
+    MAX_LOOP_ITERATIONS: 100,   // 最大循环次数保护
+    DEBUG_MODE: false           // 调试模式开关
+};
+
+// 卡牌移动动作接口
+interface CardMoveAction {
+    card: CardComponent;
+    targetFoundation: number;
+    delay: number;
+    fromStock?: boolean; // 是否来自stock区域
+}
+
+/**
+ * AutoComplete自动收牌管理器
+ * 负责检测可收牌、执行收牌动画和特效
+ */
+export class AutoCompleteManager {
+    private scene: Game;
+    private isRunning: boolean = false;
+    private suitOrder: CardSuit[] = ['h', 'd', 'c', 's']; // 红桃、方块、梅花、黑桃
+
+    constructor(scene: Game) {
+        this.scene = scene;
+    }
+
+    /**
+     * 开始自动收牌流程
+     */
+    public async startAutoComplete(): Promise<void> {
+        // 双重检查运行状态
+        if (this.isRunning) {
+            console.log('🔄 AutoComplete已在运行中，忽略重复调用');
+            return;
+        }
+
+        // 检查基础条件
+        if (!this.scene || !this.scene.foundation || !this.scene.tableau) {
+            console.error('❌ 游戏场景未正确初始化，无法执行AutoComplete');
+            return;
+        }
+
+        console.log('🚀 开始AutoComplete自动收牌');
+        console.log('🔍 检查游戏状态:');
+        console.log('  - Foundation数量:', this.scene.foundation.length);
+        console.log('  - Tableau数量:', this.scene.tableau.length);
+        console.log('  - Stock卡牌数量:', this.scene.stock?.cards?.length || 0);
+        console.log('  - Waste卡牌数量:', this.scene.waste?.cards?.length || 0);
+        
+        this.isRunning = true;
+
+        try {
+            console.log('📋 开始生成收牌序列...');
+            // 生成收牌序列
+            const actions = this.generateCollectionSequence();
+            
+            if (actions.length === 0) {
+                console.log('📝 没有找到可收的牌');
+                console.log('🔍 检查是否有可收牌:', this.hasCollectableCards());
+                return;
+            }
+
+            console.log(`📋 找到 ${actions.length} 张可收的牌`);
+            actions.forEach((action, index) => {
+                console.log(`  ${index + 1}. ${action.card.suit}${action.card.value} -> Foundation ${action.targetFoundation} (延迟: ${action.delay}ms, 来自Stock: ${action.fromStock})`);
+            });
+
+            console.log('🎬 开始执行收牌动画序列...');
+            // 执行收牌动画序列
+            await this.executeCollectionSequence(actions);
+
+            console.log('✅ AutoComplete完成');
+        } catch (error) {
+            console.error('❌ AutoComplete执行失败:', error);
+            if (error instanceof Error) {
+                console.error('❌ 错误堆栈:', error.stack);
+            }
+            // 尝试恢复游戏状态
+            this.handleExecutionError(error);
+        } finally {
+            this.isRunning = false;
+            console.log('🔄 AutoComplete状态已重置');
+        }
+    }
+
+    /**
+     * 处理执行错误
+     */
+    private handleExecutionError(error: any): void {
+        console.log('🔧 尝试恢复AutoComplete状态...');
+        
+        // 重置运行状态
+        this.isRunning = false;
+        
+        // 可以在这里添加更多的状态恢复逻辑
+        console.log('✅ AutoComplete状态已恢复');
+    }
+
+    /**
+     * 生成收牌序列
+     * 修复：每个花色按A→K顺序收牌，避免死循环
+     */
+    private generateCollectionSequence(): CardMoveAction[] {
+        const actions: CardMoveAction[] = [];
+        const completedSuits = new Set<CardSuit>();
+        let actionDelay = 0;
+        let loopIterations = 0;
+        
+        // 创建虚拟的Foundation状态来模拟收牌过程
+        const virtualFoundationCounts = this.scene.foundation.map(pile => pile.cards.length);
+        
+        // 创建已使用卡牌的集合来避免重复收集同一张牌
+        const usedCards = new Set<CardComponent>();
+
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log('🚀 开始生成收牌序列 - 每个花色按A→K顺序收牌');
+            console.log('🔍 初始Foundation状态:', virtualFoundationCounts);
+        }
+
+        // 持续查找直到没有可收的牌
+        while (completedSuits.size < 4 && loopIterations < AUTO_COMPLETE_CONFIG.MAX_LOOP_ITERATIONS) {
+            let foundAnyCard = false;
+            loopIterations++;
+
+            // 对每个花色，尝试收集所有可收的牌（按A→K顺序）
+            for (const suit of this.suitOrder) {
+                if (completedSuits.has(suit)) {
+                    continue; // 跳过已完成的花色
+                }
+
+                // 为当前花色连续收集所有可收的牌
+                let foundCardForSuit = true;
+                while (foundCardForSuit && !completedSuits.has(suit)) {
+                    const foundationIndex = this.getSuitFoundationIndex(suit);
+                    const nextCard = this.findNextCardForSuitWithExclusions(suit, virtualFoundationCounts[foundationIndex], usedCards);
+                    
+                    if (nextCard) {
+                        actions.push({
+                            card: nextCard.card,
+                            targetFoundation: foundationIndex,
+                            delay: actionDelay,
+                            fromStock: nextCard.fromStock
+                        });
+
+                        // 模拟收牌：更新虚拟Foundation计数并标记卡牌为已使用
+                        virtualFoundationCounts[foundationIndex]++;
+                        usedCards.add(nextCard.card);
+                        
+                        actionDelay += AUTO_COMPLETE_CONFIG.CARD_MOVE_DELAY;
+                        foundAnyCard = true;
+
+                        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                            console.log(`🎯 添加收牌动作: ${nextCard.card.suit}${nextCard.card.value} -> Foundation ${foundationIndex} (虚拟计数: ${virtualFoundationCounts[foundationIndex]})`);
+                        }
+
+                        // 检查该花色是否完成（K已收集）
+                        if (virtualFoundationCounts[foundationIndex] >= 13) {
+                            completedSuits.add(suit);
+                            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                                console.log(`✅ 花色 ${suit} 将完成`);
+                            }
+                            foundCardForSuit = false; // 该花色已完成，停止收集
+                        }
+                    } else {
+                        foundCardForSuit = false; // 该花色暂时没有可收的牌
+                        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                            console.log(`🔍 花色 ${suit} 暂时没有可收的牌`);
+                        }
+                    }
+                }
+            }
+
+            if (!foundAnyCard) {
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log('🔍 本轮未找到任何可收的牌，退出循环');
+                }
+                break; // 没有找到任何可收的牌，退出循环
+            }
+
+            // 防止无限循环的额外保护
+            if (loopIterations >= AUTO_COMPLETE_CONFIG.MAX_LOOP_ITERATIONS) {
+                console.warn(`⚠️ AutoComplete循环达到最大次数限制 (${AUTO_COMPLETE_CONFIG.MAX_LOOP_ITERATIONS})，强制退出`);
+                break;
+            }
+        }
+
+        console.log(`📋 生成收牌序列完成: ${actions.length} 个动作，循环 ${loopIterations} 次`);
+        return actions;
+    }
+
+    /**
+     * 查找指定花色的下一张可收牌（带排除列表，避免重复收集）
+     */
+    private findNextCardForSuitWithExclusions(suit: CardSuit, currentCount: number, usedCards: Set<CardComponent>): { card: CardComponent; fromStock: boolean } | null {
+        const expectedValue = this.getNextExpectedValue(currentCount);
+
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 查找花色 ${suit} 的下一张牌，期望值: ${expectedValue}, 当前计数: ${currentCount}`);
+        }
+
+        if (!expectedValue) {
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🔍 花色 ${suit} 已完成，跳过`);
+            }
+            return null; // 该花色已完成
+        }
+
+        // 1. 先检查tableau区域（已翻开的卡牌）
+        for (let i = 0; i < this.scene.tableau.length; i++) {
+            const column = this.scene.tableau[i];
+            if (column.cards.length > 0) {
+                const topCard = column.cards[column.cards.length - 1];
+                if (topCard.suit === suit && topCard.value === expectedValue && topCard.faceUp && !usedCards.has(topCard)) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🎯 在tableau列${i}找到可收牌: ${topCard.suit}${topCard.value}`);
+                    }
+                    return { card: topCard, fromStock: false };
+                }
+            }
+        }
+
+        // 2. 检查waste区域（翻牌区域的顶牌）
+        if (this.scene.waste.cards.length > 0) {
+            const topCard = this.scene.waste.cards[this.scene.waste.cards.length - 1];
+            if (topCard.suit === suit && topCard.value === expectedValue && !usedCards.has(topCard)) {
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log(`🎯 在waste区域找到可收牌: ${topCard.suit}${topCard.value}`);
+                }
+                return { card: topCard, fromStock: false };
+            }
+        }
+
+        // 3. 检查stock区域（未翻开的卡牌）
+        const stockResult = this.findCardInStockWithExclusions(suit, expectedValue, usedCards);
+        if (stockResult) {
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎯 在stock区域找到可收牌: ${stockResult.card.suit}${stockResult.card.value}`);
+            }
+            return { card: stockResult.card, fromStock: true };
+        }
+
+        // 4. 检查deck中的所有卡牌（包括未翻开的）
+        const deckResult = this.findCardInDeckWithExclusions(suit, expectedValue, usedCards);
+        if (deckResult) {
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎯 在deck中找到可收牌: ${deckResult.card.suit}${deckResult.card.value}`);
+            }
+            return { card: deckResult.card, fromStock: true };
+        }
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 未找到花色 ${suit} 值为 ${expectedValue} 的可收牌`);
+        }
+        return null;
+    }
+
+    /**
+     * 查找指定花色的下一张可收牌
+     */
+    private findNextCardForSuit(suit: CardSuit): { card: CardComponent; fromStock: boolean } | null {
+        const foundationIndex = this.getSuitFoundationIndex(suit);
+        const foundation = this.scene.foundation[foundationIndex];
+        const expectedValue = this.getNextExpectedValue(foundation.cards.length);
+
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 查找花色 ${suit} 的下一张牌，期望值: ${expectedValue}, 当前foundation有 ${foundation.cards.length} 张牌`);
+        }
+
+        if (!expectedValue) {
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🔍 花色 ${suit} 已完成，跳过`);
+            }
+            return null; // 该花色已完成
+        }
+
+        // 1. 先检查tableau区域（已翻开的卡牌）
+        for (let i = 0; i < this.scene.tableau.length; i++) {
+            const column = this.scene.tableau[i];
+            if (column.cards.length > 0) {
+                const topCard = column.cards[column.cards.length - 1];
+                if (topCard.suit === suit && topCard.value === expectedValue && topCard.faceUp) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🎯 在tableau列${i}找到可收牌: ${topCard.suit}${topCard.value}`);
+                    }
+                    return { card: topCard, fromStock: false };
+                }
+            }
+        }
+
+        // 2. 检查waste区域（翻牌区域的顶牌）
+        if (this.scene.waste.cards.length > 0) {
+            const topCard = this.scene.waste.cards[this.scene.waste.cards.length - 1];
+            if (topCard.suit === suit && topCard.value === expectedValue) {
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log(`🎯 在waste区域找到可收牌: ${topCard.suit}${topCard.value}`);
+                }
+                return { card: topCard, fromStock: false };
+            }
+        }
+
+        // 3. 检查stock区域（未翻开的卡牌）
+        const stockResult = this.findCardInStock(suit, expectedValue);
+        if (stockResult) {
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎯 在stock区域找到可收牌: ${stockResult.card.suit}${stockResult.card.value}`);
+            }
+            return { card: stockResult.card, fromStock: true };
+        }
+
+        // 4. 检查deck中的所有卡牌（包括未翻开的）
+        const deckResult = this.findCardInDeck(suit, expectedValue);
+        if (deckResult) {
+            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                console.log(`🎯 在deck中找到可收牌: ${deckResult.card.suit}${deckResult.card.value}`);
+            }
+            return { card: deckResult.card, fromStock: true };
+        }
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 未找到花色 ${suit} 值为 ${expectedValue} 的可收牌`);
+        }
+        return null;
+    }
+
+    /**
+     * 在stock区域查找指定卡牌（带排除列表）
+     */
+    private findCardInStockWithExclusions(suit: CardSuit, value: CardValue, usedCards: Set<CardComponent>): { card: CardComponent; fromStock: boolean } | null {
+        // 检查stock中的所有卡牌（包括未翻开的）
+        for (let i = 0; i < this.scene.stock.cards.length; i++) {
+            const card = this.scene.stock.cards[i];
+            
+            if (card.suit === suit && card.value === value && !usedCards.has(card)) {
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log(`🎯 在stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+                }
+                return { card: card, fromStock: true };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 在stock区域查找指定卡牌
+     */
+    private findCardInStock(suit: CardSuit, value: CardValue): { card: CardComponent; fromStock: boolean } | null {
+        // 检查stock中的所有卡牌（包括未翻开的）
+        for (let i = 0; i < this.scene.stock.cards.length; i++) {
+            const card = this.scene.stock.cards[i];
+            
+            if (card.suit === suit && card.value === value) {
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log(`🎯 在stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+                }
+                return { card: card, fromStock: true };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 在deck中查找指定卡牌（包括所有未翻开的卡牌，带排除列表）
+     */
+    private findCardInDeckWithExclusions(suit: CardSuit, value: CardValue, usedCards: Set<CardComponent>): { card: CardComponent; fromStock: boolean } | null {
+        // 获取所有卡牌（包括tableau、foundation、stock、waste中的所有卡牌）
+        const allCards = this.scene.getAllCards();
+        
+        // 查找目标卡牌
+        for (let i = 0; i < allCards.length; i++) {
+            const card = allCards[i];
+            
+            // 跳过已使用的卡牌
+            if (usedCards.has(card)) {
+                continue;
+            }
+            
+            // 跳过已经在foundation中的卡牌
+            if (this.isCardInFoundation(card)) {
+                continue;
+            }
+            
+            // 跳过已经在tableau顶部且正面朝上的卡牌（已经被前面的检查覆盖）
+            if (this.isCardAccessibleInTableau(card)) {
+                continue;
+            }
+            
+            // 跳过waste顶部的卡牌（已经被前面的检查覆盖）
+            if (this.isCardTopOfWaste(card)) {
+                continue;
+            }
+            
+            if (card.suit === suit && card.value === value) {
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log(`🎯 在deck中找到目标卡牌: ${card.suit}${card.value} (位置: ${this.getCardLocation(card)})`);
+                }
+                return { card: card, fromStock: true };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 在deck中查找指定卡牌（包括所有未翻开的卡牌）
+     */
+    private findCardInDeck(suit: CardSuit, value: CardValue): { card: CardComponent; fromStock: boolean } | null {
+        // 获取所有卡牌（包括tableau、foundation、stock、waste中的所有卡牌）
+        const allCards = this.scene.getAllCards();
+        
+        // 查找目标卡牌
+        for (let i = 0; i < allCards.length; i++) {
+            const card = allCards[i];
+            
+            // 跳过已经在foundation中的卡牌
+            if (this.isCardInFoundation(card)) {
+                continue;
+            }
+            
+            // 跳过已经在tableau顶部且正面朝上的卡牌（已经被前面的检查覆盖）
+            if (this.isCardAccessibleInTableau(card)) {
+                continue;
+            }
+            
+            // 跳过waste顶部的卡牌（已经被前面的检查覆盖）
+            if (this.isCardTopOfWaste(card)) {
+                continue;
+            }
+            
+            if (card.suit === suit && card.value === value) {
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log(`🎯 在deck中找到目标卡牌: ${card.suit}${card.value} (位置: ${this.getCardLocation(card)})`);
+                }
+                return { card: card, fromStock: true };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 检查卡牌是否在foundation中
+     */
+    private isCardInFoundation(card: CardComponent): boolean {
+        for (const pile of this.scene.foundation) {
+            if (pile.cards.includes(card)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 检查卡牌是否在tableau中且可访问（顶部且正面朝上）
+     */
+    private isCardAccessibleInTableau(card: CardComponent): boolean {
+        for (const column of this.scene.tableau) {
+            if (column.cards.length > 0) {
+                const topCard = column.cards[column.cards.length - 1];
+                if (topCard === card && card.faceUp) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 检查卡牌是否是waste区域的顶牌
+     */
+    private isCardTopOfWaste(card: CardComponent): boolean {
+        if (this.scene.waste.cards.length > 0) {
+            const topCard = this.scene.waste.cards[this.scene.waste.cards.length - 1];
+            return topCard === card;
+        }
+        return false;
+    }
+
+    /**
+     * 获取卡牌的位置描述（用于调试）
+     */
+    private getCardLocation(card: CardComponent): string {
+        // 检查tableau
+        for (let i = 0; i < this.scene.tableau.length; i++) {
+            const column = this.scene.tableau[i];
+            const index = column.cards.indexOf(card);
+            if (index !== -1) {
+                return `tableau[${i}][${index}]`;
+            }
+        }
+        
+        // 检查stock
+        const stockIndex = this.scene.stock.cards.indexOf(card);
+        if (stockIndex !== -1) {
+            return `stock[${stockIndex}]`;
+        }
+        
+        // 检查waste
+        const wasteIndex = this.scene.waste.cards.indexOf(card);
+        if (wasteIndex !== -1) {
+            return `waste[${wasteIndex}]`;
+        }
+        
+        // 检查foundation
+        for (let i = 0; i < this.scene.foundation.length; i++) {
+            const pile = this.scene.foundation[i];
+            const index = pile.cards.indexOf(card);
+            if (index !== -1) {
+                return `foundation[${i}][${index}]`;
+            }
+        }
+        
+        return 'unknown';
+    }
+
+    /**
+     * 执行收牌动画序列
+     */
+    private async executeCollectionSequence(actions: CardMoveAction[]): Promise<void> {
+        for (const action of actions) {
+            // 等待延迟
+            if (action.delay > 0) {
+                await this.delay(action.delay);
+            }
+
+            // 执行单个收牌动作
+            await this.executeCardCollection(action);
+        }
+    }
+
+    /**
+     * 执行单个收牌动作
+     * 修复：添加Stock区域翻牌动画功能
+     */
+    private async executeCardCollection(action: CardMoveAction): Promise<void> {
+        const { card, targetFoundation, fromStock } = action;
+        
+        console.log(`🎯 收集卡牌: ${card.suit}${card.value} -> Foundation ${targetFoundation}${fromStock ? ' (来自Stock)' : ''}`);
+
+        // 如果卡牌来自Stock且是背面朝上，先播放翻牌动画
+        if (fromStock && !card.faceUp) {
+            console.log(`🔄 Stock卡牌翻牌: ${card.suit}${card.value}`);
+            
+            // 播放翻牌动画
+            await this.playStockFlipAnimation(card);
+            
+            // 播放翻牌音效
+            EventBus.emit('play-card-flip');
+        }
+
+        // 获取目标位置
+        const targetX = this.scene.foundationZones[targetFoundation].x;
+        const targetY = this.scene.foundationZones[targetFoundation].y;
+
+        // 播放卡牌飞行动画
+        await this.playCardFlightAnimation(card, targetX, targetY);
+
+        // 更新游戏状态
+        this.updateGameState(card, targetFoundation);
+
+        // 播放音效
+        EventBus.emit('play-slot-place');
+
+        // 播放花色爆炸特效（稍微延迟以配合音效）
+        await this.delay(50);
+        await this.playExplosionEffect(card.suit, targetFoundation);
+    }
+
+    /**
+     * 播放Stock区域卡牌翻牌动画
+     */
+    private async playStockFlipAnimation(card: CardComponent): Promise<void> {
+        return new Promise((resolve) => {
+            // 确保卡牌在最高层级
+            card.setDepth(1000);
+
+            // 翻牌动画：先缩小到0，然后翻面，再放大回原尺寸
+            this.scene.tweens.add({
+                targets: card,
+                scaleX: 0,
+                duration: AUTO_COMPLETE_CONFIG.STOCK_FLIP_DURATION / 2,
+                ease: 'Power2.easeIn',
+                onComplete: () => {
+                    // 翻面
+                    if (!card.faceUp) {
+                        card.flip().then(() => {
+                            // 放大回原尺寸
+                            this.scene.tweens.add({
+                                targets: card,
+                                scaleX: 1,
+                                duration: AUTO_COMPLETE_CONFIG.STOCK_FLIP_DURATION / 2,
+                                ease: 'Power2.easeOut',
+                                onComplete: () => {
+                                    resolve();
+                                }
+                            });
+                        }).catch(error => {
+                            console.warn('翻牌失败:', error);
+                            // 即使翻牌失败也要完成动画
+                            this.scene.tweens.add({
+                                targets: card,
+                                scaleX: 1,
+                                duration: AUTO_COMPLETE_CONFIG.STOCK_FLIP_DURATION / 2,
+                                ease: 'Power2.easeOut',
+                                onComplete: () => {
+                                    resolve();
+                                }
+                            });
+                        });
+                    } else {
+                        // 如果已经是正面，直接放大回原尺寸
+                        this.scene.tweens.add({
+                            targets: card,
+                            scaleX: 1,
+                            duration: AUTO_COMPLETE_CONFIG.STOCK_FLIP_DURATION / 2,
+                            ease: 'Power2.easeOut',
+                            onComplete: () => {
+                                resolve();
+                            }
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * 播放卡牌飞行动画
+     */
+    private playCardFlightAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
+        return new Promise((resolve) => {
+            // 设置卡牌为最高层级
+            card.setDepth(1000);
+
+            // 记录起始位置
+            const startX = card.x;
+            const startY = card.y;
+
+            // 计算弧形路径的中点
+            const midX = (startX + targetX) / 2;
+            const midY = Math.min(startY, targetY) - 50; // 弧形高度
+
+            // 创建弧形飞行动画
+            this.scene.tweens.add({
+                targets: card,
+                x: targetX,
+                y: targetY,
+                duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION,
+                ease: 'Power2.easeOut',
+                onUpdate: (tween) => {
+                    // 实现弧形路径
+                    const progress = tween.progress;
+                    if (progress < 0.5) {
+                        // 前半段：从起点到中点
+                        const t = progress * 2;
+                        card.y = startY + (midY - startY) * t;
+                    } else {
+                        // 后半段：从中点到终点
+                        const t = (progress - 0.5) * 2;
+                        card.y = midY + (targetY - midY) * t;
+                    }
+                },
+                onComplete: () => {
+                    // 确保最终位置准确
+                    card.setPosition(targetX, targetY);
+                    resolve();
+                }
+            });
+
+            // 添加轻微的旋转效果
+            this.scene.tweens.add({
+                targets: card,
+                rotation: 0.1,
+                duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION / 2,
+                yoyo: true,
+                ease: 'Sine.easeInOut'
+            });
+        });
+    }
+
+    /**
+     * 更新游戏状态
+     */
+    private updateGameState(card: CardComponent, foundationIndex: number): void {
+        // 从原位置移除卡牌
+        this.removeCardFromOriginalPosition(card);
+        
+        // 添加到foundation
+        this.scene.foundation[foundationIndex].cards.push(card);
+
+        // 重新设置整个Foundation的深度，确保每张卡牌都有递增的深度
+        this.updateFoundationDepth(foundationIndex);
+
+        // 更新分数和步数
+        this.scene.addScore(10);
+        this.scene.addMove();
+
+        // 触发事件
+        EventBus.emit('card-to-foundation', {
+            card: card,
+            foundationIndex: foundationIndex
+        });
+    }
+
+    /**
+     * 更新指定Foundation的所有卡牌深度，确保每张卡牌都有递增的深度值
+     */
+    private updateFoundationDepth(foundationIndex: number): void {
+        const foundation = this.scene.foundation[foundationIndex];
+        foundation.cards.forEach((card, index) => {
+            // 每张卡牌都有递增的深度值：基础深度10 + 卡牌在堆中的位置
+            card.setDepth(10 + index + 1);
+        });
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🎯 更新Foundation ${foundationIndex} 深度，共 ${foundation.cards.length} 张卡牌`);
+        }
+    }
+
+    /**
+     * 从原位置移除卡牌
+     */
+    private removeCardFromOriginalPosition(card: CardComponent): void {
+        // 从tableau移除
+        for (const column of this.scene.tableau) {
+            const index = column.cards.indexOf(card);
+            if (index !== -1) {
+                column.cards.splice(index, 1);
+                return;
+            }
+        }
+
+        // 从waste移除
+        const wasteIndex = this.scene.waste.cards.indexOf(card);
+        if (wasteIndex !== -1) {
+            this.scene.waste.cards.splice(wasteIndex, 1);
+            return;
+        }
+
+        // 从stock移除
+        const stockIndex = this.scene.stock.cards.indexOf(card);
+        if (stockIndex !== -1) {
+            this.scene.stock.cards.splice(stockIndex, 1);
+            return;
+        }
+    }
+
+    /**
+     * 播放花色爆炸特效
+     */
+    private async playExplosionEffect(suit: CardSuit, foundationIndex: number): Promise<void> {
+        try {
+            // 获取爆炸位置
+            const x = this.scene.foundationZones[foundationIndex].x;
+            const y = this.scene.foundationZones[foundationIndex].y;
+
+            console.log(`🎆 播放花色爆炸特效: ${suit} 在位置 (${x}, ${y})`);
+
+            // 使用现有的花色爆炸管理器
+            const explosionManager = this.scene.getSuitExplosionManager();
+            if (explosionManager) {
+                await explosionManager.playExplosion(suit, x, y, 400); // 400ms爆炸动画
+            } else {
+                console.warn('⚠️ 花色爆炸管理器不可用');
+            }
+        } catch (error) {
+            console.error('❌ 播放爆炸特效失败:', error);
+        }
+    }
+
+    /**
+     * 获取花色对应的foundation索引
+     */
+    private getSuitFoundationIndex(suit: CardSuit): number {
+        const suitToIndex: Record<CardSuit, number> = {
+            'h': 0,  // 红桃
+            'd': 1,  // 方块
+            'c': 2,  // 梅花
+            's': 3   // 黑桃
+        };
+        return suitToIndex[suit];
+    }
+
+    /**
+     * 获取下一个期望的卡牌值
+     */
+    private getNextExpectedValue(currentCount: number): CardValue | null {
+        const valueOrder: CardValue[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        if (currentCount >= 13) {
+            return null; // 已完成
+        }
+        
+        return valueOrder[currentCount];
+    }
+
+    /**
+     * 检查foundation是否已完成
+     */
+    private isFoundationComplete(foundationIndex: number): boolean {
+        return this.scene.foundation[foundationIndex].cards.length >= 13;
+    }
+
+    /**
+     * 延迟函数
+     */
+    private delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * 检查tableau区域所有卡牌是否都翻开
+     */
+    public areAllTableauCardsFaceUp(): boolean {
+        for (let i = 0; i < this.scene.tableau.length; i++) {
+            const column = this.scene.tableau[i];
+            for (let j = 0; j < column.cards.length; j++) {
+                const card = column.cards[j];
+                if (!card.faceUp) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`❌ 发现背面朝上的卡牌: 列${i}[${j}] ${card.suit}${card.value}`);
+                    }
+                    return false;
+                }
+            }
+        }
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log('✅ 所有tableau卡牌都已翻开');
+        }
+        return true;
+    }
+
+    /**
+     * 检查是否可以显示AutoComplete按钮
+     * 条件：所有tableau卡牌都翻开 且 有可收的牌
+     */
+    public canShowAutoCompleteButton(): boolean {
+        const allFaceUp = this.areAllTableauCardsFaceUp();
+        const hasCollectable = this.hasCollectableCards();
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 AutoComplete按钮显示检查: 所有卡牌翻开=${allFaceUp}, 有可收牌=${hasCollectable}`);
+        }
+        
+        return allFaceUp && hasCollectable;
+    }
+
+    /**
+     * 检查是否有可收的牌
+     */
+    public hasCollectableCards(): boolean {
+        for (const suit of this.suitOrder) {
+            if (this.findNextCardForSuit(suit)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 测试AutoComplete功能
+     */
+    public testAutoComplete(): void {
+        console.log('🧪 开始测试AutoComplete功能');
+        
+        // 检查基础组件
+        console.log('🔍 检查基础组件:');
+        console.log('  - Scene存在:', !!this.scene);
+        console.log('  - Foundation数量:', this.scene.foundation.length);
+        console.log('  - Tableau数量:', this.scene.tableau.length);
+        console.log('  - Stock卡牌数量:', this.scene.stock.cards.length);
+        console.log('  - Waste卡牌数量:', this.scene.waste.cards.length);
+        
+        // 检查foundation状态
+        console.log('🏗️ Foundation状态:');
+        this.scene.foundation.forEach((pile, index) => {
+            console.log(`  - Foundation ${index} (${pile.suit}): ${pile.cards.length} 张牌`);
+        });
+        
+        // 检查tableau状态
+        console.log('🃏 Tableau状态:');
+        this.scene.tableau.forEach((column, index) => {
+            const topCard = column.cards.length > 0 ? column.cards[column.cards.length - 1] : null;
+            console.log(`  - 列 ${index}: ${column.cards.length} 张牌, 顶牌: ${topCard ? `${topCard.suit}${topCard.value}(${topCard.faceUp ? '正面' : '背面'})` : '无'}`);
+        });
+        
+        // 测试检测逻辑
+        console.log('🔍 测试可收牌检测:');
+        const hasCollectable = this.hasCollectableCards();
+        console.log(`  - 有可收牌: ${hasCollectable}`);
+        
+        if (hasCollectable) {
+            console.log('🎯 生成收牌序列:');
+            const actions = this.generateCollectionSequence();
+            console.log(`  - 找到 ${actions.length} 个收牌动作`);
+            actions.forEach((action, index) => {
+                console.log(`    ${index + 1}. ${action.card.suit}${action.card.value} -> Foundation ${action.targetFoundation} (延迟: ${action.delay}ms)`);
+            });
+        }
+        
+        console.log('✅ AutoComplete测试完成');
+    }
+
+    /**
+     * 销毁管理器
+     */
+    public destroy(): void {
+        this.isRunning = false;
+        console.log('🗑️ AutoCompleteManager已销毁');
+    }
+}

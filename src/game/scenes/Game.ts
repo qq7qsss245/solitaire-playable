@@ -22,6 +22,9 @@ import { getOutputConfigValue, getOutputConfigValueAsync } from '../../utils/out
 import { DealAnimationManager } from '../animations/DealAnimationManager';
 import { DealAnimationTest } from '../animations/DealAnimationTest';
 import { SuitExplosionManager } from '../animations/SuitExplosionManager';
+import { AutoCompleteManager } from '../components/AutoCompleteManager';
+import { TestDeckGenerator } from '../utils/TestDeckGenerator';
+import { getTestConfig, isTestModeEnabled } from '../../config/test-config';
 
 // 游戏区域类型
 interface TableauColumn {
@@ -58,6 +61,7 @@ export class Game extends Scene {
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 基础牌堆区域
     private playNowButton: Phaser.GameObjects.Image;
     private playNowText: Phaser.GameObjects.Text;
+    private autoCompleteButton: Phaser.GameObjects.Image; // AutoComplete按钮
     private vendorInfo: VendorInfo; // 厂商信息组件
     
     // 游戏统计
@@ -91,6 +95,10 @@ export class Game extends Scene {
     // 花色爆炸动画系统
     private suitExplosionManager: SuitExplosionManager | null = null;
     
+    // AutoComplete系统
+    private autoCompleteManager: AutoCompleteManager | null = null;
+    private testDeckGenerator: TestDeckGenerator | null = null;
+    
     // 调试模式
     private debugMode: boolean = false;
     
@@ -121,8 +129,11 @@ export class Game extends Scene {
 
         // 检查URL参数
         const urlParams = new URLSearchParams(window.location.search);
-        this.debugMode = urlParams.get('debug') === 'true';
+        this.debugMode = urlParams.get('debug') === 'true' || urlParams.get('debug') === '1';
         const randomMode = urlParams.get('random') === 'true';
+        
+        // 检查是否启用AutoComplete测试模式
+        const autoCompleteTestMode = urlParams.get('debug') === '1';
         
         // 🚫 教学系统已禁用 - 始终使用固定牌局但不启用教学模式
         // 保留固定牌局以确保游戏的可玩性和关卡设计
@@ -132,16 +143,27 @@ export class Game extends Scene {
         if (this.debugMode) {
             console.log('🐛 [DEBUG MODE] 调试模式已启用 - 教学系统已禁用，使用固定牌局');
         }
+        
+        if (autoCompleteTestMode) {
+            console.log('🧪 [AUTOCOMPLETE TEST] AutoComplete测试模式已启用');
+        }
+        
         console.log('🚫 [TUTORIAL DISABLED] 教学系统已全局禁用，游戏将直接进入正常模式');
 
         // 异步初始化游戏布局（包含发牌动画）
-        this.initializeGameAsync(tutorialMode);
+        this.initializeGameAsync(tutorialMode, autoCompleteTestMode);
         
         // 创建UI元素
         this.createUI();
         
         // 初始化花色爆炸动画管理器
         this.suitExplosionManager = new SuitExplosionManager(this);
+        
+        // 初始化AutoComplete管理器
+        this.autoCompleteManager = new AutoCompleteManager(this);
+        
+        // 初始化测试牌局生成器
+        this.testDeckGenerator = new TestDeckGenerator(this);
         
         // 创建引导手势
         this.createHandGuide();
@@ -189,9 +211,9 @@ export class Game extends Scene {
     /**
      * 异步初始化游戏（包装方法，处理异步调用）
      */
-    private async initializeGameAsync(tutorialMode: boolean): Promise<void> {
+    private async initializeGameAsync(tutorialMode: boolean, autoCompleteTestMode: boolean = false): Promise<void> {
         try {
-            await this.initializeGame(tutorialMode);
+            await this.initializeGame(tutorialMode, autoCompleteTestMode);
         } catch (error) {
             console.error('Game initialization failed:', error);
             // 确保游戏仍然可以进行，即使动画失败
@@ -221,16 +243,36 @@ export class Game extends Scene {
             this.suitExplosionManager = null;
         }
         
+        // 清理AutoComplete系统
+        if (this.autoCompleteManager) {
+            this.autoCompleteManager.destroy();
+            this.autoCompleteManager = null;
+        }
+        
         console.log('🎮 Game: Resources cleaned up');
     }
 
-    private async initializeGame(tutorialMode: boolean = true): Promise<void> {
-        // 🚫 教学系统已禁用 - 始终使用固定牌局但不启用教学模式
-        // 保留generateTutorialLayout()以确保固定牌局和关卡设计正常工作
-        this.gameLayout = generateTutorialLayout(); // 使用固定的教学牌局布局
-        this.isTutorialMode = false; // 强制禁用教学模式
+    private async initializeGame(tutorialMode: boolean = true, autoCompleteTestMode: boolean = false): Promise<void> {
+        // 检查是否启用测试模式
+        const testConfig = getTestConfig();
         
-        console.log('🚫 [TUTORIAL DISABLED] 使用固定牌局但禁用教学模式');
+        if (autoCompleteTestMode) {
+            console.log('🧪 [AUTOCOMPLETE TEST] 启用AutoComplete测试模式，生成专门的测试牌局');
+            // 使用专门的AutoComplete测试牌局
+            this.gameLayout = this.generateAutoCompleteTestLayout();
+        } else if (isTestModeEnabled()) {
+            console.log('🧪 [TEST MODE] 启用测试模式，使用测试牌局');
+            // 在测试模式下，我们仍然使用固定的教学牌局布局作为基础
+            // 但会在发牌完成后应用测试配置
+            this.gameLayout = generateTutorialLayout();
+        } else {
+            // 🚫 教学系统已禁用 - 始终使用固定牌局但不启用教学模式
+            // 保留generateTutorialLayout()以确保固定牌局和关卡设计正常工作
+            this.gameLayout = generateTutorialLayout(); // 使用固定的教学牌局布局
+            console.log('🚫 [TUTORIAL DISABLED] 使用固定牌局但禁用教学模式');
+        }
+        
+        this.isTutorialMode = false; // 强制禁用教学模式
         
         // 初始化游戏区域
         this.initializeTableau();
@@ -246,6 +288,17 @@ export class Game extends Scene {
         
         // 启动发牌动画
         await this.startDealAnimation();
+        
+        // 应用测试配置
+        if (autoCompleteTestMode) {
+            this.time.delayedCall(500, () => {
+                this.applyAutoCompleteTestConfiguration();
+            });
+        } else if (isTestModeEnabled()) {
+            this.time.delayedCall(500, () => {
+                this.applyTestConfiguration();
+            });
+        }
         
         // 🚫 教学系统已禁用 - 注释掉教学系统初始化
         // 保留代码结构以备后续可能需要重新启用
@@ -273,6 +326,12 @@ export class Game extends Scene {
                     DealAnimationTest.testAnimationManagerInit(this);
                 }
             });
+            
+            // AutoComplete测试功能已禁用 - 只能通过点击按钮手动触发
+            // this.time.delayedCall(2000, () => {
+            //     console.log('🎮 运行AutoComplete测试...');
+            //     this.testAutoComplete();
+            // });
         }
         
         // 确保在下一帧更新Stock Zone显示状态
@@ -475,6 +534,7 @@ export class Game extends Scene {
         this.createZones();
         this.createScoreboard();
         this.createPlayNowButton();
+        this.createAutoCompleteButton();
         this.createVendorInfo();
     }
 
@@ -633,6 +693,49 @@ export class Game extends Scene {
         });
     }
 
+    private createAutoCompleteButton(): void {
+        // 创建AutoComplete按钮，覆盖下载按钮位置
+        this.autoCompleteButton = this.add.image(0, 0, AssetKeys.AUTO_COMPLETE_BUTTON);
+        this.autoCompleteButton.setScale(0.8);
+        this.autoCompleteButton.setInteractive();
+        this.autoCompleteButton.setDepth(100); // 确保在其他UI元素之上
+        
+        // 初始状态隐藏按钮
+        this.autoCompleteButton.setVisible(false);
+        
+        // 添加点击事件
+        this.autoCompleteButton.on('pointerdown', () => {
+            EventBus.emit('play-ui-click');
+            this.onAutoCompleteClick();
+        });
+
+        // 添加悬停效果
+        this.autoCompleteButton.on('pointerover', () => {
+            this.autoCompleteButton.setScale(0.85);
+        });
+        
+        this.autoCompleteButton.on('pointerout', () => {
+            this.autoCompleteButton.setScale(0.8);
+        });
+
+        // 添加呼吸动画效果
+        this.tweens.add({
+            targets: this.autoCompleteButton,
+            scale: 0.8 * 1.05,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    private onAutoCompleteClick(): void {
+        if (this.autoCompleteManager) {
+            console.log('🚀 AutoComplete按钮被点击');
+            this.autoCompleteManager.startAutoComplete();
+        }
+    }
+
     private createHandGuide(): void {
         // 创建引导手势图片
         this.handGuide = this.add.image(0, 0, 'hand');
@@ -680,6 +783,7 @@ export class Game extends Scene {
         this.updateStockWastePositions();
         this.updateScoreboardPosition();
         this.updatePlayNowButtonPosition();
+        this.updateAutoCompleteButtonPosition();
         this.updateVendorInfoPosition();
     }
 
@@ -791,6 +895,31 @@ export class Game extends Scene {
     private updatePlayNowButtonPosition(): void {
         this.playNowButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
         // 移除文本位置更新，因为不再显示文本
+    }
+
+    private updateAutoCompleteButtonPosition(): void {
+        // AutoComplete按钮覆盖下载按钮位置
+        this.autoCompleteButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
+    }
+
+    /**
+     * 更新AutoComplete按钮的显示状态
+     */
+    public updateAutoCompleteButtonVisibility(): void {
+        if (!this.autoCompleteManager || !this.autoCompleteButton) {
+            return;
+        }
+
+        const shouldShow = this.autoCompleteManager.canShowAutoCompleteButton();
+        const isCurrentlyVisible = this.autoCompleteButton.visible;
+
+        if (shouldShow && !isCurrentlyVisible) {
+            console.log('🔘 显示AutoComplete按钮');
+            this.autoCompleteButton.setVisible(true);
+        } else if (!shouldShow && isCurrentlyVisible) {
+            console.log('🔘 隐藏AutoComplete按钮');
+            this.autoCompleteButton.setVisible(false);
+        }
     }
 
     private updateVendorInfoPosition(): void {
@@ -1335,6 +1464,9 @@ export class Game extends Scene {
     public onCardFlipped(): void {
         // 卡牌翻转后的处理逻辑
         this.resetGuideState();
+        
+        // 更新AutoComplete按钮显示状态
+        this.updateAutoCompleteButtonVisibility();
     }
 
     // 获取列底部的卡牌（用于拖拽检测）
@@ -1419,6 +1551,9 @@ export class Game extends Scene {
         if (countMove) {
             this.incrementMoves();
         }
+        
+        // 更新AutoComplete按钮显示状态
+        this.updateAutoCompleteButtonVisibility();
         
         // 检查胜利条件
         if (this.checkWinCondition()) {
@@ -1517,6 +1652,9 @@ export class Game extends Scene {
         
         // 更新位置
         this.updateTableauPositions();
+        
+        // 更新AutoComplete按钮显示状态
+        this.updateAutoCompleteButtonVisibility();
     }
 
     // 检查是否可以移动卡牌到指定列
@@ -1668,6 +1806,136 @@ export class Game extends Scene {
     // 🚫 教学系统已禁用 - 始终允许所有操作
     public isActionAllowed(actionType: string): boolean {
         return true; // 教学系统已禁用，允许所有操作
+    }
+
+    // AutoComplete支持方法
+    public addScore(points: number): void {
+        this.updateScore(points);
+    }
+
+    public addMove(): void {
+        this.incrementMoves();
+    }
+
+    public getSuitExplosionManager(): any {
+        return this.suitExplosionManager;
+    }
+
+    // AutoComplete测试方法
+    public testAutoComplete(): void {
+        if (this.autoCompleteManager) {
+            this.autoCompleteManager.testAutoComplete();
+        } else {
+            console.error('❌ AutoCompleteManager未初始化');
+        }
+    }
+
+    /**
+     * 应用测试配置
+     */
+    private applyTestConfiguration(): void {
+        if (!this.testDeckGenerator) {
+            console.error('❌ TestDeckGenerator未初始化');
+            return;
+        }
+
+        const testConfig = getTestConfig();
+        console.log('🧪 应用测试配置:', testConfig);
+
+        // 强制翻开所有tableau卡牌
+        if (testConfig.ALL_CARDS_FACE_UP) {
+            this.testDeckGenerator.forceFlipAllTableauCards();
+        }
+
+        // 预设Foundation卡牌（用于接近胜利的测试）
+        if (testConfig.TEST_DECK_TYPE === 'near_win') {
+            this.testDeckGenerator.presetFoundationCards();
+        }
+
+        // 强制显示AutoComplete按钮（用于测试）
+        if (testConfig.FORCE_SHOW_BUTTON) {
+            console.log('🧪 强制显示AutoComplete按钮');
+            if (this.autoCompleteButton) {
+                this.autoCompleteButton.setVisible(true);
+            }
+        }
+
+        // 更新按钮显示状态
+        this.updateAutoCompleteButtonVisibility();
+
+        console.log('✅ 测试配置应用完成');
+    }
+
+    /**
+     * 生成AutoComplete测试牌局布局
+     */
+    private generateAutoCompleteTestLayout(): any {
+        console.log('🧪 生成AutoComplete测试牌局布局');
+        
+        if (!this.testDeckGenerator) {
+            console.error('❌ TestDeckGenerator未初始化');
+            return generateTutorialLayout(); // 回退到默认布局
+        }
+        
+        // 生成专门的AutoComplete测试卡牌
+        const testCards = this.testDeckGenerator.generateAutoCompleteTestDeck();
+        
+        // 创建布局结构
+        const layout = {
+            tableau: [
+                // 7列，每列1张可收的卡牌
+                [{ suit: testCards[0].suit, value: testCards[0].value, faceUp: true }], // 红桃3
+                [{ suit: testCards[1].suit, value: testCards[1].value, faceUp: true }], // 方块2
+                [{ suit: testCards[2].suit, value: testCards[2].value, faceUp: true }], // 黑桃2
+                [{ suit: testCards[3].suit, value: testCards[3].value, faceUp: true }], // 红桃4
+                [{ suit: testCards[4].suit, value: testCards[4].value, faceUp: true }], // 方块3
+                [{ suit: testCards[5].suit, value: testCards[5].value, faceUp: true }], // 梅花4
+                [{ suit: testCards[6].suit, value: testCards[6].value, faceUp: true }]  // 黑桃3
+            ],
+            stock: testCards.slice(7).map(card => ({
+                suit: card.suit,
+                value: card.value,
+                faceUp: false
+            })) // 剩余卡牌放入stock
+        };
+        
+        console.log('✅ AutoComplete测试牌局布局生成完成');
+        return layout;
+    }
+
+    /**
+     * 应用AutoComplete测试配置
+     */
+    private applyAutoCompleteTestConfiguration(): void {
+        console.log('🧪 应用AutoComplete测试配置');
+        
+        if (!this.testDeckGenerator) {
+            console.error('❌ TestDeckGenerator未初始化');
+            return;
+        }
+        
+        // 预设Foundation卡牌
+        this.testDeckGenerator.presetAutoCompleteFoundationCards();
+        
+        // 确保所有tableau卡牌都是翻开的
+        for (const column of this.tableau) {
+            for (const card of column.cards) {
+                if (!card.faceUp) {
+                    card.flip().catch(error => {
+                        console.warn('翻转卡牌失败:', error);
+                    });
+                }
+            }
+        }
+        
+        // 更新AutoComplete按钮显示状态
+        this.time.delayedCall(100, () => {
+            this.updateAutoCompleteButtonVisibility();
+        });
+        
+        console.log('✅ AutoComplete测试配置应用完成');
+        console.log('🎯 测试说明: 访问 ?debug=1 启用AutoComplete测试模式');
+        console.log('🎯 预期效果: AutoComplete按钮应该立即显示，点击后可看到完整收牌动画');
     }
 
 }
