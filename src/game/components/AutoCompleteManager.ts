@@ -8,7 +8,7 @@ import outputConfig from '../../config/output-config.json';
 
 // AutoComplete配置参数
 const AUTO_COMPLETE_CONFIG = {
-    CARD_MOVE_DELAY: 100,        // 收牌间隔时间(ms)
+    CARD_MOVE_DELAY: 30,        // 收牌间隔时间(ms)
     CARD_FLIGHT_DURATION: 300,  // 卡牌飞行时间(ms)
     STOCK_FLIP_DURATION: 200,   // Stock翻牌时间(ms)
     MAX_LOOP_ITERATIONS: 100,   // 最大循环次数保护
@@ -82,6 +82,20 @@ export class AutoCompleteManager {
             await this.executeCollectionSequence(actions);
 
             console.log('✅ AutoComplete完成');
+            
+            // 延迟确保所有收牌动画完成，然后检测胜利
+            setTimeout(() => {
+                console.log('🏆 AutoComplete完成后检测胜利状态...');
+                console.log('🔍 当前Foundation状态:', this.scene.foundation.map(pile => pile.cards.length));
+                
+                if (this.scene.checkGameWinCondition()) {
+                    console.log('🎉 检测到游戏胜利，触发胜利动画');
+                    this.scene.triggerGameWin();
+                } else {
+                    console.log('🔍 游戏尚未完成，继续等待玩家操作');
+                    console.log('🔍 需要每个Foundation都有13张牌才能胜利');
+                }
+            }, 800); // 增加延迟时间，确保所有动画完成
         } catch (error) {
             console.error('❌ AutoComplete执行失败:', error);
             if (error instanceof Error) {

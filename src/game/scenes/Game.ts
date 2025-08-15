@@ -25,6 +25,7 @@ import { SuitExplosionManager } from '../animations/SuitExplosionManager';
 import { AutoCompleteManager } from '../components/AutoCompleteManager';
 import { TestDeckGenerator } from '../utils/TestDeckGenerator';
 import { getTestConfig, isTestModeEnabled } from '../../config/test-config';
+import { VictoryAnimationManager } from '../animations/VictoryAnimationManager';
 
 // 游戏区域类型
 interface TableauColumn {
@@ -98,6 +99,9 @@ export class Game extends Scene {
     // AutoComplete系统
     private autoCompleteManager: AutoCompleteManager | null = null;
     private testDeckGenerator: TestDeckGenerator | null = null;
+
+    // 胜利动画系统
+    private victoryAnimationManager: VictoryAnimationManager | null = null;
     
     // 调试模式
     private debugMode: boolean = false;
@@ -164,6 +168,9 @@ export class Game extends Scene {
         
         // 初始化测试牌局生成器
         this.testDeckGenerator = new TestDeckGenerator(this);
+        
+        // 初始化胜利动画管理器
+        this.victoryAnimationManager = new VictoryAnimationManager(this);
         
         // 创建引导手势
         this.createHandGuide();
@@ -247,6 +254,12 @@ export class Game extends Scene {
         if (this.autoCompleteManager) {
             this.autoCompleteManager.destroy();
             this.autoCompleteManager = null;
+        }
+        
+        // 清理胜利动画系统
+        if (this.victoryAnimationManager) {
+            this.victoryAnimationManager.destroy();
+            this.victoryAnimationManager = null;
         }
         
         console.log('🎮 Game: Resources cleaned up');
@@ -1470,6 +1483,22 @@ export class Game extends Scene {
         return this.foundation.every(pile => pile.cards.length === 13);
     }
 
+    /**
+     * 公共方法：检查胜利条件
+     * 供AutoCompleteManager等外部组件调用
+     */
+    public checkGameWinCondition(): boolean {
+        return this.checkWinCondition();
+    }
+
+    /**
+     * 公共方法：触发游戏胜利
+     * 供AutoCompleteManager等外部组件调用
+     */
+    public triggerGameWin(): void {
+        this.onGameWin();
+    }
+
     // 卡牌翻转回调
     public onCardFlipped(): void {
         // 卡牌翻转后的处理逻辑
@@ -1694,9 +1723,19 @@ export class Game extends Scene {
         // 简单的胜利提示
         console.log('🎉 恭喜！游戏胜利！');
         
-        // 为后续的卡牌旋转结尾动画预留接口
-        // TODO: 在这里添加卡牌旋转结尾动画
-        console.log('💫 准备播放卡牌旋转结尾动画...');
+        // 启动华丽的胜利动画
+        if (this.victoryAnimationManager) {
+            console.log('💫 开始播放华丽的胜利动画...');
+            this.victoryAnimationManager.startVictoryAnimation(this.foundation)
+                .then(() => {
+                    console.log('🎊 胜利动画播放完成！');
+                })
+                .catch((error) => {
+                    console.error('❌ 胜利动画播放失败:', error);
+                });
+        } else {
+            console.warn('⚠️ 胜利动画管理器未初始化');
+        }
     }
 
     // 重置游戏
