@@ -19,12 +19,29 @@ export interface VictoryAnimationConfig {
 
 /**
  * 默认胜利动画配置
+ *
+ * 🎯 **延时圆环动画配置说明**：
+ *
+ * CIRCLE_ROTATION_DURATION: 单张卡牌旋转一周的时间
+ * - 这是延时圆环的核心参数
+ * - 决定了圆环旋转的速度
+ * - 延时间隔 = CIRCLE_ROTATION_DURATION / (实际卡牌数 - 1)
+ *
+ * CIRCLE_CARD_COUNT: 参与圆环的最大卡牌数量
+ * - 用于限制圆环卡牌数量，避免过于拥挤
+ * - 实际参与数量 = min(CIRCLE_CARD_COUNT, 可用卡牌数)
+ * - 多余卡牌会淡出处理
+ *
+ * 🧮 **延时计算示例**（24张卡牌）：
+ * - 延时间隔 = 2560ms / (24-1) = 111.3ms
+ * - 总延时时间 = 23 × 111.3ms = 2560ms
+ * - 结果：最后一张卡牌开始旋转时，第一张卡牌正好完成一圈
  */
 export const DEFAULT_VICTORY_CONFIG: VictoryAnimationConfig = {
-    CIRCLE_ROTATION_DURATION: 2560,   // 圆环旋转一周的时间(ms) - 原来是 80ms * 32张卡牌 = 2560ms
-    CARD_FLY_TO_CIRCLE_DURATION: 300, // 卡牌飞到圆环位置的时间(ms)
+    CIRCLE_ROTATION_DURATION: 2560,   // 圆环旋转一周的时间(ms) - 延时圆环的核心参数
+    CARD_FLY_TO_CIRCLE_DURATION: 300, // 卡牌飞到圆环顶部的时间(ms)
     CIRCLE_RADIUS: 480,               // 圆环半径(px)
-    CIRCLE_CARD_COUNT: 24,            // 参与圆环旋转的卡牌数量 - 恢复原始配置
+    CIRCLE_CARD_COUNT: 24,            // 参与圆环旋转的最大卡牌数量
     FADE_OUT_DURATION: 100            // 多余卡牌淡出时间(ms)
 };
 
@@ -295,67 +312,155 @@ export class VictoryAnimationManager {
             return;
         }
         
-        // 从K开始（cardIndex = 12），按花色循环收集
-        console.log('[ROTATION_DEBUG] 🔄 开始收集卡牌数据（从K到A）');
+        // 🚨 **修复卡牌收集逻辑的系统性偏差** 🚨
+        console.log('[ALGORITHM_DEBUG] 🔄 开始修复后的卡牌收集逻辑');
         
+        // 🔍 **分析旧收集逻辑的问题**
+        console.log('[ALGORITHM_DEBUG] ⚠️ 旧收集逻辑问题分析:');
+        console.log('[ALGORITHM_DEBUG]   - 外层循环: 卡牌值 (K→A)');
+        console.log('[ALGORITHM_DEBUG]   - 内层循环: 花色 (♠→♥→♦→♣)');
+        console.log('[ALGORITHM_DEBUG]   - 结果: 相同卡牌值聚集，花色分布不均');
+        console.log('[ALGORITHM_DEBUG]   - 示例: 索引0-3全是K牌，索引4-7全是Q牌');
+        
+        // 🔧 **新的均匀分布收集策略**
+        // 策略1: 交替花色收集，确保花色均匀分布
+        // 策略2: 限制每个花色的连续卡牌数量
+        
+        const allValidCards: Array<{
+            card: CardComponent;
+            foundationIndex: number;
+            cardIndex: number;
+            suit: number; // 花色索引
+            value: number; // 卡牌值
+            position: { x: number; y: number };
+        }> = [];
+        
+        // 首先收集所有有效卡牌并标记花色信息
         try {
-            for (let cardIndex = 12; cardIndex >= 0; cardIndex--) { // K=12, Q=11, J=10, ..., A=0
+            for (let cardIndex = 12; cardIndex >= 0; cardIndex--) { // K=12 到 A=0
                 for (let foundationIndex = 0; foundationIndex < foundationPiles.length; foundationIndex++) {
                     const pile = foundationPiles[foundationIndex];
                     
-                    // 强化安全检查
                     if (!pile || !pile.cards || !Array.isArray(pile.cards)) {
-                        console.log(`[ROTATION_DEBUG] ⚠️ 跳过无效牌堆: ${foundationIndex}`);
+                        console.log(`[ALGORITHM_DEBUG] ⚠️ 跳过无效牌堆: ${foundationIndex}`);
                         continue;
                     }
                     
                     if (cardIndex >= pile.cards.length) {
-                        console.log(`[ROTATION_DEBUG] ⚠️ 卡牌索引超出范围: 牌堆${foundationIndex}, 索引${cardIndex}, 长度${pile.cards.length}`);
+                        console.log(`[ALGORITHM_DEBUG] ⚠️ 卡牌索引超出范围: 牌堆${foundationIndex}, 索引${cardIndex}, 长度${pile.cards.length}`);
                         continue;
                     }
                     
                     const card = pile.cards[cardIndex];
                     
                     if (!card || typeof card !== 'object') {
-                        console.log(`[ROTATION_DEBUG] ⚠️ 跳过无效卡牌: 牌堆${foundationIndex}, 卡牌索引${cardIndex}`);
+                        console.log(`[ALGORITHM_DEBUG] ⚠️ 跳过无效卡牌: 牌堆${foundationIndex}, 卡牌索引${cardIndex}`);
                         continue;
                     }
                     
-                    // 检查卡牌是否有必要的属性
                     if (typeof card.x !== 'number' || typeof card.y !== 'number') {
-                        console.log(`[ROTATION_DEBUG] ⚠️ 卡牌位置无效: 牌堆${foundationIndex}, 卡牌${cardIndex}, x=${card.x}, y=${card.y}`);
+                        console.log(`[ALGORITHM_DEBUG] ⚠️ 卡牌位置无效: 牌堆${foundationIndex}, 卡牌${cardIndex}, x=${card.x}, y=${card.y}`);
                         continue;
                     }
                     
-                    const globalIndex = this.animationCards.length;
-                    console.log(`[ROTATION_DEBUG] 📋 处理有效卡牌: 牌堆${foundationIndex}, 卡牌${cardIndex}, 全局索引${globalIndex}`);
-                    
-                    // 修复：只有前circleCardCount张卡牌参与圆环动画
-                    if (this.animationCards.length < circleCardCount) {
-                        console.log(`[ROTATION_DEBUG] ✅ 卡牌加入圆环: 牌堆${foundationIndex}, 卡牌${cardIndex}, 圆环索引${this.animationCards.length}`);
-                        this.animationCards.push({
-                            card,
-                            originalPosition: { x: card.x, y: card.y },
-                            originalRotation: card.rotation || 0,
-                            foundationIndex,
-                            cardIndex
-                        });
-                    } else {
-                        console.log(`[ROTATION_DEBUG] 💨 卡牌淡出: 牌堆${foundationIndex}, 卡牌${cardIndex} (超出圆环数量限制)`);
-                        // 多余的卡牌执行淡出动画
-                        this.scene.tweens.add({
-                            targets: card,
-                            alpha: 0,
-                            duration: this.config.FADE_OUT_DURATION,
-                            ease: 'Power2'
-                        });
-                    }
+                    // 收集有效卡牌信息
+                    allValidCards.push({
+                        card,
+                        foundationIndex,
+                        cardIndex,
+                        suit: foundationIndex, // 花色索引 (0=♠, 1=♥, 2=♦, 3=♣)
+                        value: cardIndex, // 卡牌值 (0=A, 1=2, ..., 12=K)
+                        position: { x: card.x, y: card.y }
+                    });
                 }
             }
+            
+            console.log(`[ALGORITHM_DEBUG] 📊 收集到 ${allValidCards.length} 张有效卡牌`);
+            
+            // 🔧 **新的均匀分布算法**
+            // 使用交替花色策略，确保圆环上花色分布均匀
+            const redistributedCards: typeof allValidCards = [];
+            const suitGroups = [[], [], [], []] as Array<typeof allValidCards>;
+            
+            // 按花色分组
+            allValidCards.forEach(cardInfo => {
+                suitGroups[cardInfo.suit].push(cardInfo);
+            });
+            
+            console.log('[ALGORITHM_DEBUG] 📊 花色分组统计:');
+            suitGroups.forEach((group, suitIndex) => {
+                const suitNames = ['♠', '♥', '♦', '♣'];
+                console.log(`[ALGORITHM_DEBUG]   ${suitNames[suitIndex]}: ${group.length}张`);
+            });
+            
+            // 交替选择花色，确保均匀分布
+            const maxCardsPerSuit = Math.ceil(circleCardCount / 4);
+            let currentSuit = 0;
+            const suitCounters = [0, 0, 0, 0];
+            
+            console.log(`[ALGORITHM_DEBUG] 🔧 开始均匀分布重排，每花色最多${maxCardsPerSuit}张`);
+            
+            for (let i = 0; i < circleCardCount && redistributedCards.length < circleCardCount; i++) {
+                let attempts = 0;
+                let cardAdded = false;
+                
+                // 尝试从当前花色添加卡牌
+                while (attempts < 4 && !cardAdded) {
+                    const suitIndex = (currentSuit + attempts) % 4;
+                    const suitGroup = suitGroups[suitIndex];
+                    
+                    if (suitCounters[suitIndex] < maxCardsPerSuit &&
+                        suitCounters[suitIndex] < suitGroup.length) {
+                        
+                        const cardInfo = suitGroup[suitCounters[suitIndex]];
+                        redistributedCards.push(cardInfo);
+                        suitCounters[suitIndex]++;
+                        cardAdded = true;
+                        
+                        const suitNames = ['♠', '♥', '♦', '♣'];
+                        console.log(`[ALGORITHM_DEBUG] ✅ 添加卡牌 ${redistributedCards.length-1}: ${suitNames[suitIndex]} 值${cardInfo.value}`);
+                    }
+                    attempts++;
+                }
+                
+                if (!cardAdded) {
+                    console.warn(`[ALGORITHM_DEBUG] ⚠️ 无法为位置 ${i} 找到合适的卡牌`);
+                    break;
+                }
+                
+                currentSuit = (currentSuit + 1) % 4; // 轮换到下一个花色
+            }
+            
+            // 将重排后的卡牌添加到动画列表
+            redistributedCards.forEach((cardInfo, index) => {
+                if (index < circleCardCount) {
+                    this.animationCards.push({
+                        card: cardInfo.card,
+                        originalPosition: cardInfo.position,
+                        originalRotation: cardInfo.card.rotation || 0,
+                        foundationIndex: cardInfo.foundationIndex,
+                        cardIndex: cardInfo.cardIndex
+                    });
+                }
+            });
+            
+            // 淡出多余的卡牌
+            allValidCards.forEach(cardInfo => {
+                if (!redistributedCards.includes(cardInfo)) {
+                    console.log(`[ALGORITHM_DEBUG] 💨 淡出多余卡牌: 花色${cardInfo.suit}, 值${cardInfo.value}`);
+                    this.scene.tweens.add({
+                        targets: cardInfo.card,
+                        alpha: 0,
+                        duration: this.config.FADE_OUT_DURATION,
+                        ease: 'Power2'
+                    });
+                }
+            });
+            
         } catch (error) {
-            console.error('[ROTATION_DEBUG] ❌ 收集卡牌数据时发生错误:', error);
+            console.error('[ALGORITHM_DEBUG] ❌ 收集卡牌数据时发生错误:', error);
             if (error instanceof Error) {
-                console.error('[ROTATION_DEBUG] ❌ 错误堆栈:', error.stack);
+                console.error('[ALGORITHM_DEBUG] ❌ 错误堆栈:', error.stack);
             }
         }
         
@@ -373,78 +478,129 @@ export class VictoryAnimationManager {
     }
 
     /**
-     * 新方案：卡牌飞到圆环顶部并开始独立旋转
+     * 🎯 **延时圆环动画核心方法**
+     *
+     * 延时圆环是一种视觉效果，通过时间差让卡牌依次开始旋转，形成圆环状的动画。
+     *
+     * 🔄 **延时圆环设计原理**：
+     * 1. 所有卡牌都飞到圆环顶部（初始旋转角度为0）
+     * 2. 每张卡牌按照固定延时间隔开始旋转
+     * 3. 延时间隔 = 圆环旋转一周时间 / (参与卡牌数量 - 1)  ⚠️ 注意减1
+     * 4. 当最后一张卡牌开始旋转时，第一张卡牌正好转完一圈回到顶部
+     * 5. 形成完美的延时圆环效果，视觉上看起来像一个连续的圆环
+     *
+     * 🧮 **数学原理**：
+     * - 第i张卡牌的延时 = i × (rotationDuration / (cardCount - 1))
+     * - 总延时时间 = (cardCount - 1) × 延时间隔 = rotationDuration
+     * - 确保时序完美同步，形成稳定的圆环效果
+     *
+     * 🎨 **视觉效果**：
+     * - 卡牌依次"点亮"并开始旋转
+     * - 形成从静止到旋转的渐进效果
+     * - 最终所有卡牌同步旋转，保持圆环形状
      */
     private async playCardsFlyToTopAndRotatePhase(): Promise<void> {
-        console.log('[ROTATION_DEBUG] 🎯 playCardsFlyToTopAndRotatePhase 开始执行');
+        console.log('[DELAY_RING_DEBUG] 🎯 延时圆环动画开始执行');
         this.currentPhase = VictoryAnimationPhase.CARDS_FLYING_TO_CIRCLE;
-        console.log('[ROTATION_DEBUG] 📍 当前阶段设置为: CARDS_FLYING_TO_CIRCLE');
+        console.log('[DELAY_RING_DEBUG] 📍 当前阶段设置为: CARDS_FLYING_TO_CIRCLE');
 
-        // 计算圆环顶部的固定位置（场景坐标系）
+        // 🎯 **步骤1：计算圆环顶部的固定位置**
+        // 所有卡牌都要先飞到这个位置
         const circleTopX = this.centerX;
         const circleTopY = this.centerY - this.config.CIRCLE_RADIUS;
-        console.log('[ROTATION_DEBUG] 📐 圆环顶部位置:', { circleTopX, circleTopY });
-        console.log('[ROTATION_DEBUG] 📐 屏幕中心:', { centerX: this.centerX, centerY: this.centerY });
-        console.log('[ROTATION_DEBUG] 📐 圆环半径:', this.config.CIRCLE_RADIUS);
+        console.log('[DELAY_RING_DEBUG] 📐 圆环顶部位置:', { circleTopX, circleTopY });
+        console.log('[DELAY_RING_DEBUG] 📐 屏幕中心:', { centerX: this.centerX, centerY: this.centerY });
+        console.log('[DELAY_RING_DEBUG] 📐 圆环半径:', this.config.CIRCLE_RADIUS);
 
-        // 修复：使用配置中的圆环卡牌数量进行延时计算
-        const circleCardCount = this.config.CIRCLE_CARD_COUNT;
-        // 旋转一周的时间直接使用配置值
+        // 🎯 **步骤2：延时计算的数学分析**
+        const actualCardCount = this.animationCards.length;
         const rotationDuration = this.config.CIRCLE_ROTATION_DURATION;
         
-        // 🔧 修正延迟时间计算，确保每张卡牌的延时间隔相同
-        // 正确的延迟时间计算：总旋转时间除以圆环卡牌数量
-        const cardFlyDelay = this.config.CIRCLE_ROTATION_DURATION / circleCardCount;
+        console.log(`[DELAY_RING_DEBUG] 🧮 延时圆环数学分析:`);
+        console.log(`[DELAY_RING_DEBUG]   - 参与卡牌数量: ${actualCardCount}`);
+        console.log(`[DELAY_RING_DEBUG]   - 圆环旋转一周时间: ${rotationDuration}ms`);
+        console.log(`[DELAY_RING_DEBUG]   - 延时圆环原理: 所有卡牌飞到顶部，然后按延时开始旋转`);
         
-        // 每张卡牌之间的角度差
-        const anglePerCard = (2 * Math.PI) / circleCardCount;
+        // 🔧 **关键修复：正确的延时计算公式**
+        //
+        // 🚨 **数学错误分析**：
+        // 错误公式：延时间隔 = rotationDuration / actualCardCount
+        // 问题：最后一张卡牌开始旋转时，第一张卡牌还没完成一圈
+        //
+        // 🎯 **正确公式**：延时间隔 = rotationDuration / (actualCardCount - 1)
+        // 原理：总延时时间 = (actualCardCount - 1) × 延时间隔 = rotationDuration
+        // 结果：当最后一张卡牌开始旋转时，第一张卡牌正好完成一圈回到顶部
         
-        // 数学验证
-        const totalDelayTime = (this.animationCards.length - 1) * cardFlyDelay;
-        const expectedAngleSpacing = (2 * Math.PI) / circleCardCount;
+        if (actualCardCount <= 1) {
+            console.error('[DELAY_RING_DEBUG] ❌ 卡牌数量不足，无法形成延时圆环');
+            return;
+        }
         
-        console.log(`[ROTATION_DEBUG] 📊 关键动画参数:`);
-        console.log(`[ROTATION_DEBUG]   - 实际参与卡牌数: ${this.animationCards.length}`);
-        console.log(`[ROTATION_DEBUG]   - 圆环配置卡牌数: ${circleCardCount}`);
-        console.log(`[ROTATION_DEBUG]   - 旋转一周时间: ${rotationDuration}ms`);
-        console.log(`[ROTATION_DEBUG]   - 每卡牌角度间隔: ${(anglePerCard * 180 / Math.PI).toFixed(2)}°`);
-        console.log(`[ROTATION_DEBUG]   - 卡牌飞入延时: ${cardFlyDelay.toFixed(2)}ms (固定间隔)`);
-        console.log(`[ROTATION_DEBUG] 🔍 数学验证:`);
-        console.log(`[ROTATION_DEBUG]   - 总延迟时间: ${totalDelayTime.toFixed(2)}ms`);
-        console.log(`[ROTATION_DEBUG]   - 预期角度间隔: ${(expectedAngleSpacing * 180 / Math.PI).toFixed(2)}°`);
+        const cardStartRotationDelay = rotationDuration / (actualCardCount - 1);
+        
+        console.log(`[DELAY_RING_DEBUG] 🔧 延时计算结果（修复后）:`);
+        console.log(`[DELAY_RING_DEBUG]   - 每张卡牌延时间隔: ${cardStartRotationDelay.toFixed(2)}ms`);
+        console.log(`[DELAY_RING_DEBUG]   - 总延时时间: ${((actualCardCount - 1) * cardStartRotationDelay).toFixed(2)}ms`);
+        console.log(`[DELAY_RING_DEBUG]   - 验证：总延时时间 = 旋转一周时间? ${((actualCardCount - 1) * cardStartRotationDelay) === rotationDuration ? '✅' : '❌'}`);
+        
+        // 🧮 **数学验证**
+        const totalDelayTime = (actualCardCount - 1) * cardStartRotationDelay;
+        const timeDifference = Math.abs(totalDelayTime - rotationDuration);
+        console.log(`[DELAY_RING_DEBUG] 🧮 数学验证:`);
+        console.log(`[DELAY_RING_DEBUG]   - 期望总延时: ${rotationDuration}ms`);
+        console.log(`[DELAY_RING_DEBUG]   - 实际总延时: ${totalDelayTime.toFixed(2)}ms`);
+        console.log(`[DELAY_RING_DEBUG]   - 时间差: ${timeDifference.toFixed(2)}ms`);
+        console.log(`[DELAY_RING_DEBUG]   - 精度验证: ${timeDifference < 0.01 ? '✅ 完美同步' : '⚠️ 存在误差'}`);
 
         const flyPromises: Promise<void>[] = [];
 
-        // 修复：只处理实际收集到的动画卡牌
-        console.log('[ROTATION_DEBUG] 🚀 开始处理动画卡牌参与圆环旋转');
+        // 🎯 **步骤3：所有卡牌飞到顶部，然后按延时开始旋转**
+        console.log('[DELAY_RING_DEBUG] 🚀 开始延时圆环动画序列');
+        
         for (let i = 0; i < this.animationCards.length; i++) {
             const cardData = this.animationCards[i];
-            const delay = i * cardFlyDelay;
+            const rotationStartDelay = i * cardStartRotationDelay;
             
-            console.log(`[ROTATION_DEBUG] 📋 卡牌 ${i}: 延时=${delay.toFixed(2)}ms, 卡牌存在=${!!cardData?.card}, 卡牌可见=${cardData?.card?.visible}`);
+            console.log(`[DELAY_RING_DEBUG] 📋 卡牌 ${i} 延时圆环参数:`);
+            console.log(`[DELAY_RING_DEBUG]   - 旋转开始延时: ${rotationStartDelay.toFixed(2)}ms`);
+            console.log(`[DELAY_RING_DEBUG]   - 卡牌存在: ${!!cardData?.card}`);
+            console.log(`[DELAY_RING_DEBUG]   - 卡牌可见: ${cardData?.card?.visible}`);
             
             const promise = new Promise<void>((resolve) => {
-                this.scene.time.delayedCall(delay, () => {
-                    console.log(`[ROTATION_DEBUG] ⏰ 卡牌 ${i} 延时触发，开始飞行到顶部`);
-                    // 所有卡牌：飞入圆环并开始旋转
-                    this.flyCardToTopAndStartRotation(cardData, circleTopX, circleTopY, rotationDuration, resolve);
+                this.scene.time.delayedCall(rotationStartDelay, () => {
+                    console.log(`[DELAY_RING_DEBUG] ⏰ 卡牌 ${i} 延时触发，开始飞到顶部并旋转`);
+                    
+                    // 🎯 **核心逻辑：飞到圆环顶部，然后开始旋转**
+                    this.flyCardToTopAndStartRotation(
+                        cardData,
+                        circleTopX,
+                        circleTopY,
+                        rotationDuration,
+                        resolve
+                    );
                 });
             });
             
             flyPromises.push(promise);
         }
 
-        console.log('[ROTATION_DEBUG] ⏳ 等待所有卡牌飞行Promise完成...');
+        console.log('[DELAY_RING_DEBUG] ⏳ 等待所有卡牌完成延时圆环动画...');
         // 等待所有卡牌开始旋转
         await Promise.all(flyPromises);
         
         this.currentPhase = VictoryAnimationPhase.ROTATING;
-        console.log('[ROTATION_DEBUG] 🎊 所有卡牌已开始独立旋转，形成完整圆环');
-        console.log('[ROTATION_DEBUG] 📍 当前阶段设置为: ROTATING');
+        console.log('[DELAY_RING_DEBUG] 🎊 延时圆环动画完成，所有卡牌已开始独立旋转');
+        console.log('[DELAY_RING_DEBUG] 📍 当前阶段设置为: ROTATING');
     }
 
+
     /**
-     * 单张卡牌飞到圆环顶部并开始独立旋转
+     * 🎯 **延时圆环核心方法：单张卡牌飞到圆环顶部并开始独立旋转**
+     *
+     * 这是延时圆环动画的核心实现：
+     * 1. 卡牌飞到圆环顶部（初始旋转角度为0）
+     * 2. 到达后立即开始从顶部位置的圆形轨迹旋转
+     * 3. 通过延时调用此方法，形成延时圆环效果
      */
     private flyCardToTopAndStartRotation(
         cardData: CardAnimationData,
@@ -455,8 +611,8 @@ export class VictoryAnimationManager {
     ): void {
         const { card } = cardData;
         
-        console.log(`[ROTATION_DEBUG] 🎯 flyCardToTopAndStartRotation 开始执行`);
-        console.log(`[ROTATION_DEBUG] 📋 卡牌信息:`, {
+        console.log(`[DELAY_RING_DEBUG] 🎯 flyCardToTopAndStartRotation 开始执行`);
+        console.log(`[DELAY_RING_DEBUG] 📋 卡牌信息:`, {
             cardExists: !!card,
             cardVisible: card?.visible,
             cardPosition: { x: card?.x, y: card?.y },
@@ -464,11 +620,11 @@ export class VictoryAnimationManager {
             foundationIndex: cardData.foundationIndex,
             cardIndex: cardData.cardIndex
         });
-        console.log(`[ROTATION_DEBUG] 📍 目标位置:`, { topX, topY });
-        console.log(`[ROTATION_DEBUG] ⏱️ 旋转持续时间:`, rotationDuration);
+        console.log(`[DELAY_RING_DEBUG] 📍 圆环顶部位置:`, { topX, topY });
+        console.log(`[DELAY_RING_DEBUG] ⏱️ 旋转持续时间:`, rotationDuration);
         
         if (!card) {
-            console.error('[ROTATION_DEBUG] ❌ 卡牌对象不存在，跳过动画');
+            console.error('[DELAY_RING_DEBUG] ❌ 卡牌对象不存在，跳过动画');
             onComplete();
             return;
         }
@@ -476,25 +632,27 @@ export class VictoryAnimationManager {
         // 提升卡牌深度，确保在最前面
         const newDepth = 1000 + cardData.foundationIndex * 13 + cardData.cardIndex;
         card.setDepth(newDepth);
-        console.log(`[ROTATION_DEBUG] 📏 设置卡牌深度: ${newDepth}`);
+        console.log(`[DELAY_RING_DEBUG] 📏 设置卡牌深度: ${newDepth}`);
         
-        // 飞到圆环顶部
-        console.log(`[ROTATION_DEBUG] 🚀 开始飞行动画，持续时间: ${this.config.CARD_FLY_TO_CIRCLE_DURATION}ms`);
+        // 🎯 **步骤1：飞到圆环顶部**
+        console.log(`[DELAY_RING_DEBUG] 🚀 开始飞行到圆环顶部，持续时间: ${this.config.CARD_FLY_TO_CIRCLE_DURATION}ms`);
         this.scene.tweens.add({
             targets: card,
             x: topX,
             y: topY,
-            rotation: 0, // 纵向指向圆心（顶部位置）
+            rotation: 0, // 🎯 **关键：初始旋转角度为0（指向圆环顶部）**
             duration: this.config.CARD_FLY_TO_CIRCLE_DURATION,
-            ease: 'Power2',
+            // 🔧 **修复圆环分布不均匀问题**：使用linear缓动确保所有卡牌以相同速度飞行
+            // 这样可以保证卡牌到达圆环顶部的时间间隔完全一致，避免因缓动函数导致的时序偏差
+            ease: Phaser.Math.Easing.Linear,
             onStart: () => {
-                console.log(`[ROTATION_DEBUG] ✅ 卡牌飞行动画开始`);
+                console.log(`[DELAY_RING_DEBUG] ✅ 卡牌飞行动画开始`);
             },
             onComplete: () => {
-                console.log(`[ROTATION_DEBUG] ✅ 卡牌飞行动画完成，到达位置: (${card.x}, ${card.y})`);
+                console.log(`[DELAY_RING_DEBUG] ✅ 卡牌飞行到顶部完成，位置: (${card.x}, ${card.y})`);
                 
-                // 🛠️ 修复：在飞行动画完成后立即启动旋转，确保时序同步
-                console.log(`[ROTATION_DEBUG] 🔄 飞行完成，立即开始独立旋转动画`);
+                // 🎯 **步骤2：立即开始从顶部的圆形轨迹旋转**
+                console.log(`[DELAY_RING_DEBUG] 🔄 飞行完成，立即开始从顶部的圆形轨迹旋转`);
                 this.startCardIndependentRotation(cardData, rotationDuration);
                 
                 onComplete();
@@ -502,14 +660,27 @@ export class VictoryAnimationManager {
         });
     }
 
+
     /**
-     * 开始卡牌的独立圆形轨迹旋转
+     * 🎯 **延时圆环核心方法：开始卡牌的独立圆形轨迹旋转**
+     *
+     * 🔄 **延时圆环旋转原理**：
+     * 1. 所有卡牌都从圆环顶部开始旋转（角度0）
+     * 2. 每张卡牌独立进行圆形轨迹旋转
+     * 3. 通过延时调用此方法，形成视觉上的圆环效果
+     * 4. 旋转速度恒定，确保圆环形状稳定
+     *
+     * 🧮 **数学原理**：
+     * - 起始角度：0（圆环顶部，-π/2 in standard coordinate）
+     * - 角度计算：currentAngle - π/2（转换为标准坐标系）
+     * - 位置计算：(centerX + radius*cos(angle), centerY + radius*sin(angle))
+     * - 卡牌朝向：angle + π/2（纵向指向圆心）
      */
     private startCardIndependentRotation(cardData: CardAnimationData, rotationDuration: number): void {
         const { card } = cardData;
         
-        console.log(`[ROTATION_DEBUG] 🎯 startCardIndependentRotation 开始执行`);
-        console.log(`[ROTATION_DEBUG] 📋 参数检查:`, {
+        console.log(`[DELAY_RING_DEBUG] 🎯 startCardIndependentRotation 开始执行`);
+        console.log(`[DELAY_RING_DEBUG] 📋 参数检查:`, {
             cardExists: !!card,
             cardVisible: card?.visible,
             cardActive: card?.active,
@@ -522,79 +693,64 @@ export class VictoryAnimationManager {
         });
         
         if (!card) {
-            console.error('[ROTATION_DEBUG] ❌ 卡牌对象不存在，无法开始旋转');
+            console.error('[DELAY_RING_DEBUG] ❌ 卡牌对象不存在，无法开始旋转');
             return;
         }
         
-        // 🛠️ 修复：增强可见性检查，确保卡牌处于正确状态
+        // 🛠️ 确保卡牌处于正确状态
         if (!card.visible) {
-            console.warn('[ROTATION_DEBUG] ⚠️ 卡牌不可见，尝试恢复可见性');
-            console.log('[ROTATION_DEBUG] 🔍 卡牌状态详情:', {
-                visible: card.visible,
-                alpha: card.alpha,
-                active: card.active,
-                scaleX: card.scaleX,
-                scaleY: card.scaleY
-            });
-            
-            // 尝试恢复卡牌可见性
+            console.warn('[DELAY_RING_DEBUG] ⚠️ 卡牌不可见，尝试恢复可见性');
             card.setVisible(true);
             if (card.alpha < 1) {
                 card.setAlpha(1);
             }
             
-            console.log('[ROTATION_DEBUG] 🔧 已尝试恢复卡牌可见性，当前状态:', {
-                visible: card.visible,
-                alpha: card.alpha
-            });
-            
-            // 再次检查，如果仍然不可见则跳过
             if (!card.visible) {
-                console.error('[ROTATION_DEBUG] ❌ 无法恢复卡牌可见性，跳过旋转动画');
+                console.error('[DELAY_RING_DEBUG] ❌ 无法恢复卡牌可见性，跳过旋转动画');
                 return;
             }
         }
         
         if (rotationDuration <= 0) {
-            console.error('[ROTATION_DEBUG] ❌ 旋转持续时间无效:', rotationDuration);
+            console.error('[DELAY_RING_DEBUG] ❌ 旋转持续时间无效:', rotationDuration);
             return;
         }
         
-        // 🛠️ 修复：确保卡牌处于活跃状态
         if (!card.active) {
-            console.log('[ROTATION_DEBUG] 🔧 激活卡牌对象');
+            console.log('[DELAY_RING_DEBUG] 🔧 激活卡牌对象');
             card.setActive(true);
         }
         
-        console.log(`[ROTATION_DEBUG] 🔄 创建连续旋转动画，持续时间: ${rotationDuration}ms`);
+        console.log(`[DELAY_RING_DEBUG] 🔄 创建从顶部开始的连续圆形轨迹旋转，持续时间: ${rotationDuration}ms`);
         
-        // 🛠️ 修复方案：使用连续角度避免循环重置抖动
-        // 计算一个足够大的角度值，避免使用 repeat: -1
+        // 🎯 **延时圆环旋转实现**
+        // 使用连续角度避免循环重置抖动，确保圆环稳定
         const totalRotations = 1000; // 连续旋转1000圈，足够长时间运行
         const totalAngle = Math.PI * 2 * totalRotations; // 总角度
         const totalDuration = rotationDuration * totalRotations; // 总持续时间
         
-        console.log(`[ROTATION_DEBUG] 🔧 连续旋转参数:`, {
+        console.log(`[DELAY_RING_DEBUG] 🔧 连续旋转参数:`, {
             totalRotations,
             totalAngle: `${totalAngle.toFixed(2)} 弧度`,
             totalDuration: `${totalDuration}ms`,
             singleRotationDuration: `${rotationDuration}ms`
         });
         
-        // 创建独立的圆形轨迹旋转动画 - 使用连续角度
+        // 🎯 **创建独立的圆形轨迹旋转动画**
         cardData.rotationTween = this.scene.tweens.add({
             targets: {},
-            angle: { from: 0, to: totalAngle }, // 连续旋转，不重置
+            angle: { from: 0, to: totalAngle }, // 🎯 **从0开始连续旋转（圆环顶部）**
             duration: totalDuration,
-            ease: 'Linear',
-            // 移除 repeat: -1，使用连续角度避免重置抖动
+            ease: 'Linear', // 🎯 **线性缓动确保恒定速度**
             onStart: () => {
-                console.log(`[ROTATION_DEBUG] ✅ 连续旋转动画开始`);
+                console.log(`[DELAY_RING_DEBUG] ✅ 从圆环顶部开始的连续旋转动画启动`);
             },
             onUpdate: (tween) => {
                 const currentAngle = tween.getValue();
-                // 计算当前在圆环上的位置（从顶部开始，即 -Math.PI/2）
-                const angle = currentAngle - Math.PI / 2; // 从圆环顶部开始
+                
+                // 🧮 **延时圆环位置计算**
+                // 转换为标准坐标系：从圆环顶部开始（-π/2）
+                const angle = currentAngle - Math.PI / 2;
                 const x = this.centerX + this.config.CIRCLE_RADIUS * Math.cos(angle);
                 const y = this.centerY + this.config.CIRCLE_RADIUS * Math.sin(angle);
                 const rotation = angle + Math.PI / 2; // 纵向指向圆心
@@ -603,8 +759,8 @@ export class VictoryAnimationManager {
                 card.setRotation(rotation);
             },
             onComplete: () => {
-                console.log(`[ROTATION_DEBUG] 🔄 连续旋转动画完成，重新启动`);
-                // 如果动画完成（1000圈后），重新启动
+                console.log(`[DELAY_RING_DEBUG] 🔄 连续旋转动画完成，重新启动以保持圆环`);
+                // 如果动画完成（1000圈后），重新启动以保持圆环效果
                 if (this.isAnimationActive && card.visible) {
                     this.startCardIndependentRotation(cardData, rotationDuration);
                 }
@@ -612,9 +768,9 @@ export class VictoryAnimationManager {
         });
         
         if (cardData.rotationTween) {
-            console.log(`[ROTATION_DEBUG] ✅ 连续旋转动画创建成功`);
+            console.log(`[DELAY_RING_DEBUG] ✅ 延时圆环旋转动画创建成功`);
         } else {
-            console.error(`[ROTATION_DEBUG] ❌ 连续旋转动画创建失败`);
+            console.error(`[DELAY_RING_DEBUG] ❌ 延时圆环旋转动画创建失败`);
         }
     }
 
