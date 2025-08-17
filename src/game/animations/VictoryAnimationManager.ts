@@ -401,14 +401,33 @@ export class VictoryAnimationManager {
         const circleCardCount = Math.min(this.config.CIRCLE_CARD_COUNT, this.animationCards.length);
         // 旋转一周的时间直接使用配置值
         const rotationDuration = this.config.CIRCLE_ROTATION_DURATION;
-        // 计算卡牌飞入延时 = 圆环旋转一周时间 / 参与旋转的卡牌数量
-        const cardFlyDelay = this.config.CIRCLE_ROTATION_DURATION / this.config.CIRCLE_CARD_COUNT;
+        
+        // 🔧 修正延迟时间计算，确保圆环衔接均匀
+        // 每张卡牌之间的角度差
+        const anglePerCard = (2 * Math.PI) / circleCardCount;
+        // 每个角度对应的时间
+        const timePerAngle = this.config.CIRCLE_ROTATION_DURATION / (2 * Math.PI);
+        // 正确的延迟时间：确保相邻卡牌的角度间隔均匀
+        const cardFlyDelay = anglePerCard * timePerAngle;
+        
+        // 数学验证
+        const totalDelayTime = (circleCardCount - 1) * cardFlyDelay;
+        const firstCardRotationTime = totalDelayTime + this.config.CARD_FLY_TO_CIRCLE_DURATION;
+        const lastCardStartTime = totalDelayTime + this.config.CARD_FLY_TO_CIRCLE_DURATION;
+        const angleWhenLastCardStarts = (firstCardRotationTime / this.config.CIRCLE_ROTATION_DURATION) * (2 * Math.PI);
 
         console.log(`[ROTATION_DEBUG] 📊 关键动画参数:`);
         console.log(`[ROTATION_DEBUG]   - 总卡牌数: ${this.animationCards.length}`);
         console.log(`[ROTATION_DEBUG]   - 圆环卡牌数: ${circleCardCount}`);
         console.log(`[ROTATION_DEBUG]   - 旋转一周时间: ${rotationDuration}ms`);
-        console.log(`[ROTATION_DEBUG]   - 卡牌飞入延时: ${cardFlyDelay}ms`);
+        console.log(`[ROTATION_DEBUG]   - 每卡牌角度间隔: ${(anglePerCard * 180 / Math.PI).toFixed(2)}°`);
+        console.log(`[ROTATION_DEBUG]   - 每角度对应时间: ${timePerAngle.toFixed(2)}ms/弧度`);
+        console.log(`[ROTATION_DEBUG]   - 卡牌飞入延时: ${cardFlyDelay.toFixed(2)}ms`);
+        console.log(`[ROTATION_DEBUG] 🔍 数学验证:`);
+        console.log(`[ROTATION_DEBUG]   - 总延迟时间: ${totalDelayTime.toFixed(2)}ms`);
+        console.log(`[ROTATION_DEBUG]   - 第一张卡牌旋转时长: ${firstCardRotationTime.toFixed(2)}ms`);
+        console.log(`[ROTATION_DEBUG]   - 最后卡牌开始时第一张角度: ${(angleWhenLastCardStarts * 180 / Math.PI).toFixed(2)}°`);
+        console.log(`[ROTATION_DEBUG]   - 预期角度: ${((circleCardCount - 1) * anglePerCard * 180 / Math.PI).toFixed(2)}°`);
 
         const flyPromises: Promise<void>[] = [];
 
