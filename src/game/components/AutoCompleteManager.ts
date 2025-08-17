@@ -1143,36 +1143,19 @@ export class AutoCompleteManager {
     }
 
     /**
-     * 使用stockZone进行翻转飞出动画（用于最后一张牌，适配StockStackManager）
+     * 🔧 修复：直接使用现有卡牌进行翻转飞出动画（用于最后一张牌，适配StockStackManager）
      */
     private async playStockZoneFlipAndFlyAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
-        return new Promise(async (resolve) => {
+        return new Promise((resolve) => {
             // 获取StockStackManager以便在动画完成后更新堆叠
             const stockStackManager = this.scene.getStockStackManager();
             
-            // 获取stockZone的引用（通过Game场景的公共属性或方法）
-            const stockZone = (this.scene as any).stockZone;
-            if (!stockZone) {
-                console.warn('⚠️ stockZone不可用，回退到普通动画');
-                await this.playStockFlipAndFlightAnimation(card, targetX, targetY);
-                resolve();
-                return;
-            }
-
-            // 隐藏原始卡牌，使用stockZone进行动画
-            card.setVisible(false);
-            
-            // 确保stockZone在最高层级
-            stockZone.setDepth(1000);
+            // 🔧 直接使用现有卡牌，不再使用stockZone
+            card.setDepth(1000); // 确保在最高层级
+            card.setVisible(true);
 
             // 定义动画完成后的处理函数
             const onAnimationComplete = () => {
-                // 动画完成后stockZone已经飞到Foundation，直接隐藏即可
-                stockZone.setVisible(false);
-                // 将真实卡牌设置到目标位置（用于游戏逻辑）
-                card.setPosition(targetX, targetY);
-                card.setVisible(true);
-                
                 // 从StockStackManager中移除卡牌
                 if (stockStackManager) {
                     stockStackManager.removeCard(card);
@@ -1184,19 +1167,17 @@ export class AutoCompleteManager {
                 resolve();
             };
 
-            // 第一阶段：翻转动画（stockZone从牌背变为正面）
+            // 第一阶段：翻转动画（卡牌从背面变为正面）
             this.scene.tweens.add({
-                targets: stockZone,
+                targets: card,
                 scaleX: 0,
                 duration: AUTO_COMPLETE_CONFIG.STOCK_FLIP_DURATION / 2,
                 ease: 'Power2.easeIn',
                 onComplete: () => {
-                    // 切换到卡牌正面纹理
+                    // 翻转卡牌到正面
                     if (!card.faceUp) {
-                        card.flip().catch(error => console.warn('翻牌失败:', error));
+                        card.setFaceUp(true);
                     }
-                    // 将stockZone的纹理改为卡牌正面（使用通用的卡牌正面纹理）
-                    stockZone.setTexture('card-face');
                     
                     // 第二阶段：放大并飞行（根据配置选择轨迹）
                     const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
@@ -1204,7 +1185,7 @@ export class AutoCompleteManager {
                     if (trajectory === 'linear') {
                         // 直线飞行
                         this.scene.tweens.add({
-                            targets: stockZone,
+                            targets: card,
                             scaleX: 1,
                             x: targetX,
                             y: targetY,
@@ -1214,12 +1195,12 @@ export class AutoCompleteManager {
                         });
                     } else {
                         // 弧线飞行
-                        const startX = stockZone.x;
-                        const startY = stockZone.y;
+                        const startX = card.x;
+                        const startY = card.y;
                         const midY = Math.min(startY, targetY) - 50; // 弧形高度
                         
                         this.scene.tweens.add({
-                            targets: stockZone,
+                            targets: card,
                             scaleX: 1,
                             x: targetX,
                             y: targetY,
@@ -1231,11 +1212,11 @@ export class AutoCompleteManager {
                                 if (progress < 0.5) {
                                     // 前半段：从起点到中点
                                     const t = progress * 2;
-                                    stockZone.y = startY + (midY - startY) * t;
+                                    card.y = startY + (midY - startY) * t;
                                 } else {
                                     // 后半段：从中点到终点
                                     const t = (progress - 0.5) * 2;
-                                    stockZone.y = midY + (targetY - midY) * t;
+                                    card.y = midY + (targetY - midY) * t;
                                 }
                             },
                             onComplete: onAnimationComplete
@@ -1245,7 +1226,7 @@ export class AutoCompleteManager {
             });
 
             if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-                console.log(`🎬 stockZone翻转飞出动画: ${card.suit}${card.value} (最后一张Stock卡牌)`);
+                console.log(`🎬 直接卡牌翻转飞出动画: ${card.suit}${card.value} (最后一张Stock卡牌)`);
             }
         });
     }
