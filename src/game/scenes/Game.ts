@@ -2,6 +2,7 @@ import { EventBus } from '../EventBus';
 import { GameObjects, Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
 import { VendorInfo } from '../components/VendorInfo';
+import { StockStackManager } from '../managers/StockStackManager';
 import {
     generateKlondikeLayout,
     KlondikeLayout,
@@ -55,6 +56,7 @@ export class Game extends Scene {
     public foundation: FoundationPile[] = []; // 4个基础牌堆 - 改为public
     public stock: StockPile = { cards: [] }; // 库存牌堆 - 改为public
     public waste: WastePile = { cards: [] }; // 翻牌区域 - 改为public
+    private stockStackManager: StockStackManager; // Stock堆叠管理器
     
     // UI元素
     private stockZone: Phaser.GameObjects.Sprite; // 库存牌堆区域
@@ -461,6 +463,15 @@ export class Game extends Scene {
 
     private initializeStock(): void {
         this.stock = { cards: [] };
+        this.stockStackManager = new StockStackManager(this);
+        
+        // 设置堆叠卡牌的点击交互回调
+        this.stockStackManager.setupCardInteractions((card: CardComponent) => {
+            console.log(`🔍 [DEBUG] Stock卡牌被点击: ${card.suit}${card.value}`);
+            this.onStockClick();
+        });
+        
+        console.log('🔍 [DEBUG] initializeStock - StockStackManager已创建并设置交互');
     }
 
     private initializeWaste(): void {
@@ -519,20 +530,21 @@ export class Game extends Scene {
                 adjustedStockPosition.y,
                 cardData.suit,
                 cardData.value,
-                cardData.faceUp
+                false // 🔧 确保stock卡牌始终是背面朝上
             );
-            
-            // Stock卡牌保持可见
-            card.setVisible(true);
             
             this.add.existing(card);
             this.stock.cards.push(card);
             
-            console.log(`🔍 [DEBUG] createCards - Stock卡牌${index + 1}创建:`, {
+            // 使用StockStackManager管理堆叠显示
+            this.stockStackManager.addCard(card);
+            
+            console.log(`🔍 [DEBUG] createCards - Stock卡牌${index + 1}创建并添加到堆叠:`, {
                 suit: cardData.suit,
                 value: cardData.value,
                 faceUp: cardData.faceUp,
-                cardCreated: !!card
+                cardCreated: !!card,
+                stackCount: this.stockStackManager.getCardCount()
             });
         });
         
@@ -557,8 +569,8 @@ export class Game extends Scene {
         // 库存牌堆使用与卡牌相同的尺寸
         const layout = this.currentLayout || portraitLayout;
         this.stockZone.setDisplaySize(layout.cardWidth, layout.cardHeight);
-        // 修复：将stockZone的深度设置为较高值，确保不被遮挡
-        this.stockZone.setDepth(100);
+        // 🔧 将stockZone的深度设置为较低值，让卡牌覆盖在重置图片上方
+        this.stockZone.setDepth(10);
         this.stockZone.setInteractive();
         
         // 添加详细的stockZone创建日志
@@ -575,28 +587,13 @@ export class Game extends Scene {
             inputHitArea: this.stockZone.input?.hitArea
         });
         
-        // 添加多种事件监听来诊断交互问题
-        this.stockZone.on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-            console.log('🔍 [DEBUG] stockZone pointerdown - 事件触发:', {
-                localX, localY,
-                stockZonePosition: { x: this.stockZone.x, y: this.stockZone.y },
-                stockZoneSize: { width: this.stockZone.displayWidth, height: this.stockZone.displayHeight },
-                debugMode: this.debugMode,
-                stockCardsCount: this.stock?.cards?.length || 0,
-                pointerWorldX: pointer.worldX,
-                pointerWorldY: pointer.worldY
-            });
-            this.onStockClick();
-        });
+        // 🔄 移除stockZone的点击事件 - 现在由堆叠卡牌直接处理交互
+        // 保留stockZone作为视觉指示器，但不再处理点击事件
         
-        // 添加hover事件来测试交互区域
-        this.stockZone.on('pointerover', () => {
-            console.log('🔍 [DEBUG] stockZone pointerover - 鼠标悬停');
-        });
+        // 🔧 修复：确保stockZone不会拦截点击事件，避免与堆叠卡牌的交互冲突
+        this.stockZone.disableInteractive();
         
-        this.stockZone.on('pointerout', () => {
-            console.log('🔍 [DEBUG] stockZone pointerout - 鼠标离开');
-        });
+        console.log('🔍 [DEBUG] createZones - stockZone创建完成，交互将由堆叠卡牌处理');
 
         // 不创建翻牌区域的卡槽背景 - 翻出的牌会直接显示，不需要背景卡槽
 
@@ -848,22 +845,35 @@ export class Game extends Scene {
             wasteCardsCount: this.waste.cards.length,
             debugMode: this.debugMode,
             stockZoneExists: !!this.stockZone,
-            currentLayoutExists: !!this.currentLayout
+            currentLayoutExists: !!this.currentLayout,
+            stackManagerExists: !!this.stockStackManager
         });
         
-        // 根据库存牌堆是否有牌来决定显示内容
-        if (this.stock.cards.length > 0) {
-            // 有牌时显示牌背
-            this.stockZone.setTexture(AssetKeys.CARD_BACK);
+        // 🔧 简化逻辑：始终显示重置状态，卡牌depth更高会覆盖在上方
+        this.stockZone.setVisible(true);
+        this.stockZone.setTexture(AssetKeys.RESET);
+        this.stockZone.setInteractive();
+        
+        // 为重置操作添加点击事件
+        this.stockZone.removeAllListeners('pointerdown');
+        this.stockZone.on('pointerdown', () => {
+            console.log('🔄 [DEBUG] 重置区域被点击');
+            this.onStockClick();
+        });
+        
+        // 使用StockStackManager更新堆叠位置
+        if (this.stockStackManager) {
+            this.stockStackManager.setBasePosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
+            
+            console.log('🔍 [DEBUG] updateStockWastePositions - 堆叠管理器调试信息:',
+                this.stockStackManager.getDebugInfo());
         } else {
-            // 无牌时显示重置图片
-            this.stockZone.setTexture(AssetKeys.RESET);
+            // 备用方案：使用原有逻辑
+            this.stock.cards.forEach((card, index) => {
+                card.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
+                card.setDepth(5 + index);
+            });
         }
-        
-        this.stock.cards.forEach((card, index) => {
-            card.setPosition(this.currentLayout.stock.x, this.currentLayout.stock.y);
-            card.setDepth(5 + index);
-        });
 
         // 更新翻牌区域的卡牌位置（不需要背景卡槽）
         this.waste.cards.forEach((card, index) => {
@@ -1032,60 +1042,44 @@ export class Game extends Scene {
     // 阶段2：卡牌翻转和移动同时进行（50-150ms）
     private playCardFlipAndMoveAnimation(): Promise<void> {
         return new Promise((resolve) => {
-            // 获取要翻的卡牌
+            // 获取要翻的卡牌（最顶部的卡牌）
             const card = this.stock.cards.pop()!;
             
-            // 获取标准卡牌尺寸（与Card组件保持一致）
-            const isLandscape = window.innerWidth > window.innerHeight;
-            const cardWidth = isLandscape ? landscapeLayout.cardWidth : portraitLayout.cardWidth;
-            const cardHeight = isLandscape ? landscapeLayout.cardHeight : portraitLayout.cardHeight;
+            // 从StockStackManager中移除卡牌
+            if (this.stockStackManager) {
+                this.stockStackManager.removeCard(card);
+                console.log('🔍 [DEBUG] playCardFlipAndMoveAnimation - 从堆叠管理器中移除卡牌:',
+                    `${card.suit}${card.value}, 剩余堆叠: ${this.stockStackManager.getCardCount()}`);
+            }
             
-            // 创建临时动画卡牌（背面）
-            this.animationCard = this.add.sprite(
-                this.currentLayout.stock.x,
-                this.currentLayout.stock.y,
-                AssetKeys.CARD_BACK
-            );
-            this.animationCard.setDepth(100); // 确保在最上层
-            this.animationCard.setDisplaySize(cardWidth, cardHeight); // 使用与Card组件相同的尺寸设置
+            // 🔧 直接使用现有卡牌进行翻转动画，不创建新卡牌
+            card.setDepth(100); // 确保在最上层
+            card.setVisible(true);
             
-            // 确保动画卡牌可见
-            this.animationCard.setVisible(true);
-            this.animationCard.setAlpha(1);
+            console.log('🔍 [DEBUG] 开始翻转现有卡牌:', {
+                suit: card.suit,
+                value: card.value,
+                currentPosition: { x: card.x, y: card.y },
+                faceUp: card.faceUp
+            });
             
             // 第一阶段：向上弹跳 + 翻转到一半 + 开始移动（0-50ms）
             this.tweens.add({
-                targets: this.animationCard,
+                targets: card,
                 y: this.currentLayout.stock.y - 12,
                 x: this.currentLayout.stock.x + (this.currentLayout.waste.x - this.currentLayout.stock.x) * 0.3,
                 scaleX: 0,
                 duration: 150,
                 ease: 'Power2',
                 onComplete: () => {
-                    // 更新卡牌状态
+                    // 翻转卡牌
                     card.setFaceUp(true);
                     
-                    // 销毁简单的sprite，创建完整渲染的卡牌容器
-                    this.animationCard!.destroy();
-                    
-                    // 创建完整渲染的卡牌容器
-                    const renderedCard = this.createRenderedCardContainer(card);
-                    renderedCard.setPosition(
-                        this.currentLayout.stock.x + (this.currentLayout.waste.x - this.currentLayout.stock.x) * 0.3,
-                        this.currentLayout.stock.y - 12
-                    );
-                    renderedCard.setDepth(100);
-                    
-                    // 初始时scaleX为0（翻转状态），scaleY保持1.0
-                    renderedCard.scaleX = 0;
-                    renderedCard.scaleY = 1.0;
-                    
-                    // 将容器赋值给animationCard以便后续处理
-                    this.animationCard = renderedCard as any;
+                    console.log('🔍 [DEBUG] 卡牌翻转完成，开始第二阶段移动');
                     
                     // 第二阶段：完成翻转 + 移动到waste位置（50-100ms）
                     this.tweens.add({
-                        targets: renderedCard,
+                        targets: card,
                         scaleX: 1.0,
                         x: this.currentLayout.waste.x,
                         y: this.currentLayout.waste.y,
@@ -1094,6 +1088,8 @@ export class Game extends Scene {
                         onComplete: () => {
                             // 将卡牌添加到waste
                             this.waste.cards.push(card);
+                            
+                            console.log('🔍 [DEBUG] 翻牌动画完成，卡牌已添加到waste');
                             resolve();
                         }
                     });
@@ -1126,144 +1122,16 @@ export class Game extends Scene {
     // 清理动画资源
     private cleanupAnimation(): void {
         try {
-            if (this.animationCard && this.animationCard.scene) {
-                this.animationCard.destroy();
-            }
+            // 🔧 不再需要清理临时动画卡牌，因为我们直接使用现有卡牌
+            console.log('🔍 [DEBUG] cleanupAnimation - 清理动画状态');
         } catch (error) {
-            console.warn('⚠️ [WARN] cleanupAnimation - 清理动画卡牌时出错:', error);
+            console.warn('⚠️ [WARN] cleanupAnimation - 清理动画时出错:', error);
         } finally {
             this.animationCard = null;
             this.isStockAnimating = false;
         }
     }
 
-    // 创建完整渲染的卡牌容器（用于动画）
-    private createRenderedCardContainer(card: CardComponent): GameObjects.Container {
-        const container = this.add.container(0, 0);
-        
-        // 获取标准卡牌尺寸（与Card组件保持一致）
-        const isLandscape = window.innerWidth > window.innerHeight;
-        const cardWidth = isLandscape ? landscapeLayout.cardWidth : portraitLayout.cardWidth;
-        const cardHeight = isLandscape ? landscapeLayout.cardHeight : portraitLayout.cardHeight;
-        
-        // 创建卡面背景
-        const cardBackground = this.add.image(0, 0, AssetKeys.CARD_FACE);
-        cardBackground.setDisplaySize(cardWidth, cardHeight);
-        container.add(cardBackground);
-
-        // 获取卡牌的花色和数值信息
-        const suit = card.suit;
-        const value = card.value;
-        
-        // 获取花色资源键名
-        const getSuitKey = (suit: string): string => {
-            const suitMap = {
-                'h': 'hearts',
-                'd': 'diamonds',
-                'c': 'clubs',
-                's': 'spades'
-            } as const;
-            
-            const SUIT_KEYS = {
-                hearts: AssetKeys.SUIT_HEART,
-                diamonds: AssetKeys.SUIT_DIAMOND,
-                clubs: AssetKeys.SUIT_CLUB,
-                spades: AssetKeys.SUIT_SPADE
-            };
-            
-            return SUIT_KEYS[suitMap[suit as keyof typeof suitMap]];
-        };
-        
-        // 获取数值资源键名
-        const getValueKey = (suit: string, value: string): string => {
-            const isRed = (suit === 'h' || suit === 'd');
-            const color = isRed ? 'red' : 'black';
-            
-            const VALUE_KEYS = {
-                red: {
-                    A: AssetKeys.RED_A, 2: AssetKeys.RED_2, 3: AssetKeys.RED_3, 4: AssetKeys.RED_4,
-                    5: AssetKeys.RED_5, 6: AssetKeys.RED_6, 7: AssetKeys.RED_7, 8: AssetKeys.RED_8,
-                    9: AssetKeys.RED_9, 10: AssetKeys.RED_10, J: AssetKeys.RED_J, Q: AssetKeys.RED_Q, K: AssetKeys.RED_K,
-                },
-                black: {
-                    A: AssetKeys.BLACK_A, 2: AssetKeys.BLACK_2, 3: AssetKeys.BLACK_3, 4: AssetKeys.BLACK_4,
-                    5: AssetKeys.BLACK_5, 6: AssetKeys.BLACK_6, 7: AssetKeys.BLACK_7, 8: AssetKeys.BLACK_8,
-                    9: AssetKeys.BLACK_9, 10: AssetKeys.BLACK_10, J: AssetKeys.BLACK_J, Q: AssetKeys.BLACK_Q, K: AssetKeys.BLACK_K,
-                }
-            };
-            
-            return VALUE_KEYS[color][value as keyof typeof VALUE_KEYS.red];
-        };
-        
-        // 获取人物牌大图资源键名
-        const getFaceCardKey = (value: string): string | null => {
-            if (value === 'J') return AssetKeys.FACE_J;
-            if (value === 'Q') return AssetKeys.FACE_Q;
-            if (value === 'K') return AssetKeys.FACE_K;
-            return null;
-        };
-        
-        // 判断是否为人物牌
-        const isFaceCard = (value: string): boolean => {
-            return value === 'J' || value === 'Q' || value === 'K';
-        };
-
-        const suitKey = getSuitKey(suit);
-        const valueKey = getValueKey(suit, value);
-
-        // 布局位置常量（与Card.ts保持一致）
-        const TOP_LEFT_SUIT_POS = { x: -40, y: -28 };
-        const TOP_LEFT_VALUE_POS = { x: -42, y: -70 };
-        const TOP_RIGHT_SUIT_POS = { x: 36, y: -65 };
-        const CENTER_SUIT_POS = { x: 0, y: 35 };
-        
-        // 缩放常量（与Card.ts保持一致）
-        const TOP_LEFT_SUIT_SCALE = 0.6;
-        const TOP_LEFT_VALUE_SCALE = 0.6;
-        const TOP_RIGHT_SUIT_SCALE = 1;
-        const TOP_RIGHT_SUIT_ALPHA = 1.0;
-        const CENTER_SUIT_SCALE = 1.5;
-        const CENTER_FACE_SCALE = 0.6;
-        const CENTER_SUIT_ALPHA = 1.0;
-        const CENTER_FACE_ALPHA = 1.0;
-
-        // 创建花色图标 - 左上角
-        const suitTopLeft = this.add.image(TOP_LEFT_SUIT_POS.x, TOP_LEFT_SUIT_POS.y, suitKey);
-        suitTopLeft.setScale(TOP_LEFT_SUIT_SCALE);
-        container.add(suitTopLeft);
-
-        // 创建数值图标 - 左上角
-        const valueTopLeft = this.add.image(TOP_LEFT_VALUE_POS.x, TOP_LEFT_VALUE_POS.y, valueKey);
-        valueTopLeft.setScale(TOP_LEFT_VALUE_SCALE);
-        container.add(valueTopLeft);
-
-        // 创建花色图标 - 右上角装饰
-        const suitTopRight = this.add.image(TOP_RIGHT_SUIT_POS.x, TOP_RIGHT_SUIT_POS.y, suitKey);
-        suitTopRight.setScale(TOP_RIGHT_SUIT_SCALE);
-        suitTopRight.setAlpha(TOP_RIGHT_SUIT_ALPHA);
-        container.add(suitTopRight);
-
-        // 创建中心图标
-        const centerSuit = this.add.image(CENTER_SUIT_POS.x, CENTER_SUIT_POS.y, suitKey);
-        
-        if (isFaceCard(value)) {
-            // J、Q、K显示人物大图
-            const faceCardKey = getFaceCardKey(value);
-            if (faceCardKey) {
-                centerSuit.setTexture(faceCardKey);
-                centerSuit.setScale(CENTER_FACE_SCALE);
-                centerSuit.setAlpha(CENTER_FACE_ALPHA);
-            }
-        } else {
-            // 其他牌显示花色
-            centerSuit.setTexture(suitKey);
-            centerSuit.setScale(CENTER_SUIT_SCALE);
-            centerSuit.setAlpha(CENTER_SUIT_ALPHA);
-        }
-        container.add(centerSuit);
-
-        return container;
-    }
 
     // 重置waste到stock（保持原有逻辑）
     private resetWasteToStock(): void {
@@ -1286,7 +1154,17 @@ export class Game extends Scene {
                     const card = this.waste.cards.pop()!;
                     card.setFaceUp(false);
                     this.stock.cards.push(card);
+                    
+                    // 将卡牌重新添加到StockStackManager
+                    if (this.stockStackManager) {
+                        this.stockStackManager.addCard(card);
+                    }
                 }
+                
+                console.log('🔍 [DEBUG] resetWasteToStock - 重置完成:', {
+                    stockCardsCount: this.stock.cards.length,
+                    stackManagerCount: this.stockStackManager?.getCardCount() || 0
+                });
                 
                 this.updateStockWastePositions();
                 this.isStockAnimating = false;
@@ -1850,6 +1728,13 @@ export class Game extends Scene {
     public findCard(suit: string, value: string): CardComponent | null {
         const allCards = this.getAllCards();
         return allCards.find(card => card.suit === suit && card.value === value) || null;
+    }
+
+    /**
+     * 获取StockStackManager实例（供其他组件使用）
+     */
+    public getStockStackManager(): StockStackManager | null {
+        return this.stockStackManager || null;
     }
 
     // 🚫 教学系统已禁用 - 始终允许所有操作

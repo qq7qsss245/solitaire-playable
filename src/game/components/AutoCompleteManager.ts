@@ -343,18 +343,34 @@ export class AutoCompleteManager {
     }
 
     /**
-     * 在stock区域查找指定卡牌（带排除列表）
+     * 在stock区域查找指定卡牌（带排除列表，适配StockStackManager）
      */
     private findCardInStockWithExclusions(suit: CardSuit, value: CardValue, usedCards: Set<CardComponent>): { card: CardComponent; fromStock: boolean } | null {
-        // 检查stock中的所有卡牌（包括未翻开的）
-        for (let i = 0; i < this.scene.stock.cards.length; i++) {
-            const card = this.scene.stock.cards[i];
-            
-            if (card.suit === suit && card.value === value && !usedCards.has(card)) {
-                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-                    console.log(`🎯 在stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+        // 优先从StockStackManager获取卡牌
+        const stockStackManager = this.scene.getStockStackManager();
+        if (stockStackManager) {
+            const allCards = stockStackManager.getAllCards();
+            for (let i = 0; i < allCards.length; i++) {
+                const card = allCards[i];
+                
+                if (card.suit === suit && card.value === value && !usedCards.has(card)) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🎯 在堆叠stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+                    }
+                    return { card: card, fromStock: true };
                 }
-                return { card: card, fromStock: true };
+            }
+        } else {
+            // 回退到原有逻辑：检查stock中的所有卡牌（包括未翻开的）
+            for (let i = 0; i < this.scene.stock.cards.length; i++) {
+                const card = this.scene.stock.cards[i];
+                
+                if (card.suit === suit && card.value === value && !usedCards.has(card)) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🎯 在stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+                    }
+                    return { card: card, fromStock: true };
+                }
             }
         }
         
@@ -362,18 +378,34 @@ export class AutoCompleteManager {
     }
 
     /**
-     * 在stock区域查找指定卡牌
+     * 在stock区域查找指定卡牌（适配StockStackManager）
      */
     private findCardInStock(suit: CardSuit, value: CardValue): { card: CardComponent; fromStock: boolean } | null {
-        // 检查stock中的所有卡牌（包括未翻开的）
-        for (let i = 0; i < this.scene.stock.cards.length; i++) {
-            const card = this.scene.stock.cards[i];
-            
-            if (card.suit === suit && card.value === value) {
-                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-                    console.log(`🎯 在stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+        // 优先从StockStackManager获取卡牌
+        const stockStackManager = this.scene.getStockStackManager();
+        if (stockStackManager) {
+            const allCards = stockStackManager.getAllCards();
+            for (let i = 0; i < allCards.length; i++) {
+                const card = allCards[i];
+                
+                if (card.suit === suit && card.value === value) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🎯 在堆叠stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+                    }
+                    return { card: card, fromStock: true };
                 }
-                return { card: card, fromStock: true };
+            }
+        } else {
+            // 回退到原有逻辑：检查stock中的所有卡牌（包括未翻开的）
+            for (let i = 0; i < this.scene.stock.cards.length; i++) {
+                const card = this.scene.stock.cards[i];
+                
+                if (card.suit === suit && card.value === value) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🎯 在stock[${i}]找到目标卡牌: ${card.suit}${card.value}`);
+                    }
+                    return { card: card, fromStock: true };
+                }
             }
         }
         
@@ -571,8 +603,14 @@ export class AutoCompleteManager {
 
         // 如果卡牌来自Stock且是背面朝上
         if (fromStock && !card.faceUp) {
-            // 实时检查是否是Stock的最后一张牌（考虑用户可能手动操作了Stock）
-            const isLastStockCard = this.scene.stock.cards.length === 1;
+            // 检查是否是Stock的最后一张牌（适配StockStackManager）
+            let isLastStockCard = false;
+            const stockStackManager = this.scene.getStockStackManager();
+            if (stockStackManager) {
+                isLastStockCard = stockStackManager.getCardCount() === 1;
+            } else {
+                isLastStockCard = this.scene.stock.cards.length === 1;
+            }
             
             console.log(`🔄 Stock卡牌翻牌+飞行: ${card.suit}${card.value}${isLastStockCard ? ' (最后一张)' : ''}`);
             
@@ -594,9 +632,13 @@ export class AutoCompleteManager {
         // 更新游戏状态
         this.updateGameState(card, targetFoundation);
 
-        // 实时检查是否需要隐藏Stock区域（在更新游戏状态后重新检查）
-        if (fromStock && this.scene.stock.cards.length === 0) {
-            this.hideStockArea();
+        // 实时检查是否需要隐藏Stock区域（在更新游戏状态后重新检查，适配StockStackManager）
+        if (fromStock) {
+            const stockStackManager = this.scene.getStockStackManager();
+            const isEmpty = stockStackManager ? stockStackManager.getCardCount() === 0 : this.scene.stock.cards.length === 0;
+            if (isEmpty) {
+                this.hideStockArea();
+            }
         }
 
         // 播放音效
@@ -839,6 +881,14 @@ export class AutoCompleteManager {
         const stockIndex = this.scene.stock.cards.indexOf(card);
         if (stockIndex !== -1) {
             this.scene.stock.cards.splice(stockIndex, 1);
+            
+            // 从StockStackManager中移除卡牌
+            const stockStackManager = this.scene.getStockStackManager();
+            if (stockStackManager) {
+                stockStackManager.removeCard(card);
+                console.log('🔍 [AutoCompleteManager] 从堆叠管理器中移除卡牌:',
+                    `${card.suit}${card.value}`);
+            }
             return;
         }
     }
@@ -1006,6 +1056,9 @@ export class AutoCompleteManager {
      */
     private async playStockFlipAndFlightAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
         return new Promise((resolve) => {
+            // 获取StockStackManager以便在动画完成后更新堆叠
+            const stockStackManager = this.scene.getStockStackManager();
+            
             // 确保卡牌在最高层级
             card.setDepth(1000);
 
@@ -1033,6 +1086,17 @@ export class AutoCompleteManager {
             // 飞行动画：整个过程移动到目标位置（根据配置选择轨迹）
             const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
             
+            const onAnimationComplete = () => {
+                // 动画完成后从StockStackManager中移除卡牌
+                if (stockStackManager) {
+                    stockStackManager.removeCard(card);
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🔍 从堆叠管理器中移除卡牌: ${card.suit}${card.value}, 剩余: ${stockStackManager.getCardCount()}`);
+                    }
+                }
+                resolve();
+            };
+            
             if (trajectory === 'linear') {
                 // 直线飞行
                 this.scene.tweens.add({
@@ -1041,9 +1105,7 @@ export class AutoCompleteManager {
                     y: targetY,
                     duration: flightDuration,
                     ease: 'Power2.easeInOut',
-                    onComplete: () => {
-                        resolve();
-                    }
+                    onComplete: onAnimationComplete
                 });
             } else {
                 // 弧线飞行
@@ -1070,9 +1132,7 @@ export class AutoCompleteManager {
                             card.y = midY + (targetY - midY) * t;
                         }
                     },
-                    onComplete: () => {
-                        resolve();
-                    }
+                    onComplete: onAnimationComplete
                 });
             }
 
@@ -1083,10 +1143,13 @@ export class AutoCompleteManager {
     }
 
     /**
-     * 使用stockZone进行翻转飞出动画（用于最后一张牌）
+     * 使用stockZone进行翻转飞出动画（用于最后一张牌，适配StockStackManager）
      */
     private async playStockZoneFlipAndFlyAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
         return new Promise(async (resolve) => {
+            // 获取StockStackManager以便在动画完成后更新堆叠
+            const stockStackManager = this.scene.getStockStackManager();
+            
             // 获取stockZone的引用（通过Game场景的公共属性或方法）
             const stockZone = (this.scene as any).stockZone;
             if (!stockZone) {
@@ -1101,6 +1164,25 @@ export class AutoCompleteManager {
             
             // 确保stockZone在最高层级
             stockZone.setDepth(1000);
+
+            // 定义动画完成后的处理函数
+            const onAnimationComplete = () => {
+                // 动画完成后stockZone已经飞到Foundation，直接隐藏即可
+                stockZone.setVisible(false);
+                // 将真实卡牌设置到目标位置（用于游戏逻辑）
+                card.setPosition(targetX, targetY);
+                card.setVisible(true);
+                
+                // 从StockStackManager中移除卡牌
+                if (stockStackManager) {
+                    stockStackManager.removeCard(card);
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🔍 从堆叠管理器中移除最后一张卡牌: ${card.suit}${card.value}, 剩余: ${stockStackManager.getCardCount()}`);
+                    }
+                }
+                
+                resolve();
+            };
 
             // 第一阶段：翻转动画（stockZone从牌背变为正面）
             this.scene.tweens.add({
@@ -1128,15 +1210,7 @@ export class AutoCompleteManager {
                             y: targetY,
                             duration: AUTO_COMPLETE_CONFIG.CARD_FLIGHT_DURATION,
                             ease: 'Power2.easeInOut',
-                            onComplete: () => {
-                                // 动画完成后stockZone已经飞到Foundation，直接隐藏即可
-                                // stockZone本身就是最后一张牌，不需要显示真实卡牌
-                                stockZone.setVisible(false);
-                                // 将真实卡牌设置到目标位置（用于游戏逻辑）
-                                card.setPosition(targetX, targetY);
-                                card.setVisible(true);
-                                resolve();
-                            }
+                            onComplete: onAnimationComplete
                         });
                     } else {
                         // 弧线飞行
@@ -1164,15 +1238,7 @@ export class AutoCompleteManager {
                                     stockZone.y = midY + (targetY - midY) * t;
                                 }
                             },
-                            onComplete: () => {
-                                // 动画完成后stockZone已经飞到Foundation，直接隐藏即可
-                                // stockZone本身就是最后一张牌，不需要显示真实卡牌
-                                stockZone.setVisible(false);
-                                // 将真实卡牌设置到目标位置（用于游戏逻辑）
-                                card.setPosition(targetX, targetY);
-                                card.setVisible(true);
-                                resolve();
-                            }
+                            onComplete: onAnimationComplete
                         });
                     }
                 }
