@@ -23,11 +23,11 @@ export interface VictoryAnimationConfig {
  * 默认胜利动画配置
  */
 export const DEFAULT_VICTORY_CONFIG: VictoryAnimationConfig = {
-    CIRCLE_ROTATION_DURATION: 2000,   // 圆环旋转一周的时间(ms) - 原来是 80ms * 32张卡牌 = 2560ms
+    CIRCLE_ROTATION_DURATION: 5120,   // 圆环旋转一周的时间(ms) - 原来是 80ms * 32张卡牌 = 2560ms
     CARD_FLY_TO_CIRCLE_DURATION: 600, // 卡牌飞到圆环位置的时间(ms)
     ROTATION_SPEED: 88.24,            // 旋转速度(度/秒) - 调整为独立旋转同步速度
     CIRCLE_RADIUS: 480,               // 圆环半径(px)
-    CIRCLE_CARD_COUNT: 15,            // 参与圆环旋转的卡牌数量
+    CIRCLE_CARD_COUNT: 25,            // 参与圆环旋转的卡牌数量
     FADE_OUT_DURATION: 100            // 多余卡牌淡出时间(ms)
 };
 
