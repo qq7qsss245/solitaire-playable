@@ -5,8 +5,8 @@ import { Card as CardComponent } from '../components/Card';
  * 胜利动画配置
  */
 export interface VictoryAnimationConfig {
-    /** 卡牌飞出间隔(ms) */
-    CARD_FLY_OUT_DELAY: number;
+    /** 圆环旋转一周的时间(ms) */
+    CIRCLE_ROTATION_DURATION: number;
     /** 卡牌飞到圆环位置的时间(ms) */
     CARD_FLY_TO_CIRCLE_DURATION: number;
     /** 旋转速度(度/秒) */
@@ -23,12 +23,12 @@ export interface VictoryAnimationConfig {
  * 默认胜利动画配置
  */
 export const DEFAULT_VICTORY_CONFIG: VictoryAnimationConfig = {
-    CARD_FLY_OUT_DELAY: 80,           // 卡牌飞出间隔(ms)
+    CIRCLE_ROTATION_DURATION: 2000,   // 圆环旋转一周的时间(ms) - 原来是 80ms * 32张卡牌 = 2560ms
     CARD_FLY_TO_CIRCLE_DURATION: 600, // 卡牌飞到圆环位置的时间(ms)
     ROTATION_SPEED: 88.24,            // 旋转速度(度/秒) - 调整为独立旋转同步速度
     CIRCLE_RADIUS: 480,               // 圆环半径(px)
-    CIRCLE_CARD_COUNT: 32,            // 参与圆环旋转的卡牌数量
-    FADE_OUT_DURATION: 800            // 多余卡牌淡出时间(ms)
+    CIRCLE_CARD_COUNT: 15,            // 参与圆环旋转的卡牌数量
+    FADE_OUT_DURATION: 100            // 多余卡牌淡出时间(ms)
 };
 
 /**
@@ -136,7 +136,7 @@ export class VictoryAnimationManager {
 
         // 计算旋转持续时间（与原始动画保持一致）
         const anglePerCard = (2 * Math.PI) / this.animationCards.length;
-        const rotationDuration = (this.config.CARD_FLY_OUT_DELAY * 2 * Math.PI) / anglePerCard;
+        const rotationDuration = this.config.CIRCLE_ROTATION_DURATION;
 
         // 遍历所有正在动画中的卡牌，更新它们的圆环中心位置
         this.animationCards.forEach((cardData, index) => {
@@ -272,11 +272,10 @@ export class VictoryAnimationManager {
 
         // 计算旋转一周的时间：基于完整圆环的均匀分布
         const circleCardCount = Math.min(this.config.CIRCLE_CARD_COUNT, this.animationCards.length);
-        // 为了消除缺口，旋转一周的时间应该让卡牌均匀分布在整个圆环上
-        // 计算每张卡牌应该占据的角度：360° / 参与圆环的卡牌数量
-        const anglePerCard = (Math.PI * 2) / circleCardCount;
-        // 旋转一周的时间 = 卡牌飞入间隔 / 每张卡牌占据的角度比例
-        const rotationDuration = (this.config.CARD_FLY_OUT_DELAY * Math.PI * 2) / anglePerCard;
+        // 旋转一周的时间直接使用配置值
+        const rotationDuration = this.config.CIRCLE_ROTATION_DURATION;
+        // 计算卡牌飞入延时 = 圆环旋转一周时间 / 参与旋转的卡牌数量
+        const cardFlyDelay = this.config.CIRCLE_ROTATION_DURATION / this.config.CIRCLE_CARD_COUNT;
 
         console.log(`📊 动画参数: 总卡牌=${this.animationCards.length}张, 圆环卡牌=${circleCardCount}张, 旋转一周时间=${rotationDuration}ms`);
 
@@ -285,7 +284,7 @@ export class VictoryAnimationManager {
         // 只处理参与圆环旋转的卡牌
         for (let i = 0; i < circleCardCount; i++) {
             const cardData = this.animationCards[i];
-            const delay = i * this.config.CARD_FLY_OUT_DELAY;
+            const delay = i * cardFlyDelay;
             
             const promise = new Promise<void>((resolve) => {
                 this.scene.time.delayedCall(delay, () => {
@@ -300,7 +299,7 @@ export class VictoryAnimationManager {
         // 多余的卡牌直接在foundation位置消失
         for (let i = circleCardCount; i < this.animationCards.length; i++) {
             const cardData = this.animationCards[i];
-            const delay = i * this.config.CARD_FLY_OUT_DELAY;
+            const delay = i * cardFlyDelay;
             
             this.scene.time.delayedCall(delay, () => {
                 // 直接淡出消失，不飞入圆环
