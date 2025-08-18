@@ -1171,63 +1171,80 @@ export class Card extends GameObjects.Container {
         // 设置晃动状态
         this.isShaking = true;
         
-        // 记录原始位置和缩放
+        // 记录原始位置
         const originalX = this.x;
         const originalY = this.y;
-        const originalScale = this.scaleX;
         
-        // 晃动参数
-        const shakeAmplitude = 8; // 水平晃动幅度：8px
-        const verticalAmplitude = 2; // 垂直微调幅度：2px
-        const scaleMin = 0.95; // 最小缩放
-        const scaleMax = 1.05; // 最大缩放
-        const stageDuration = 100; // 每阶段时长：100ms
+        // 新的六阶段震动参数
+        const shakeAmplitudes = [12, -15, 10, -6, 3, 0]; // 六阶段震动幅度
+        const stageDurations = [60, 80, 60, 60, 60, 80]; // 六阶段时长分配（毫秒）
+        const verticalAmplitude = 1; // 减小垂直偏移到1px
+        const easeTypes = [
+            'Power3.easeOut',
+            'Back.easeInOut',
+            'Power2.easeInOut',
+            'Sine.easeInOut',
+            'Power1.easeOut',
+            'Elastic.easeOut'
+        ];
         
-        console.log(`🎯 [SHAKE] 开始晃动动画: ${this._suit}${this._value}`);
+        console.log(`🎯 [SHAKE] 开始六阶段晃动动画: ${this._suit}${this._value}`);
         
-        // 第一阶段：向右晃动+轻微放大 (0-100ms)
+        // 第一阶段：+12px震动 (0-60ms)
         this.scene.tweens.add({
             targets: this,
-            x: originalX + shakeAmplitude,
+            x: originalX + shakeAmplitudes[0],
             y: originalY - verticalAmplitude,
-            scaleX: originalScale * scaleMax,
-            scaleY: originalScale * scaleMax,
-            duration: stageDuration,
-            ease: 'Power2',
+            duration: stageDurations[0],
+            ease: easeTypes[0],
             onComplete: () => {
-                // 第二阶段：向左晃动+轻微缩小 (100-200ms)
+                // 第二阶段：-15px震动 (60-140ms)
                 this.scene.tweens.add({
                     targets: this,
-                    x: originalX - shakeAmplitude,
+                    x: originalX + shakeAmplitudes[1],
                     y: originalY + verticalAmplitude,
-                    scaleX: originalScale * scaleMin,
-                    scaleY: originalScale * scaleMin,
-                    duration: stageDuration,
-                    ease: 'Power2',
+                    duration: stageDurations[1],
+                    ease: easeTypes[1],
                     onComplete: () => {
-                        // 第三阶段：向右晃动+轻微放大 (200-300ms)
+                        // 第三阶段：+10px震动 (140-200ms)
                         this.scene.tweens.add({
                             targets: this,
-                            x: originalX + shakeAmplitude,
+                            x: originalX + shakeAmplitudes[2],
                             y: originalY - verticalAmplitude,
-                            scaleX: originalScale * scaleMax,
-                            scaleY: originalScale * scaleMax,
-                            duration: stageDuration,
-                            ease: 'Power2',
+                            duration: stageDurations[2],
+                            ease: easeTypes[2],
                             onComplete: () => {
-                                // 第四阶段：回到原位+恢复原始大小 (300-400ms)
+                                // 第四阶段：-6px震动 (200-260ms)
                                 this.scene.tweens.add({
                                     targets: this,
-                                    x: originalX,
-                                    y: originalY,
-                                    scaleX: originalScale,
-                                    scaleY: originalScale,
-                                    duration: stageDuration,
-                                    ease: 'Power2',
+                                    x: originalX + shakeAmplitudes[3],
+                                    y: originalY + verticalAmplitude,
+                                    duration: stageDurations[3],
+                                    ease: easeTypes[3],
                                     onComplete: () => {
-                                        // 动画结束后恢复状态
-                                        this.isShaking = false;
-                                        console.log(`🎯 [SHAKE] 晃动动画完成: ${this._suit}${this._value}`);
+                                        // 第五阶段：+3px震动 (260-320ms)
+                                        this.scene.tweens.add({
+                                            targets: this,
+                                            x: originalX + shakeAmplitudes[4],
+                                            y: originalY - verticalAmplitude,
+                                            duration: stageDurations[4],
+                                            ease: easeTypes[4],
+                                            onComplete: () => {
+                                                // 第六阶段：回到原位 (320-400ms)
+                                                this.scene.tweens.add({
+                                                    targets: this,
+                                                    x: originalX + shakeAmplitudes[5],
+                                                    y: originalY,
+                                                    duration: stageDurations[5],
+                                                    ease: easeTypes[5],
+                                                    onComplete: () => {
+                                                        // 动画结束后恢复状态
+                                                        this.isShaking = false;
+                                                        console.log(`🎯 [SHAKE] 六阶段晃动动画完成: ${this._suit}${this._value}`);
+                                                    }
+                                                });
+                                            }
+                                        });
                                     }
                                 });
                             }
