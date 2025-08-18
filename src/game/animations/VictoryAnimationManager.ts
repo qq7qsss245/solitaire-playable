@@ -398,6 +398,80 @@ export class VictoryAnimationManager {
     }
 
     /**
+     * 🎯 **延时圆环均匀分布调整（基于数学原理的角度偏移版本）**
+     *
+     * 基于延时圆环的数学原理：最后一张卡飞入结束时，第一张卡刚好转动到原点
+     * 此时所有卡牌都处于理想的均匀分布状态，只需要调整每张卡牌的转动角度偏移
+     * 不重置位置，仅调整角度偏移量
+     */
+    private async adjustCircleUniformDistribution(): Promise<void> {
+        console.log('[UNIFORM_DEBUG] 🎯 开始基于数学原理的圆环角度偏移调整');
+        console.log(`[UNIFORM_DEBUG] 📊 待调整卡牌数量: ${this.animationCards.length}`);
+        
+        if (!this.animationCards || this.animationCards.length === 0) {
+            console.log('[UNIFORM_DEBUG] ⚠️ 没有卡牌需要调整，跳过');
+            return;
+        }
+
+        const cardCount = this.animationCards.length;
+        
+        // 🧮 **延时圆环数学原理分析**
+        // 根据延时圆环的设计：
+        // - 延时间隔 = rotationDuration / (cardCount - 1)
+        // - 最后一张卡开始旋转时，第一张卡刚好完成一圈回到原点
+        // - 此时所有卡牌都处于理想的均匀分布状态
+        const idealAngleStep = (2 * Math.PI) / cardCount;
+        console.log(`[UNIFORM_DEBUG] 📐 理想角度间隔: ${(idealAngleStep * 180 / Math.PI).toFixed(1)}°`);
+        console.log(`[UNIFORM_DEBUG] 🧮 数学原理: 最后一张卡飞入时，圆环已达到理想均匀分布状态`);
+        
+        // 🎯 **仅调整每张卡牌的角度偏移，不改变位置**
+        this.animationCards.forEach((cardData, index) => {
+            const card = cardData.card;
+            
+            if (!card || !card.visible || !cardData.rotationTween) {
+                console.log(`[UNIFORM_DEBUG] ⚠️ 卡牌 ${index} 无效、不可见或无旋转动画，跳过调整`);
+                return;
+            }
+            
+            // 🧮 **计算理想的角度偏移**
+            // 每张卡牌应该在圆环中的理想角度位置
+            const idealAngleOffset = index * idealAngleStep;
+            
+            // 🎯 **获取当前旋转动画的角度**
+            const currentTweenAngle = cardData.rotationTween.getValue();
+            
+            // 🧮 **计算需要的角度调整**
+            // 基于延时圆环原理，调整到理想的角度偏移
+            const currentBaseAngle = currentTweenAngle % (2 * Math.PI);
+            const targetAngleOffset = idealAngleOffset - currentBaseAngle;
+            
+            console.log(`[UNIFORM_DEBUG] 🔧 卡牌 ${index} 角度偏移调整:`);
+            console.log(`[UNIFORM_DEBUG]   - 当前基础角度: ${(currentBaseAngle * 180 / Math.PI).toFixed(1)}°`);
+            console.log(`[UNIFORM_DEBUG]   - 理想角度偏移: ${(idealAngleOffset * 180 / Math.PI).toFixed(1)}°`);
+            console.log(`[UNIFORM_DEBUG]   - 需要调整: ${(targetAngleOffset * 180 / Math.PI).toFixed(1)}°`);
+            
+            // 🎯 **直接调整旋转动画的角度偏移**
+            // 不停止动画，不重置位置，只是微调角度偏移
+            if (Math.abs(targetAngleOffset) > 0.01) { // 只有需要调整时才执行
+                // 🛑 **停止当前动画**
+                cardData.rotationTween.destroy();
+                cardData.rotationTween = undefined;
+                
+                // 🔄 **从调整后的角度继续旋转**
+                const adjustedStartAngle = currentTweenAngle + targetAngleOffset;
+                console.log(`[UNIFORM_DEBUG] 🔄 卡牌 ${index} 从调整后角度继续旋转: ${(adjustedStartAngle * 180 / Math.PI).toFixed(1)}°`);
+                
+                this.startCardContinuousRotation(cardData, adjustedStartAngle, this.config.CIRCLE_ROTATION_DURATION);
+            } else {
+                console.log(`[UNIFORM_DEBUG] ✅ 卡牌 ${index} 已处于理想位置，无需调整`);
+            }
+        });
+        
+        console.log('[UNIFORM_DEBUG] 🎊 基于数学原理的圆环角度偏移调整完成！');
+        console.log('[UNIFORM_DEBUG] 📊 调整结果: 所有卡牌角度偏移已调整到理想状态');
+    }
+
+    /**
      * 🎯 **延时圆环重构专用：开始卡牌的连续旋转动画**
      *
      * 用于横竖屏切换时重新构建延时圆环，保持动画的连续性
@@ -859,8 +933,14 @@ export class VictoryAnimationManager {
         // 等待所有卡牌开始旋转
         await Promise.all(flyPromises);
         
-        this.currentPhase = VictoryAnimationPhase.ROTATING;
         console.log('[DELAY_RING_DEBUG] 🎊 延时圆环动画完成，所有卡牌已开始独立旋转');
+        
+        // 🎯 **关键优化：延时完成后的圆环均匀分布调整**
+        // 由于延时机制的不稳定性，需要重新调整卡牌的相对位置，确保圆环均匀分布
+        console.log('[DELAY_RING_DEBUG] 🔧 开始执行圆环均匀分布调整...');
+        await this.adjustCircleUniformDistribution();
+        
+        this.currentPhase = VictoryAnimationPhase.ROTATING;
         console.log('[DELAY_RING_DEBUG] 📍 当前阶段设置为: ROTATING');
     }
 
