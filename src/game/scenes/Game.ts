@@ -1111,6 +1111,9 @@ export class Game extends Scene {
         if (this.waste.cards.length > 0) {
             const flippedCard = this.waste.cards[this.waste.cards.length - 1];
             EventBus.emit('card-flipped', { card: flippedCard });
+            
+            // 🔧 修复：为添加到waste的卡牌重新启用交互
+            this.restoreWasteCardInteraction(flippedCard);
         }
         
         // 清理动画
@@ -1735,6 +1738,25 @@ export class Game extends Scene {
      */
     public getStockStackManager(): StockStackManager | null {
         return this.stockStackManager || null;
+    }
+
+    /**
+     * 🔧 修复：为waste区域的卡牌恢复交互能力
+     * 当卡牌从stock移动到waste后，重新启用其交互功能
+     */
+    private restoreWasteCardInteraction(card: CardComponent): void {
+        // 重新启用卡牌的基础交互
+        card.setInteractive();
+        
+        // 重新设置拖拽能力（添加空值检查）
+        if (card.input) {
+            card.input.draggable = true;
+        }
+        
+        // 重新绑定必要的事件监听器（如果需要的话）
+        // 这里可以根据需要添加特定的事件监听器
+        
+        console.log(`🔧 [WASTE_FIX] 为waste区域卡牌恢复交互: ${card.suit}${card.value}`);
     }
 
     // 🚫 教学系统已禁用 - 始终允许所有操作

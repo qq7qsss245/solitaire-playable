@@ -84,11 +84,12 @@ export class StockStackManager {
             return false;
         }
 
-        // 移除卡牌的交互事件
+        // 只移除stock特定的交互事件，保留基础交互能力
         card.removeAllListeners('pointerdown');
         card.removeAllListeners('pointerover');
         card.removeAllListeners('pointerout');
-        card.disableInteractive();
+        // 注释掉 card.disableInteractive() 以保留卡牌的基础交互能力
+        // card.disableInteractive();
 
         this.stackedCards.splice(index, 1);
         
