@@ -996,6 +996,9 @@ export class Game extends Scene {
         // 获取国际化文案
         const translation = getTranslation();
         
+        // 🔧 修复：保存当前的缩放值，避免重绘时丢失动画状态
+        const currentScale = this.playNowButton.scale;
+        
         // 清除容器中的所有子元素
         this.playNowButton.removeAll(true);
         
@@ -1036,6 +1039,9 @@ export class Game extends Scene {
         
         // 更新交互区域
         this.playNowButton.setSize(buttonConfig.width, buttonConfig.height);
+        
+        // 🔧 修复：重置缩放值为1.0，确保动画从正确的基础值开始
+        this.playNowButton.setScale(1.0);
     }
 
     private updatePlayNowButtonPosition(): void {
@@ -1043,23 +1049,26 @@ export class Game extends Scene {
         const layout = this.currentLayout || (window.innerWidth / window.innerHeight > 1 ? landscapeLayout : portraitLayout);
         const buttonConfig = layout.downloadButton;
         
+        // 🔧 修复：先停止现有的动画，避免动画目标对象在重绘过程中失效
+        this.tweens.killTweensOf(this.playNowButton);
+        
         // 重绘按钮以适应新的尺寸和样式
         this.redrawPlayNowButton(buttonConfig);
         
         // 更新位置
         this.playNowButton.setPosition(buttonConfig.x, buttonConfig.y);
         
-        // 停止现有的动画
-        this.tweens.killTweensOf(this.playNowButton);
-        
-        // 重新添加呼吸动画效果（使用新配置的动画参数）
-        this.tweens.add({
-            targets: this.playNowButton,
-            scale: buttonConfig.breathingScale || 1.1,
-            duration: buttonConfig.breathingDuration || 500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+        // 🔧 修复：确保按钮重绘完成后再重新添加呼吸动画效果
+        // 使用 nextTick 确保重绘操作完全完成
+        this.time.delayedCall(0, () => {
+            this.tweens.add({
+                targets: this.playNowButton,
+                scale: buttonConfig.breathingScale || 1.1,
+                duration: buttonConfig.breathingDuration || 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
         });
     }
 
