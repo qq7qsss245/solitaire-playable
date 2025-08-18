@@ -566,6 +566,13 @@ export class Card extends GameObjects.Container {
         const timeDiff = Date.now() - this.clickTimer;
         console.log(`🔍 [DEBUG] Card.onPointerUp - 时间差检查: ${this._suit}${this._value}, timeDiff: ${timeDiff}, isDragging: ${this.isDragging}, DRAG_THRESHOLD: ${Card.DRAG_THRESHOLD}`);
         
+        // 如果 clickTimer 为 0，说明 onPointerDown 没有被调用，这是一个问题
+        if (this.clickTimer === 0) {
+            console.log(`🚨 [ERROR] Card.onPointerUp - clickTimer 为 0，onPointerDown 可能没有被调用: ${this._suit}${this._value}`);
+            // 设置一个合理的默认值，假设这是一个快速点击
+            this.clickTimer = Date.now() - 100; // 假设点击时间为 100ms
+        }
+        
         // 只要不是真正的拖拽，就应该进行错误检测
         if (!this.isDragging) {
             console.log(`🔍 [DEBUG] Card.onPointerUp - 进入错误检测逻辑: ${this._suit}${this._value}`);
@@ -606,11 +613,16 @@ export class Card extends GameObjects.Container {
                 }
             }
             
+            // 重新计算时间差（防止 clickTimer 被修正）
+            const finalTimeDiff = Date.now() - this.clickTimer;
+            
             // 只有在点击时间较短时才播放音效和执行自动移动
-            if (timeDiff < Card.DRAG_THRESHOLD) {
-                console.log(`🔍 [CRITICAL DEBUG] onPointerUp - 播放翻牌音效并尝试自动移动: ${this._suit}${this._value}`);
+            if (finalTimeDiff < Card.DRAG_THRESHOLD) {
+                console.log(`🔍 [CRITICAL DEBUG] onPointerUp - 播放翻牌音效并尝试自动移动: ${this._suit}${this._value} (finalTimeDiff: ${finalTimeDiff})`);
                 EventBus.emit('play-card-flip');
                 this.tryAutoMove();
+            } else {
+                console.log(`🔍 [DEBUG] onPointerUp - 点击时间过长，跳过自动移动: ${this._suit}${this._value} (finalTimeDiff: ${finalTimeDiff})`);
             }
         } else {
             console.log(`🔍 [DEBUG] Card.onPointerUp - 正在拖拽中，跳过处理: ${this._suit}${this._value}`);
