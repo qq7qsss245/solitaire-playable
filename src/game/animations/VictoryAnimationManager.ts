@@ -169,11 +169,16 @@ export class VictoryAnimationManager {
     private centerY: number = 0;
     private rotationTween?: Phaser.Tweens.Tween;
     private isAnimationActive: boolean = false;
+    private orientationChangeHandler?: () => void; // 保存orientationchange事件处理器的引用
 
     constructor(scene: Scene, config: VictoryAnimationConfig = DEFAULT_VICTORY_CONFIG) {
         this.scene = scene;
         this.config = config;
         this.updateScreenCenter();
+        
+        // 🔧 修复：初始化屏幕方向变化监听器
+        this.setupOrientationListener();
+        console.log('📱 VictoryAnimationManager: 屏幕方向监听器已初始化');
     }
 
     /**
@@ -185,12 +190,14 @@ export class VictoryAnimationManager {
         
         // 也监听浏览器的orientationchange事件作为备用
         if (typeof window !== 'undefined') {
-            window.addEventListener('orientationchange', () => {
+            // 保存事件处理器引用，以便后续清理
+            this.orientationChangeHandler = () => {
                 // 延迟一点执行，确保屏幕尺寸已经更新
                 setTimeout(() => {
                     this.handleScreenResize();
                 }, 100);
-            });
+            };
+            window.addEventListener('orientationchange', this.orientationChangeHandler);
         }
     }
 
@@ -198,17 +205,24 @@ export class VictoryAnimationManager {
      * 处理屏幕尺寸变化
      */
     private handleScreenResize(): void {
+        console.log('📱 VictoryAnimationManager: 检测到屏幕尺寸变化');
+        console.log(`📱 动画状态: ${this.isAnimationActive ? '激活' : '未激活'}`);
+        console.log(`📱 动画卡牌数量: ${this.animationCards?.length || 0}`);
+        
         if (!this.isAnimationActive) {
+            console.log('📱 动画未激活，跳过位置更新');
             return; // 如果动画未激活，不需要处理
         }
 
-        console.log('📱 检测到屏幕尺寸变化，更新圆环中心位置');
+        console.log('📱 开始更新圆环中心位置和卡牌位置');
         
         // 更新屏幕中心位置
         this.updateScreenCenter();
         
         // 如果有正在旋转的卡牌，更新它们的位置
         this.updateRotatingCardsPosition();
+        
+        console.log('📱 屏幕方向变化处理完成');
     }
 
     /**
@@ -308,44 +322,144 @@ export class VictoryAnimationManager {
      * 更新正在旋转的卡牌位置
      */
     private updateRotatingCardsPosition(): void {
+        console.log('🔄 updateRotatingCardsPosition: 开始更新延时圆环卡牌位置');
+        console.log(`🔄 动画卡牌数量: ${this.animationCards?.length || 0}`);
+        console.log(`🔄 新的圆环中心: (${this.centerX}, ${this.centerY})`);
+        
         if (!this.animationCards || this.animationCards.length === 0) {
+            console.log('🔄 没有动画卡牌，跳过位置更新');
             return;
         }
 
-        // 计算旋转持续时间（与原始动画保持一致）
-        const anglePerCard = (2 * Math.PI) / this.animationCards.length;
         const rotationDuration = this.config.CIRCLE_ROTATION_DURATION;
+        const cardCount = this.animationCards.length;
+        
+        console.log(`🔄 延时圆环重构: ${cardCount} 张卡牌，旋转周期: ${rotationDuration}ms`);
 
-        // 遍历所有正在动画中的卡牌，更新它们的圆环中心位置
+        // 🎯 **关键修复：重构延时圆环**
+        // 需要计算每张卡牌在延时圆环中的当前角度位置，然后重新分布
         this.animationCards.forEach((cardData, index) => {
             const card = cardData.card;
             
-            // 检查卡牌是否正在进行圆环旋转动画
-            if (card && card.visible) {
-                // 计算当前卡牌应该在圆环上的角度
-                const currentAngle = index * anglePerCard - Math.PI / 2; // -π/2 让第一张卡牌在顶部
+            if (!card || !card.visible) {
+                console.log(`🔄 卡牌 ${index}: 无效或不可见，跳过`);
+                return;
+            }
+
+            // 🧮 **计算延时圆环中的角度分布**
+            // 在延时圆环中，每张卡牌都有固定的角度间隔
+            const anglePerCard = (2 * Math.PI) / cardCount;
+            const targetAngle = index * anglePerCard; // 卡牌在圆环中的目标角度位置
+            
+            // 🎯 **获取当前旋转动画的进度**
+            let currentRotationProgress = 0;
+            if (cardData.rotationTween && cardData.rotationTween.isPlaying()) {
+                // 获取当前旋转动画的进度（0-1）
+                currentRotationProgress = cardData.rotationTween.progress;
+                console.log(`🔄 卡牌 ${index}: 当前旋转进度 ${(currentRotationProgress * 100).toFixed(1)}%`);
+            }
+            
+            // 🧮 **计算当前应该在圆环上的角度**
+            // 基于延时圆环的原理：每张卡牌从顶部开始旋转
+            const currentAngle = targetAngle + (currentRotationProgress * 2 * Math.PI);
+            
+            // 🎯 **计算新圆环中心下的位置**
+            const angle = currentAngle - Math.PI / 2; // 转换为标准坐标系（顶部为起点）
+            const newX = this.centerX + this.config.CIRCLE_RADIUS * Math.cos(angle);
+            const newY = this.centerY + this.config.CIRCLE_RADIUS * Math.sin(angle);
+            const newRotation = angle + Math.PI / 2; // 纵向指向圆心
+            
+            console.log(`🔄 卡牌 ${index}: 目标角度=${(targetAngle * 180 / Math.PI).toFixed(1)}°, 当前角度=${(currentAngle * 180 / Math.PI).toFixed(1)}°`);
+            console.log(`🔄 卡牌 ${index}: 从 (${card.x.toFixed(1)}, ${card.y.toFixed(1)}) 移动到 (${newX.toFixed(1)}, ${newY.toFixed(1)})`);
+            
+            // 🛑 **停止当前的旋转动画**
+            if (cardData.rotationTween) {
+                cardData.rotationTween.destroy();
+                cardData.rotationTween = undefined;
+            }
+            this.scene.tweens.killTweensOf(card);
+            
+            // 🎯 **立即设置到新的位置和角度**
+            card.setPosition(newX, newY);
+            card.setRotation(newRotation);
+            
+            // 🔄 **重新开始独立旋转动画，保持延时圆环效果**
+            // 计算剩余的旋转角度，确保动画的连续性
+            const remainingAngle = (1 - currentRotationProgress) * 2 * Math.PI;
+            const remainingDuration = rotationDuration * (1 - currentRotationProgress);
+            
+            console.log(`🔄 卡牌 ${index}: 重新开始旋转，剩余角度=${(remainingAngle * 180 / Math.PI).toFixed(1)}°, 剩余时间=${remainingDuration.toFixed(0)}ms`);
+            
+            // 🎯 **创建新的连续旋转动画**
+            this.startCardContinuousRotation(cardData, currentAngle, rotationDuration);
+        });
+        
+        console.log('🔄 updateRotatingCardsPosition: 延时圆环重构完成');
+    }
+
+    /**
+     * 🎯 **延时圆环重构专用：开始卡牌的连续旋转动画**
+     *
+     * 用于横竖屏切换时重新构建延时圆环，保持动画的连续性
+     *
+     * @param cardData 卡牌动画数据
+     * @param startAngle 起始角度（当前角度位置）
+     * @param rotationDuration 单圈旋转持续时间
+     */
+    private startCardContinuousRotation(cardData: CardAnimationData, startAngle: number, rotationDuration: number): void {
+        const { card } = cardData;
+        
+        console.log(`🔄 startCardContinuousRotation: 开始连续旋转`);
+        console.log(`🔄 起始角度: ${(startAngle * 180 / Math.PI).toFixed(1)}°`);
+        console.log(`🔄 旋转周期: ${rotationDuration}ms`);
+        
+        if (!card || !card.visible) {
+            console.error('🔄 卡牌无效或不可见，无法开始连续旋转');
+            return;
+        }
+        
+        // 🎯 **创建从当前角度开始的连续旋转动画**
+        const totalRotations = 1000; // 连续旋转1000圈
+        const totalAngle = startAngle + (Math.PI * 2 * totalRotations); // 从当前角度开始
+        const totalDuration = rotationDuration * totalRotations;
+        
+        console.log(`🔄 连续旋转参数: 总角度=${(totalAngle * 180 / Math.PI).toFixed(1)}°, 总时长=${totalDuration}ms`);
+        
+        // 🎯 **创建新的旋转动画**
+        cardData.rotationTween = this.scene.tweens.add({
+            targets: {},
+            angle: { from: startAngle, to: totalAngle },
+            duration: totalDuration,
+            ease: 'Linear',
+            onStart: () => {
+                console.log(`🔄 连续旋转动画启动，从角度 ${(startAngle * 180 / Math.PI).toFixed(1)}° 开始`);
+            },
+            onUpdate: (tween) => {
+                const currentAngle = tween.getValue();
                 
-                // 计算新的位置
-                const newX = this.centerX + Math.cos(currentAngle) * this.config.CIRCLE_RADIUS;
-                const newY = this.centerY + Math.sin(currentAngle) * this.config.CIRCLE_RADIUS;
+                // 🧮 **实时位置计算**
+                const angle = currentAngle - Math.PI / 2; // 转换为标准坐标系
+                const x = this.centerX + this.config.CIRCLE_RADIUS * Math.cos(angle);
+                const y = this.centerY + this.config.CIRCLE_RADIUS * Math.sin(angle);
+                const rotation = angle + Math.PI / 2; // 纵向指向圆心
                 
-                // 如果卡牌正在进行tween动画，停止当前动画并重新开始
-                this.scene.tweens.killTweensOf(card);
-                
-                // 平滑移动到新位置
-                this.scene.tweens.add({
-                    targets: card,
-                    x: newX,
-                    y: newY,
-                    duration: 300, // 快速调整到新位置
-                    ease: 'Power2',
-                    onComplete: () => {
-                        // 重新开始圆环旋转动画
-                        this.startCardIndependentRotation(cardData, rotationDuration);
-                    }
-                });
+                card.setPosition(x, y);
+                card.setRotation(rotation);
+            },
+            onComplete: () => {
+                console.log(`🔄 连续旋转动画完成，重新启动以保持圆环`);
+                // 如果动画完成，重新启动以保持圆环效果
+                if (this.isAnimationActive && card.visible) {
+                    this.startCardIndependentRotation(cardData, rotationDuration);
+                }
             }
         });
+        
+        if (cardData.rotationTween) {
+            console.log(`🔄 连续旋转动画创建成功`);
+        } else {
+            console.error(`🔄 连续旋转动画创建失败`);
+        }
     }
 
     /**
@@ -989,9 +1103,13 @@ export class VictoryAnimationManager {
         // 移除Phaser场景的resize事件监听器
         this.scene.scale.off('resize', this.handleScreenResize, this);
         
-        // 注意：window的orientationchange事件监听器无法直接移除，
-        // 因为我们使用了匿名函数。在实际项目中，建议保存函数引用以便清理。
-        console.log('🧹 已清理事件监听器');
+        // 移除window的orientationchange事件监听器
+        if (typeof window !== 'undefined' && this.orientationChangeHandler) {
+            window.removeEventListener('orientationchange', this.orientationChangeHandler);
+            this.orientationChangeHandler = undefined;
+        }
+        
+        console.log('🧹 已清理所有事件监听器');
     }
 
     /**
