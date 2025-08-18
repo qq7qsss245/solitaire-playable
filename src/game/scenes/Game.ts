@@ -18,6 +18,7 @@ import { TutorialTest } from '../tutorial/TutorialTest';
 import download from './constants/download';
 import { getTranslation } from '../i18n';
 import { AssetKeys } from '../../assets';
+import { getButtonStyleConfig, getButtonAnimationConfig } from '../../config/button-config';
 import { getOutputConfigValue, getOutputConfigValueAsync } from '../../utils/outputConfigLoader';
 import { DealAnimationManager } from '../animations/DealAnimationManager';
 import { DealAnimationTest } from '../animations/DealAnimationTest';
@@ -669,41 +670,40 @@ export class Game extends Scene {
         // 获取国际化文案
         const translation = getTranslation();
         
-        // 按钮尺寸配置
-        const buttonWidth = 160;
-        const buttonHeight = 50;
-        const cornerRadius = buttonHeight / 2; // 胶囊形状：圆角半径为高度的一半
+        // 从独立配置文件获取按钮样式和动画配置
+        const styleConfig = getButtonStyleConfig();
+        const animationConfig = getButtonAnimationConfig();
         
         // 创建按钮容器
         const buttonContainer = this.add.container(0, 0);
         
-        // 创建按钮背景（白色胶囊形状）
+        // 创建按钮背景（使用配置的样式）
         const buttonBackground = this.add.graphics();
-        buttonBackground.fillStyle(0xffffff, 1); // 白色背景
+        buttonBackground.fillStyle(styleConfig.backgroundColor, 1);
         buttonBackground.fillRoundedRect(
-            -buttonWidth / 2,
-            -buttonHeight / 2,
-            buttonWidth,
-            buttonHeight,
-            cornerRadius
+            -styleConfig.width / 2,
+            -styleConfig.height / 2,
+            styleConfig.width,
+            styleConfig.height,
+            styleConfig.borderRadius
         );
         
-        // 添加按钮边框（可选，增强视觉效果）
-        buttonBackground.lineStyle(2, 0xcccccc, 1); // 浅灰色边框
+        // 添加按钮边框（使用配置的样式）
+        buttonBackground.lineStyle(styleConfig.borderWidth, styleConfig.borderColor, 1);
         buttonBackground.strokeRoundedRect(
-            -buttonWidth / 2,
-            -buttonHeight / 2,
-            buttonWidth,
-            buttonHeight,
-            cornerRadius
+            -styleConfig.width / 2,
+            -styleConfig.height / 2,
+            styleConfig.width,
+            styleConfig.height,
+            styleConfig.borderRadius
         );
         
-        // 创建文字（绿色 "Play Now"）
+        // 创建文字（使用配置的样式）
         this.playNowText = this.add.text(0, 0, translation.playNow, {
-            fontSize: '18px',
-            fontFamily: 'Arial, sans-serif',
-            color: '#00AA00', // 绿色文字
-            fontStyle: 'bold'
+            fontSize: `${styleConfig.fontSize}px`,
+            fontFamily: styleConfig.fontFamily,
+            color: styleConfig.textColor,
+            fontStyle: styleConfig.fontStyle
         });
         this.playNowText.setOrigin(0.5, 0.5); // 居中对齐
         
@@ -711,7 +711,7 @@ export class Game extends Scene {
         buttonContainer.add([buttonBackground, this.playNowText]);
         
         // 设置交互
-        buttonContainer.setSize(buttonWidth, buttonHeight);
+        buttonContainer.setSize(styleConfig.width, styleConfig.height);
         buttonContainer.setInteractive();
         
         // 添加点击事件
@@ -720,9 +720,9 @@ export class Game extends Scene {
             download();
         });
         
-        // 添加悬停效果
+        // 添加悬停效果（使用配置的动画参数）
         buttonContainer.on('pointerover', () => {
-            buttonContainer.setScale(1.05);
+            buttonContainer.setScale(animationConfig.hoverScale);
         });
         
         buttonContainer.on('pointerout', () => {
@@ -732,11 +732,11 @@ export class Game extends Scene {
         // 保存按钮引用（现在是容器而不是图片）
         this.playNowButton = buttonContainer as any;
         
-        // 添加呼吸动画效果
+        // 添加呼吸动画效果（使用配置的动画参数）
         this.tweens.add({
             targets: buttonContainer,
-            scale: 1.1,
-            duration: 500,
+            scale: animationConfig.breathingScale,
+            duration: animationConfig.breathingDuration,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -983,7 +983,9 @@ export class Game extends Scene {
     }
 
     private updatePlayNowButtonPosition(): void {
-        this.playNowButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
+        // 使用防护机制：如果 currentLayout 未初始化，则根据屏幕方向选择默认布局
+        const layout = this.currentLayout || (window.innerWidth / window.innerHeight > 1 ? landscapeLayout : portraitLayout);
+        this.playNowButton.setPosition(layout.downloadButton.x, layout.downloadButton.y);
         // 容器会自动处理内部元素的相对位置，无需额外更新
     }
 
