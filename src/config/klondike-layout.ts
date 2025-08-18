@@ -156,18 +156,10 @@ export interface LayoutPositions {
         scale?: number; // 可选的缩放比例
     };
     
-    // 下载按钮配置（包含位置、尺寸和字体）
+    // 下载按钮位置
     downloadButton: {
         x: number;
         y: number;
-        width: number;
-        height: number;
-        fontSize: number;
-        fontFamily?: string;
-        fontStyle?: string;
-        textColor?: string;
-        backgroundColor?: string;
-        borderRadius?: number;
     };
     
     // 暗色蒙版位置（仅横屏模式）
@@ -269,14 +261,6 @@ export const portraitLayout: LayoutPositions = {
     downloadButton: {
         x: 540,  // 居中
         y: 1840, // 底部
-        width: 160,
-        height: 50,
-        fontSize: 18,
-        fontFamily: 'Arial, sans-serif',
-        fontStyle: 'bold',
-        textColor: '#00AA00',
-        backgroundColor: '#ffffff',
-        borderRadius: 25, // 胶囊形状：圆角半径为高度的一半
     },
     
     
@@ -371,14 +355,6 @@ export const landscapeLayout: LayoutPositions = {
     downloadButton: {
         x: 960,  // 水平居中 (1920 / 2)
         y: 980, // 距离底部50单位 (1080 - 50)
-        width: 180,  // 横屏时稍大一些
-        height: 55,  // 横屏时稍高一些
-        fontSize: 20, // 横屏时字体稍大
-        fontFamily: 'Arial, sans-serif',
-        fontStyle: 'bold',
-        textColor: '#00AA00',
-        backgroundColor: '#ffffff',
-        borderRadius: 27.5, // 胶囊形状：圆角半径为高度的一半
     },
     
     // 暗色蒙版位置（横屏模式）

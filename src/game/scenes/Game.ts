@@ -669,20 +669,17 @@ export class Game extends Scene {
         // 获取国际化文案
         const translation = getTranslation();
         
-        // 从配置文件获取按钮参数
-        const buttonConfig = this.currentLayout.downloadButton;
-        const buttonWidth = buttonConfig.width;
-        const buttonHeight = buttonConfig.height;
-        const cornerRadius = buttonConfig.borderRadius || buttonHeight / 2; // 使用配置的圆角或默认值
+        // 按钮尺寸配置
+        const buttonWidth = 160;
+        const buttonHeight = 50;
+        const cornerRadius = buttonHeight / 2; // 胶囊形状：圆角半径为高度的一半
         
         // 创建按钮容器
         const buttonContainer = this.add.container(0, 0);
         
-        // 创建按钮背景
+        // 创建按钮背景（白色胶囊形状）
         const buttonBackground = this.add.graphics();
-        const backgroundColor = buttonConfig.backgroundColor ?
-            parseInt(buttonConfig.backgroundColor.replace('#', '0x')) : 0xffffff;
-        buttonBackground.fillStyle(backgroundColor, 1);
+        buttonBackground.fillStyle(0xffffff, 1); // 白色背景
         buttonBackground.fillRoundedRect(
             -buttonWidth / 2,
             -buttonHeight / 2,
@@ -701,12 +698,12 @@ export class Game extends Scene {
             cornerRadius
         );
         
-        // 创建文字，使用配置的字体参数
+        // 创建文字（绿色 "Play Now"）
         this.playNowText = this.add.text(0, 0, translation.playNow, {
-            fontSize: `${buttonConfig.fontSize}px`,
-            fontFamily: buttonConfig.fontFamily || 'Arial, sans-serif',
-            color: buttonConfig.textColor || '#00AA00',
-            fontStyle: buttonConfig.fontStyle || 'bold'
+            fontSize: '18px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#00AA00', // 绿色文字
+            fontStyle: 'bold'
         });
         this.playNowText.setOrigin(0.5, 0.5); // 居中对齐
         
@@ -986,56 +983,8 @@ export class Game extends Scene {
     }
 
     private updatePlayNowButtonPosition(): void {
-        const buttonConfig = this.currentLayout.downloadButton;
-        
-        // 更新按钮位置
-        this.playNowButton.setPosition(buttonConfig.x, buttonConfig.y);
-        
-        // 更新按钮尺寸和交互区域
-        this.playNowButton.setSize(buttonConfig.width, buttonConfig.height);
-        
-        // 更新按钮内部元素（背景和文字）
-        if (this.playNowButton && this.playNowButton.list && this.playNowButton.list.length >= 2) {
-            const buttonBackground = this.playNowButton.list[0] as Phaser.GameObjects.Graphics;
-            const playNowText = this.playNowButton.list[1] as Phaser.GameObjects.Text;
-            
-            // 重新绘制背景
-            if (buttonBackground) {
-                const cornerRadius = buttonConfig.borderRadius || buttonConfig.height / 2;
-                const backgroundColor = buttonConfig.backgroundColor ?
-                    parseInt(buttonConfig.backgroundColor.replace('#', '0x')) : 0xffffff;
-                
-                buttonBackground.clear();
-                buttonBackground.fillStyle(backgroundColor, 1);
-                buttonBackground.fillRoundedRect(
-                    -buttonConfig.width / 2,
-                    -buttonConfig.height / 2,
-                    buttonConfig.width,
-                    buttonConfig.height,
-                    cornerRadius
-                );
-                
-                // 重新绘制边框
-                buttonBackground.lineStyle(2, 0xcccccc, 1);
-                buttonBackground.strokeRoundedRect(
-                    -buttonConfig.width / 2,
-                    -buttonConfig.height / 2,
-                    buttonConfig.width,
-                    buttonConfig.height,
-                    cornerRadius
-                );
-            }
-            
-            // 更新文字样式
-            if (playNowText) {
-                playNowText.setStyle({
-                    fontSize: `${buttonConfig.fontSize}px`,
-                    fontFamily: buttonConfig.fontFamily || 'Arial, sans-serif',
-                    color: buttonConfig.textColor || '#00AA00',
-                    fontStyle: buttonConfig.fontStyle || 'bold'
-                });
-            }
-        }
+        this.playNowButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
+        // 容器会自动处理内部元素的相对位置，无需额外更新
     }
 
     private updateAutoCompleteButtonPosition(): void {
