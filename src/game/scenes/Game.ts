@@ -748,14 +748,26 @@ export class Game extends Scene {
     }
 
     private createAutoCompleteButton(): void {
-        // 创建AutoComplete按钮，覆盖下载按钮位置
-        this.autoCompleteButton = this.add.image(0, 0, AssetKeys.AUTO_COMPLETE_BUTTON);
-        this.autoCompleteButton.setScale(0.8);
+        // 使用防护机制：如果 currentLayout 未初始化，则根据屏幕方向选择默认布局
+        const layout = this.currentLayout || (window.innerWidth / window.innerHeight > 1 ? landscapeLayout : portraitLayout);
+        const buttonConfig = layout.autoCompleteButton;
+        
+        // 创建AutoComplete按钮，使用配置中的位置
+        this.autoCompleteButton = this.add.image(buttonConfig.x, buttonConfig.y, AssetKeys.AUTO_COMPLETE_BUTTON);
         this.autoCompleteButton.setInteractive();
-        this.autoCompleteButton.setDepth(100); // 确保在其他UI元素之上
+        this.autoCompleteButton.setDepth(2000); // 确保在所有游戏元素之上，包括卡牌
         
         // 初始状态隐藏按钮
         this.autoCompleteButton.setVisible(false);
+        
+        // 根据配置设置初始缩放
+        const baseScale = 0.8; // AutoComplete 按钮的基础缩放
+        const scaleFactorX = buttonConfig.width / 280; // 相对于配置默认宽度的比例
+        const scaleFactorY = buttonConfig.height / 70;  // 相对于配置默认高度的比例
+        const scaleFactor = Math.min(scaleFactorX, scaleFactorY); // 使用较小的比例保持比例
+        const finalScale = baseScale * scaleFactor;
+        
+        this.autoCompleteButton.setScale(finalScale);
         
         // 添加点击事件
         this.autoCompleteButton.on('pointerdown', () => {
@@ -763,20 +775,24 @@ export class Game extends Scene {
             this.onAutoCompleteClick();
         });
 
-        // 添加悬停效果
+        // 添加悬停效果，使用配置中的hoverScale
+        const hoverScale = buttonConfig.hoverScale || 1.05;
         this.autoCompleteButton.on('pointerover', () => {
-            this.autoCompleteButton.setScale(0.85);
+            this.autoCompleteButton.setScale(finalScale * hoverScale);
         });
         
         this.autoCompleteButton.on('pointerout', () => {
-            this.autoCompleteButton.setScale(0.8);
+            this.autoCompleteButton.setScale(finalScale);
         });
 
-        // 添加呼吸动画效果
+        // 添加呼吸动画效果，使用配置中的参数
+        const breathingScale = buttonConfig.breathingScale || 1.08;
+        const breathingDuration = buttonConfig.breathingDuration || 1000;
+        
         this.tweens.add({
             targets: this.autoCompleteButton,
-            scale: 0.8 * 1.05,
-            duration: 1000,
+            scale: finalScale * breathingScale,
+            duration: breathingDuration,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -1075,28 +1091,35 @@ export class Game extends Scene {
     private updateAutoCompleteButtonPosition(): void {
         // 使用防护机制：如果 currentLayout 未初始化，则根据屏幕方向选择默认布局
         const layout = this.currentLayout || (window.innerWidth / window.innerHeight > 1 ? landscapeLayout : portraitLayout);
-        const buttonConfig = layout.downloadButton;
+        const buttonConfig = layout.autoCompleteButton;
         
-        // AutoComplete按钮覆盖下载按钮位置，并适应新的尺寸
+        // 使用AutoComplete按钮专用配置更新位置
         this.autoCompleteButton.setPosition(buttonConfig.x, buttonConfig.y);
+        
+        // 确保深度层级始终正确，高于所有游戏元素
+        this.autoCompleteButton.setDepth(2000);
         
         // 根据新的按钮配置调整 AutoComplete 按钮的缩放
         // 计算相对于默认尺寸的缩放比例
         const baseScale = 0.8; // AutoComplete 按钮的基础缩放
-        const scaleFactorX = buttonConfig.width / 320; // 相对于竖屏默认宽度的比例
-        const scaleFactorY = buttonConfig.height / 80;  // 相对于竖屏默认高度的比例
+        const scaleFactorX = buttonConfig.width / 280; // 相对于配置默认宽度的比例
+        const scaleFactorY = buttonConfig.height / 70;  // 相对于配置默认高度的比例
         const scaleFactor = Math.min(scaleFactorX, scaleFactorY); // 使用较小的比例保持比例
+        const finalScale = baseScale * scaleFactor;
         
-        this.autoCompleteButton.setScale(baseScale * scaleFactor);
+        this.autoCompleteButton.setScale(finalScale);
         
         // 停止现有的动画
         this.tweens.killTweensOf(this.autoCompleteButton);
         
-        // 重新添加呼吸动画效果（使用调整后的缩放）
+        // 重新添加呼吸动画效果，使用配置中的参数
+        const breathingScale = buttonConfig.breathingScale || 1.08;
+        const breathingDuration = buttonConfig.breathingDuration || 1000;
+        
         this.tweens.add({
             targets: this.autoCompleteButton,
-            scale: baseScale * scaleFactor * 1.05,
-            duration: 1000,
+            scale: finalScale * breathingScale,
+            duration: breathingDuration,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -1173,6 +1196,8 @@ export class Game extends Scene {
         if (shouldShow && !isCurrentlyVisible) {
             console.log('🔘 显示AutoComplete按钮');
             this.autoCompleteButton.setVisible(true);
+            // 确保深度层级正确，高于所有游戏元素
+            this.autoCompleteButton.setDepth(2000);
         } else if (!shouldShow && isCurrentlyVisible) {
             console.log('🔘 隐藏AutoComplete按钮');
             this.autoCompleteButton.setVisible(false);
@@ -2035,6 +2060,8 @@ export class Game extends Scene {
             console.log('🧪 强制显示AutoComplete按钮');
             if (this.autoCompleteButton) {
                 this.autoCompleteButton.setVisible(true);
+                // 确保深度层级正确，高于所有游戏元素
+                this.autoCompleteButton.setDepth(2000);
             }
         }
 

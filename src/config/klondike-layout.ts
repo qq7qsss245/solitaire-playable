@@ -176,6 +176,26 @@ export interface LayoutPositions {
         breathingDuration?: number;
     };
     
+    // AutoComplete按钮位置和样式配置
+    autoCompleteButton: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        fontSize: number;
+        fontFamily?: string;
+        fontStyle?: string;
+        textColor?: string;
+        backgroundColor?: number;
+        borderColor?: number;
+        borderWidth?: number;
+        borderRadius?: number;
+        // 动画配置
+        hoverScale?: number;
+        breathingScale?: number;
+        breathingDuration?: number;
+    };
+    
     // 暗色蒙版位置（仅横屏模式）
     darkMask?: {
         x: number;
@@ -291,6 +311,26 @@ export const portraitLayout: LayoutPositions = {
         breathingDuration: 500,
     },
     
+    // AutoComplete按钮位置和样式配置
+    autoCompleteButton: {
+        x: 540,  // 与下载按钮水平对齐
+        y: 1280, // 在下载按钮上方100像素
+        width: 280,  // 比下载按钮稍小
+        height: 70,
+        fontSize: 24,
+        fontFamily: 'Arial, sans-serif',
+        fontStyle: 'bold',
+        textColor: '#0066CC', // 蓝色文字
+        backgroundColor: 0xffffff, // 白色背景
+        borderColor: 0x0066CC, // 蓝色边框
+        borderWidth: 2,
+        borderRadius: 35, // 胶囊形状
+        // 动画配置
+        hoverScale: 1.05,
+        breathingScale: 1.08,
+        breathingDuration: 1000,
+    },
+    
     
     // 教学文案位置配置
     guideTexts: {
@@ -397,6 +437,26 @@ export const landscapeLayout: LayoutPositions = {
         hoverScale: 1.05,
         breathingScale: 1.1,
         breathingDuration: 500,
+    },
+    
+    // AutoComplete按钮位置和样式配置
+    autoCompleteButton: {
+        x: 600,  // 与下载按钮水平对齐
+        y: 800,   // 在下载按钮上方100像素
+        width: 280,  // 比下载按钮稍小
+        height: 70,
+        fontSize: 28,
+        fontFamily: 'Arial, sans-serif',
+        fontStyle: 'bold',
+        textColor: '#0066CC', // 蓝色文字
+        backgroundColor: 0xffffff, // 白色背景
+        borderColor: 0x0066CC, // 蓝色边框
+        borderWidth: 2,
+        borderRadius: 35, // 胶囊形状
+        // 动画配置
+        hoverScale: 1.05,
+        breathingScale: 1.08,
+        breathingDuration: 1000,
     },
     
     // 暗色蒙版位置（横屏模式）
