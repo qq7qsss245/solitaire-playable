@@ -75,18 +75,18 @@ export class Game extends Scene {
     private isTimerStopped: boolean = false; // 新增：标记计时器是否已停止
     private stoppedTime: number = 0; // 新增：停止时的时间
     
-    // 计分板UI元素
-    private scoreboardBackground: Phaser.GameObjects.Image;
+    // 计分板UI元素 - 横板格式（合并标题和数值）
+    private timeText: Phaser.GameObjects.Text;
+    private scoreText: Phaser.GameObjects.Text;
+    private movesText: Phaser.GameObjects.Text;
+    
+    // 保留旧的分离元素用于兼容性（隐藏）
     private timeTitle: Phaser.GameObjects.Text;
     private timeValue: Phaser.GameObjects.Text;
     private scoreTitle: Phaser.GameObjects.Text;
     private scoreValue: Phaser.GameObjects.Text;
     private movesTitle: Phaser.GameObjects.Text;
     private movesValue: Phaser.GameObjects.Text;
-    
-    // 保留旧的文本元素用于兼容性
-    private scoreText: Phaser.GameObjects.Text;
-    private movesText: Phaser.GameObjects.Text;
     
     // 教学系统
     private tutorialManager: TutorialManager | null = null;
@@ -619,15 +619,8 @@ export class Game extends Scene {
     }
 
     private createScoreboard(): void {
-        const isLandscape = window.innerWidth / window.innerHeight > 1;
-        const scoreboardKey = isLandscape ? AssetKeys.SCOREBOARD_LANDSCAPE : AssetKeys.SCOREBOARD_PORTRAIT;
-        
-        // 创建计分板背景
-        this.scoreboardBackground = this.add.image(0, 0, scoreboardKey);
-        this.scoreboardBackground.setDepth(100);
-        
-        // 标题样式
-        const titleStyle = {
+        // 横板格式样式 - 白色文字，黑色描边
+        const textStyle = {
             fontFamily: 'Arial',
             fontStyle: 'bold',
             color: '#ffffff',
@@ -635,50 +628,40 @@ export class Game extends Scene {
             strokeThickness: 3,
             align: 'center'
         };
-        
-        // 数值样式 - 金黄色
-        const valueStyle = {
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            color: '#FFD700', // 金黄色
-            stroke: '#000000',
-            strokeThickness: 4,
-            align: 'center'
-        };
 
-        // 创建时间显示
-        this.timeTitle = this.add.text(0, 0, 'TIME', titleStyle);
-        this.timeTitle.setOrigin(0.5);
-        this.timeTitle.setDepth(101);
+        // 创建横板格式的计分板文本（合并标题和数值）
+        // 使用国际化文本初始化
+        const t = getTranslation();
         
-        this.timeValue = this.add.text(0, 0, '00:00', valueStyle);
-        this.timeValue.setOrigin(0.5);
-        this.timeValue.setDepth(101);
+        this.timeText = this.add.text(0, 0, `${t.time}00:00`, textStyle);
+        this.timeText.setOrigin(0.5);
+        this.timeText.setDepth(101);
 
-        // 创建分数显示
-        this.scoreTitle = this.add.text(0, 0, 'SCORE', titleStyle);
-        this.scoreTitle.setOrigin(0.5);
-        this.scoreTitle.setDepth(101);
-        
-        this.scoreValue = this.add.text(0, 0, '0', valueStyle);
-        this.scoreValue.setOrigin(0.5);
-        this.scoreValue.setDepth(101);
+        this.scoreText = this.add.text(0, 0, `${t.score}0`, textStyle);
+        this.scoreText.setOrigin(0.5);
+        this.scoreText.setDepth(101);
 
-        // 创建步数显示
-        this.movesTitle = this.add.text(0, 0, 'MOVES', titleStyle);
-        this.movesTitle.setOrigin(0.5);
-        this.movesTitle.setDepth(101);
-        
-        this.movesValue = this.add.text(0, 0, '0', valueStyle);
-        this.movesValue.setOrigin(0.5);
-        this.movesValue.setDepth(101);
+        this.movesText = this.add.text(0, 0, `${t.moves}0`, textStyle);
+        this.movesText.setOrigin(0.5);
+        this.movesText.setDepth(101);
 
-        // 保留旧的文本元素用于兼容性（隐藏）
+        // 保留旧的分离元素用于兼容性（隐藏）
         const hiddenStyle = { fontSize: '1px', color: '#000000' };
-        this.movesText = this.add.text(0, 0, '0', hiddenStyle);
-        this.movesText.setVisible(false);
-        this.scoreText = this.add.text(0, 0, '0', hiddenStyle);
-        this.scoreText.setVisible(false);
+        
+        this.timeTitle = this.add.text(0, 0, 'TIME', hiddenStyle);
+        this.timeTitle.setVisible(false);
+        this.timeValue = this.add.text(0, 0, '00:00', hiddenStyle);
+        this.timeValue.setVisible(false);
+        
+        this.scoreTitle = this.add.text(0, 0, 'SCORE', hiddenStyle);
+        this.scoreTitle.setVisible(false);
+        this.scoreValue = this.add.text(0, 0, '0', hiddenStyle);
+        this.scoreValue.setVisible(false);
+        
+        this.movesTitle = this.add.text(0, 0, 'MOVES', hiddenStyle);
+        this.movesTitle.setVisible(false);
+        this.movesValue = this.add.text(0, 0, '0', hiddenStyle);
+        this.movesValue.setVisible(false);
     }
 
     private createPlayNowButton(): void {
@@ -894,33 +877,32 @@ export class Game extends Scene {
 
     private updateScoreboardPosition(): void {
         const layout = this.currentLayout.scoreboard;
-        const isLandscape = window.innerWidth / window.innerHeight > 1;
         
-        // 根据屏幕方向切换计分板背景图片
-        const scoreboardKey = isLandscape ? AssetKeys.SCOREBOARD_LANDSCAPE : AssetKeys.SCOREBOARD_PORTRAIT;
-        this.scoreboardBackground.setTexture(scoreboardKey);
+        // 检测当前是否为横屏模式
+        const isLandscape = this.currentLayout === landscapeLayout;
         
-        // 更新计分板背景位置和尺寸
-        this.scoreboardBackground.setPosition(layout.background.x, layout.background.y);
-        this.scoreboardBackground.setDisplaySize(layout.background.width, layout.background.height);
+        // 根据屏幕方向设置文本对齐方式
+        if (isLandscape) {
+            // 横屏模式：左对齐
+            this.timeText.setOrigin(0, 0.5);
+            this.scoreText.setOrigin(0, 0.5);
+            this.movesText.setOrigin(0, 0.5);
+        } else {
+            // 竖屏模式：居中对齐
+            this.timeText.setOrigin(0.5, 0.5);
+            this.scoreText.setOrigin(0.5, 0.5);
+            this.movesText.setOrigin(0.5, 0.5);
+        }
         
-        // 更新时间显示位置和字体大小
-        this.timeTitle.setPosition(layout.time.title.x, layout.time.title.y);
-        this.timeTitle.setFontSize(layout.time.title.fontSize);
-        this.timeValue.setPosition(layout.time.value.x, layout.time.value.y);
-        this.timeValue.setFontSize(layout.time.value.fontSize);
+        // 更新横板格式的计分板文本位置和字体大小
+        this.timeText.setPosition(layout.time.x, layout.time.y);
+        this.timeText.setFontSize(layout.time.fontSize);
         
-        // 更新分数显示位置和字体大小
-        this.scoreTitle.setPosition(layout.score.title.x, layout.score.title.y);
-        this.scoreTitle.setFontSize(layout.score.title.fontSize);
-        this.scoreValue.setPosition(layout.score.value.x, layout.score.value.y);
-        this.scoreValue.setFontSize(layout.score.value.fontSize);
+        this.scoreText.setPosition(layout.score.x, layout.score.y);
+        this.scoreText.setFontSize(layout.score.fontSize);
         
-        // 更新步数显示位置和字体大小
-        this.movesTitle.setPosition(layout.moves.title.x, layout.moves.title.y);
-        this.movesTitle.setFontSize(layout.moves.title.fontSize);
-        this.movesValue.setPosition(layout.moves.value.x, layout.moves.value.y);
-        this.movesValue.setFontSize(layout.moves.value.fontSize);
+        this.movesText.setPosition(layout.moves.x, layout.moves.y);
+        this.movesText.setFontSize(layout.moves.fontSize);
         
         // 隐藏的兼容性元素不需要位置更新
     }
@@ -1185,12 +1167,12 @@ export class Game extends Scene {
             debugMode: this.debugMode
         });
         
-        // 更新新的计分板显示
-        this.movesValue.setText(this.moves.toString());
-        
-        // 保持兼容性，更新隐藏的旧文本
+        // 更新横板格式的计分板显示
         const t = getTranslation();
         this.movesText.setText(`${t.moves}${this.moves}`);
+        
+        // 保持兼容性，更新隐藏的分离元素
+        this.movesValue.setText(this.moves.toString());
 
         // 当移动次数超过配置的最大步数时自动下载
         this.checkMaxMovesAndDownload();
@@ -1230,23 +1212,25 @@ export class Game extends Scene {
     private updateScore(points: number): void {
         this.score += points;
         
-        // 更新新的计分板显示
-        this.scoreValue.setText(this.score.toString());
-        
-        // 保持兼容性，更新隐藏的旧文本
+        // 更新横板格式的计分板显示
         const t = getTranslation();
         this.scoreText.setText(`${t.score}${this.score}`);
+        
+        // 保持兼容性，更新隐藏的分离元素
+        this.scoreValue.setText(this.score.toString());
     }
 
     // 更新时间显示
     private updateTimeDisplay(): void {
         let elapsedSeconds: number;
+        const t = getTranslation();
         
         if (this.isTimerStopped) {
             // 计时器已停止，显示停止时的时间
             elapsedSeconds = this.stoppedTime;
         } else if (!this.isTimerStarted) {
             // 计时器未启动时显示 00:00
+            this.timeText.setText(`${t.time}00:00`);
             this.timeValue.setText('00:00');
             return;
         } else {
@@ -1259,6 +1243,9 @@ export class Game extends Scene {
         const seconds = elapsedSeconds % 60;
         
         const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        this.timeText.setText(`${t.time}${timeString}`);
+        
+        // 保持兼容性，更新隐藏的分离元素
         this.timeValue.setText(timeString);
     }
 

@@ -9,5 +9,6 @@ export type Language =
 export interface Translation {
     moves: string;
     score: string;
+    time: string;
     playNow: string;
 }

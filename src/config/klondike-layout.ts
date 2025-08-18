@@ -127,53 +127,25 @@ export interface LayoutPositions {
         y: number;
     };
     
-    // 计分板配置
+    // 计分板配置 - 横板格式（合并标题和数值）
     scoreboard: {
-        // 背景图片位置和尺寸
-        background: {
-            x: number;
-            y: number;
-            width: number;
-            height: number;
-        };
         // 时间项目
         time: {
-            title: {
-                x: number;
-                y: number;
-                fontSize: number;
-            };
-            value: {
-                x: number;
-                y: number;
-                fontSize: number;
-            };
+            x: number;
+            y: number;
+            fontSize: number;
         };
         // 分数项目
         score: {
-            title: {
-                x: number;
-                y: number;
-                fontSize: number;
-            };
-            value: {
-                x: number;
-                y: number;
-                fontSize: number;
-            };
+            x: number;
+            y: number;
+            fontSize: number;
         };
         // 步数项目
         moves: {
-            title: {
-                x: number;
-                y: number;
-                fontSize: number;
-            };
-            value: {
-                x: number;
-                y: number;
-                fontSize: number;
-            };
+            x: number;
+            y: number;
+            fontSize: number;
         };
     };
     
@@ -254,48 +226,21 @@ export const portraitLayout: LayoutPositions = {
     },
     
     scoreboard: {
-        background: {
-            x: 540,  // 居中
-            y: 60,
-            width: 800,  // 竖屏计分板宽度
-            height: 120, // 竖屏计分板高度
-        },
         // 竖屏模式：横向分布，时间-分数-步数
         time: {
-            title: {
-                x: 240,  // 左侧位置
-                y: 30,
-                fontSize: 32,
-            },
-            value: {
-                x: 240,
-                y: 70,
-                fontSize: 48,
-            },
+            x: 240,  // 左侧位置
+            y: 60,
+            fontSize: 48,
         },
         score: {
-            title: {
-                x: 540,  // 中间位置
-                y: 25,
-                fontSize: 32,
-            },
-            value: {
-                x: 540,
-                y: 65,
-                fontSize: 48,
-            },
+            x: 540,  // 中间位置
+            y: 60,
+            fontSize: 48,
         },
         moves: {
-            title: {
-                x: 840,  // 右侧位置
-                y: 30,
-                fontSize: 32,
-            },
-            value: {
-                x: 840,
-                y: 70,
-                fontSize: 48,
-            },
+            x: 840,  // 右侧位置
+            y: 60,
+            fontSize: 48,
         },
     },
     
@@ -375,48 +320,21 @@ export const landscapeLayout: LayoutPositions = {
     },
     
     scoreboard: {
-        background: {
-            x: 1600, // 右侧位置
-            y: 300,
-            width: 280,  // 横屏计分板宽度
-            height: 400, // 横屏计分板高度
-        },
         // 横屏模式：纵向排列，时间在上，分数中间，步数在下
         time: {
-            title: {
-                x: 1600,
-                y: 130,
-                fontSize: 28,
-            },
-            value: {
-                x: 1600,
-                y: 180,
-                fontSize: 42,
-            },
+            x: 1350,
+            y: 150,
+            fontSize: 64,
         },
         score: {
-            title: {
-                x: 1600,
-                y: 270,
-                fontSize: 28,
-            },
-            value: {
-                x: 1600,
-                y: 320,
-                fontSize: 42,
-            },
+            x: 1350,
+            y: 300,
+            fontSize: 64,
         },
         moves: {
-            title: {
-                x: 1600,
-                y: 410,
-                fontSize: 28,
-            },
-            value: {
-                x: 1600,
-                y: 460,
-                fontSize: 42,
-            },
+            x: 1350,
+            y: 450,
+            fontSize: 64,
         },
     },
     
