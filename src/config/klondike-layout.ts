@@ -5,8 +5,8 @@ export type CardValue = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '1
 // 调试变量 - 方便调整间距
 export const DEBUG_SPACING = {
     // 卡牌纵向间距
-    PORTRAIT_CARD_GAP: 35,    // 竖屏模式卡牌间距
-    LANDSCAPE_CARD_GAP: 20,   // 横屏模式卡牌间距（缩短）
+    PORTRAIT_CARD_GAP: 55,    // 竖屏模式卡牌间距
+    LANDSCAPE_CARD_GAP: 55,   // 横屏模式卡牌间距（缩短）
     
     // 其他间距（预留）
     COLUMN_GAP: 140,          // 列间距
@@ -156,10 +156,24 @@ export interface LayoutPositions {
         scale?: number; // 可选的缩放比例
     };
     
-    // 下载按钮位置
+    // 下载按钮位置和样式配置
     downloadButton: {
         x: number;
         y: number;
+        width: number;
+        height: number;
+        fontSize: number;
+        fontFamily?: string;
+        fontStyle?: string;
+        textColor?: string;
+        backgroundColor?: number;
+        borderColor?: number;
+        borderWidth?: number;
+        borderRadius?: number;
+        // 动画配置
+        hoverScale?: number;
+        breathingScale?: number;
+        breathingDuration?: number;
     };
     
     // 暗色蒙版位置（仅横屏模式）
@@ -260,7 +274,21 @@ export const portraitLayout: LayoutPositions = {
     
     downloadButton: {
         x: 540,  // 居中
-        y: 1840, // 底部
+        y: 1780, // 底部
+        width: 320,
+        height: 80,
+        fontSize: 28,
+        fontFamily: 'Arial, sans-serif',
+        fontStyle: 'bold',
+        textColor: '#00AA00', // 绿色文字
+        backgroundColor: 0xffffff, // 白色背景
+        borderColor: 0xcccccc, // 浅灰色边框
+        borderWidth: 2,
+        borderRadius: 40, // 胶囊形状：圆角半径为高度的一半
+        // 动画配置
+        hoverScale: 1.05,
+        breathingScale: 1.1,
+        breathingDuration: 500,
     },
     
     
@@ -348,13 +376,27 @@ export const landscapeLayout: LayoutPositions = {
     
     productName: {
         x: 1600, // 右上角区域
-        y: 80,   // 顶部
+        y: 780,   // 顶部
         scale: 0.8, // 横屏时稍微缩小
     },
     
     downloadButton: {
-        x: 960,  // 水平居中 (1920 / 2)
+        x: 1600,  // 水平居中 (1920 / 2)
         y: 980, // 距离底部50单位 (1080 - 50)
+        width: 320,
+        height: 80,
+        fontSize: 28,
+        fontFamily: 'Arial, sans-serif',
+        fontStyle: 'bold',
+        textColor: '#00AA00', // 绿色文字
+        backgroundColor: 0xffffff, // 白色背景
+        borderColor: 0xcccccc, // 浅灰色边框
+        borderWidth: 2,
+        borderRadius: 40, // 胶囊形状：圆角半径为高度的一半
+        // 动画配置
+        hoverScale: 1.05,
+        breathingScale: 1.1,
+        breathingDuration: 500,
     },
     
     // 暗色蒙版位置（横屏模式）
