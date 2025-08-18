@@ -376,16 +376,16 @@ export const landscapeLayout: LayoutPositions = {
     
     productName: {
         x: 1600, // 右上角区域
-        y: 780,   // 顶部
+        y: 700,   // 顶部
         scale: 0.8, // 横屏时稍微缩小
     },
     
     downloadButton: {
         x: 1600,  // 水平居中 (1920 / 2)
-        y: 980, // 距离底部50单位 (1080 - 50)
+        y: 800, // 距离底部50单位 (1080 - 50)
         width: 320,
         height: 80,
-        fontSize: 28,
+        fontSize: 32,
         fontFamily: 'Arial, sans-serif',
         fontStyle: 'bold',
         textColor: '#00AA00', // 绿色文字

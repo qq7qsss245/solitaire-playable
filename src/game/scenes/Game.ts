@@ -733,6 +733,9 @@ export class Game extends Scene {
         // 保存按钮引用（现在是容器而不是图片）
         this.playNowButton = buttonContainer as any;
         
+        // 设置深度层级，确保高于暗色蒙版(10)
+        buttonContainer.setDepth(20);
+        
         // 添加呼吸动画效果（使用配置的动画参数）
         this.tweens.add({
             targets: buttonContainer,
@@ -983,18 +986,112 @@ export class Game extends Scene {
         // 隐藏的兼容性元素不需要位置更新
     }
 
+    /**
+     * 重绘下载按钮的背景和样式
+     * 提取自 createPlayNowButton() 方法，用于响应式更新
+     */
+    private redrawPlayNowButton(buttonConfig: any): void {
+        if (!this.playNowButton) return;
+        
+        // 获取国际化文案
+        const translation = getTranslation();
+        
+        // 清除容器中的所有子元素
+        this.playNowButton.removeAll(true);
+        
+        // 重新创建按钮背景
+        const buttonBackground = this.add.graphics();
+        buttonBackground.fillStyle(buttonConfig.backgroundColor || 0xffffff, 1);
+        buttonBackground.fillRoundedRect(
+            -buttonConfig.width / 2,
+            -buttonConfig.height / 2,
+            buttonConfig.width,
+            buttonConfig.height,
+            buttonConfig.borderRadius || 0
+        );
+        
+        // 添加按钮边框
+        if (buttonConfig.borderWidth && buttonConfig.borderColor !== undefined) {
+            buttonBackground.lineStyle(buttonConfig.borderWidth, buttonConfig.borderColor, 1);
+            buttonBackground.strokeRoundedRect(
+                -buttonConfig.width / 2,
+                -buttonConfig.height / 2,
+                buttonConfig.width,
+                buttonConfig.height,
+                buttonConfig.borderRadius || 0
+            );
+        }
+        
+        // 重新创建文字
+        this.playNowText = this.add.text(0, 0, translation.playNow, {
+            fontSize: `${buttonConfig.fontSize}px`,
+            fontFamily: buttonConfig.fontFamily || 'Arial, sans-serif',
+            color: buttonConfig.textColor || '#000000',
+            fontStyle: buttonConfig.fontStyle || 'normal'
+        });
+        this.playNowText.setOrigin(0.5, 0.5);
+        
+        // 将新的背景和文字添加到容器
+        this.playNowButton.add([buttonBackground, this.playNowText]);
+        
+        // 更新交互区域
+        this.playNowButton.setSize(buttonConfig.width, buttonConfig.height);
+    }
+
     private updatePlayNowButtonPosition(): void {
         // 使用防护机制：如果 currentLayout 未初始化，则根据屏幕方向选择默认布局
         const layout = this.currentLayout || (window.innerWidth / window.innerHeight > 1 ? landscapeLayout : portraitLayout);
-        this.playNowButton.setPosition(layout.downloadButton.x, layout.downloadButton.y);
-        // 容器会自动处理内部元素的相对位置，无需额外更新
+        const buttonConfig = layout.downloadButton;
+        
+        // 重绘按钮以适应新的尺寸和样式
+        this.redrawPlayNowButton(buttonConfig);
+        
+        // 更新位置
+        this.playNowButton.setPosition(buttonConfig.x, buttonConfig.y);
+        
+        // 停止现有的动画
+        this.tweens.killTweensOf(this.playNowButton);
+        
+        // 重新添加呼吸动画效果（使用新配置的动画参数）
+        this.tweens.add({
+            targets: this.playNowButton,
+            scale: buttonConfig.breathingScale || 1.1,
+            duration: buttonConfig.breathingDuration || 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
     }
 
     private updateAutoCompleteButtonPosition(): void {
         // 使用防护机制：如果 currentLayout 未初始化，则根据屏幕方向选择默认布局
         const layout = this.currentLayout || (window.innerWidth / window.innerHeight > 1 ? landscapeLayout : portraitLayout);
-        // AutoComplete按钮覆盖下载按钮位置
-        this.autoCompleteButton.setPosition(layout.downloadButton.x, layout.downloadButton.y);
+        const buttonConfig = layout.downloadButton;
+        
+        // AutoComplete按钮覆盖下载按钮位置，并适应新的尺寸
+        this.autoCompleteButton.setPosition(buttonConfig.x, buttonConfig.y);
+        
+        // 根据新的按钮配置调整 AutoComplete 按钮的缩放
+        // 计算相对于默认尺寸的缩放比例
+        const baseScale = 0.8; // AutoComplete 按钮的基础缩放
+        const scaleFactorX = buttonConfig.width / 320; // 相对于竖屏默认宽度的比例
+        const scaleFactorY = buttonConfig.height / 80;  // 相对于竖屏默认高度的比例
+        const scaleFactor = Math.min(scaleFactorX, scaleFactorY); // 使用较小的比例保持比例
+        
+        this.autoCompleteButton.setScale(baseScale * scaleFactor);
+        
+        // 停止现有的动画
+        this.tweens.killTweensOf(this.autoCompleteButton);
+        
+        // 重新添加呼吸动画效果（使用调整后的缩放）
+        this.tweens.add({
+            targets: this.autoCompleteButton,
+            scale: baseScale * scaleFactor * 1.05,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
     }
 
     private updateProductNamePosition(): void {
