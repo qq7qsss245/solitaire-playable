@@ -1,7 +1,6 @@
 import { EventBus } from '../EventBus';
 import { GameObjects, Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
-import { VendorInfo } from '../components/VendorInfo';
 import { StockStackManager } from '../managers/StockStackManager';
 import {
     generateKlondikeLayout,
@@ -65,7 +64,8 @@ export class Game extends Scene {
     private playNowButton: Phaser.GameObjects.Image;
     private playNowText: Phaser.GameObjects.Text;
     private autoCompleteButton: Phaser.GameObjects.Image; // AutoComplete按钮
-    private vendorInfo: VendorInfo; // 厂商信息组件
+    private productName: Phaser.GameObjects.Image; // 产品名称图片
+    private darkMask: Phaser.GameObjects.Image; // 暗色蒙版（仅横屏模式）
     
     // 游戏统计
     private score: number = 0;
@@ -560,7 +560,8 @@ export class Game extends Scene {
         this.createScoreboard();
         this.createPlayNowButton();
         this.createAutoCompleteButton();
-        this.createVendorInfo();
+        this.createProductName();
+        this.createDarkMask();
     }
 
     private createZones(): void {
@@ -729,6 +730,31 @@ export class Game extends Scene {
         }
     }
 
+    private createProductName(): void {
+        // 创建产品名称图片
+        this.productName = this.add.image(0, 0, AssetKeys.PRODUCT_NAME);
+        this.productName.setDepth(50); // 设置合适的深度层级
+        
+        // 根据当前布局设置初始缩放
+        const layout = this.currentLayout || portraitLayout;
+        const scale = layout.productName?.scale || 1.0;
+        this.productName.setScale(scale);
+        
+        console.log('🎮 ProductName created with scale:', scale);
+    }
+
+    private createDarkMask(): void {
+        // 创建暗色蒙版图片
+        this.darkMask = this.add.image(0, 0, AssetKeys.DARK_MASK);
+        this.darkMask.setDepth(10); // 设置较低的深度层级，低于计分板(50)、productName(50)、下载按钮等
+        this.darkMask.setOrigin(0, 0.5); // 设置原点为左中，方便定位到右侧
+        
+        // 初始状态隐藏，只在横屏模式下显示
+        this.darkMask.setVisible(false);
+        
+        console.log('🎮 DarkMask created');
+    }
+
     private createHandGuide(): void {
         // 创建引导手势图片
         this.handGuide = this.add.image(0, 0, 'hand');
@@ -737,14 +763,6 @@ export class Game extends Scene {
         this.handGuide.setScale(0.8);
     }
 
-    private createVendorInfo(): void {
-        // 创建厂商信息组件
-        const layout = this.currentLayout || portraitLayout;
-        this.vendorInfo = new VendorInfo(this, layout.vendorInfo);
-        
-        // 设置深度确保在其他UI元素之上
-        this.vendorInfo.setDepth(200);
-    }
 
     private updateGameSize(): void {
         const width = window.innerWidth;
@@ -777,7 +795,8 @@ export class Game extends Scene {
         this.updateScoreboardPosition();
         this.updatePlayNowButtonPosition();
         this.updateAutoCompleteButtonPosition();
-        this.updateVendorInfoPosition();
+        this.updateProductNamePosition();
+        this.updateDarkMaskPosition();
     }
 
     private updateTableauPositions(): void {
@@ -917,6 +936,62 @@ export class Game extends Scene {
         this.autoCompleteButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
     }
 
+    private updateProductNamePosition(): void {
+        if (!this.productName || !this.currentLayout.productName) {
+            return;
+        }
+        
+        // 设置位置
+        this.productName.setPosition(
+            this.currentLayout.productName.x,
+            this.currentLayout.productName.y
+        );
+        
+        // 根据布局更新缩放
+        const scale = this.currentLayout.productName.scale || 1.0;
+        this.productName.setScale(scale);
+        
+        console.log('🎮 ProductName position updated:', {
+            x: this.currentLayout.productName.x,
+            y: this.currentLayout.productName.y,
+            scale: scale
+        });
+    }
+
+    private updateDarkMaskPosition(): void {
+        if (!this.darkMask) {
+            return;
+        }
+
+        // 检测当前是否为横屏模式
+        const isLandscape = this.currentLayout === landscapeLayout;
+        
+        if (isLandscape && this.currentLayout.darkMask) {
+            // 横屏模式：显示暗色蒙版
+            this.darkMask.setVisible(true);
+            
+            // 设置位置和尺寸
+            const maskConfig = this.currentLayout.darkMask;
+            this.darkMask.setPosition(maskConfig.x, maskConfig.y);
+            
+            // 根据配置的宽度和高度设置显示尺寸
+            this.darkMask.setDisplaySize(maskConfig.width, maskConfig.height);
+            
+            console.log('🎮 DarkMask position updated (landscape):', {
+                x: maskConfig.x,
+                y: maskConfig.y,
+                width: maskConfig.width,
+                height: maskConfig.height,
+                visible: true
+            });
+        } else {
+            // 竖屏模式：隐藏暗色蒙版
+            this.darkMask.setVisible(false);
+            
+            console.log('🎮 DarkMask hidden (portrait mode)');
+        }
+    }
+
     /**
      * 更新AutoComplete按钮的显示状态
      */
@@ -937,13 +1012,6 @@ export class Game extends Scene {
         }
     }
 
-    private updateVendorInfoPosition(): void {
-        if (this.vendorInfo) {
-            // 销毁旧的厂商信息组件并重新创建，以使用新的布局配置
-            this.vendorInfo.destroy();
-            this.createVendorInfo();
-        }
-    }
 
     private onResize(): void {
         this.updateGameSize();

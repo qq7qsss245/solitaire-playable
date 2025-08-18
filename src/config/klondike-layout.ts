@@ -149,17 +149,25 @@ export interface LayoutPositions {
         };
     };
     
+    // 产品名称位置
+    productName: {
+        x: number;
+        y: number;
+        scale?: number; // 可选的缩放比例
+    };
+    
     // 下载按钮位置
     downloadButton: {
         x: number;
         y: number;
     };
     
-    // 厂商信息组件位置配置
-    vendorInfo: {
-        icon: { x: number, y: number, scale: number };
-        productName: { x: number, y: number, scale: number };
-        fiveStars: { x: number, y: number, scale: number };
+    // 暗色蒙版位置（仅横屏模式）
+    darkMask?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
     };
     
     // 教学文案位置配置
@@ -244,17 +252,17 @@ export const portraitLayout: LayoutPositions = {
         },
     },
     
+    productName: {
+        x: 540,  // 水平居中
+        y: 1630, // 底部区域，在下载按钮上方
+        scale: 1.0,
+    },
+    
     downloadButton: {
         x: 540,  // 居中
         y: 1840, // 底部
     },
     
-    // 厂商信息组件位置配置 - 竖屏模式：右下角
-    vendorInfo: {
-        icon: { x: 750, y: 1600, scale: 0.5 },
-        productName: { x: 920, y: 1570, scale: 0.4 },
-        fiveStars: { x: 920, y: 1630, scale: 0.4 }
-    },
     
     // 教学文案位置配置
     guideTexts: {
@@ -338,16 +346,23 @@ export const landscapeLayout: LayoutPositions = {
         },
     },
     
+    productName: {
+        x: 1600, // 右上角区域
+        y: 80,   // 顶部
+        scale: 0.8, // 横屏时稍微缩小
+    },
+    
     downloadButton: {
         x: 960,  // 水平居中 (1920 / 2)
         y: 980, // 距离底部50单位 (1080 - 50)
     },
     
-    // 厂商信息组件位置配置 - 横屏模式：右下角，避免与计分板重叠
-    vendorInfo: {
-        icon: { x: 1450, y: 800, scale: 0.6 },
-        productName: { x: 1680, y: 760, scale: 0.5 },
-        fiveStars: { x: 1680, y: 835, scale: 0.5 }
+    // 暗色蒙版位置（横屏模式）
+    darkMask: {
+        x: 1200,  // 紧贴右侧（图片左边缘位置）
+        y: 540,   // 垂直居中 (1080 / 2)
+        width: 900,  // 蒙版宽度（可调整）
+        height: 1080, // 占满屏幕高度
     },
     
     // 教学文案位置配置

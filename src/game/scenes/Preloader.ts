@@ -65,10 +65,9 @@ export class Preloader extends Scene {
 
         // 加载UI图片
         this.load.image(AssetKeys.HAND, Assets.ui.hand);
-        this.load.image(AssetKeys.ICON, Assets.ui.icon);
         this.load.image(AssetKeys.PLAY_FREE, Assets.ui.playFree);
         this.load.image(AssetKeys.PRODUCT_NAME, Assets.ui.productName);
-        this.load.image(AssetKeys.FIVE_STARS, Assets.ui.fiveStars);
+        this.load.image(AssetKeys.DARK_MASK, Assets.ui.darkMask);
 
         // 加载卡槽图片 - 按花色分别加载
         this.load.image(AssetKeys.SLOT_HEART, Assets.ui.slots.heart);
@@ -130,7 +129,6 @@ export class Preloader extends Scene {
         this.load.image('card-fill', Assets.ui.slots.heart); // 用于空区域显示，使用红桃卡槽作为默认
         this.load.image('download', Assets.ui.playFree); // 下载按钮
         this.load.image('hand', Assets.ui.hand);
-        this.load.image('icon', Assets.ui.icon);
 
         // 方块牌 - 兼容性映射
         this.load.image('方块A', Assets.cards.values.red.A);

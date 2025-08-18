@@ -49,10 +49,9 @@ import faceK from './images/cards/face-cards/k.png';
 
 // UI图片
 import hand from './images/ui/hand.png';
-import icon from './images/ui/icon.png';
 import playFree from './images/ui/play-free.png';
 import productName from './images/ui/product-name.png';
-import fiveStars from './images/ui/five-stars.png';
+import darkMask from './images/ui/dark-mask.png';
 
 // 新增按钮资源
 import autoCompleteButton from './images/ui/buttons/auto-complete.png';
@@ -224,10 +223,9 @@ export const Assets = {
   // UI元素
   ui: {
     hand,
-    icon,
     playFree,
     productName,
-    fiveStars,
+    darkMask,
     buttons: {
       autoComplete: autoCompleteButton,
       again: againButton,
@@ -356,10 +354,9 @@ export const AssetKeys = {
   
   // UI元素
   HAND: 'hand',
-  ICON: 'icon',
   PLAY_FREE: 'play-free',
   PRODUCT_NAME: 'product-name',
-  FIVE_STARS: 'five-stars',
+  DARK_MASK: 'dark-mask',
   
   // 新增按钮
   AUTO_COMPLETE_BUTTON: 'auto-complete-button',
