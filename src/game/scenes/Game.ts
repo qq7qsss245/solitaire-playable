@@ -61,7 +61,7 @@ export class Game extends Scene {
     private stockZone: Phaser.GameObjects.Sprite; // 库存牌堆区域
     // 移除wasteZone - 翻牌区域不需要背景卡槽，翻出的牌直接显示
     public foundationZones: Phaser.GameObjects.Sprite[] = []; // 基础牌堆区域
-    private playNowButton: Phaser.GameObjects.Image;
+    private playNowButton: Phaser.GameObjects.Container;
     private playNowText: Phaser.GameObjects.Text;
     private autoCompleteButton: Phaser.GameObjects.Image; // AutoComplete按钮
     private productName: Phaser.GameObjects.Image; // 产品名称图片
@@ -666,20 +666,79 @@ export class Game extends Scene {
     }
 
     private createPlayNowButton(): void {
-        // 创建按钮背景（图片本身带文案，不需要额外文本）
-        this.playNowButton = this.add.image(0, 0, 'download');
-        this.playNowButton.setScale(0.8);
-        this.playNowButton.setInteractive();
-        this.playNowButton.on('pointerdown', () => {
+        // 获取国际化文案
+        const translation = getTranslation();
+        
+        // 从配置文件获取按钮参数
+        const buttonConfig = this.currentLayout.downloadButton;
+        const buttonWidth = buttonConfig.width;
+        const buttonHeight = buttonConfig.height;
+        const cornerRadius = buttonConfig.borderRadius || buttonHeight / 2; // 使用配置的圆角或默认值
+        
+        // 创建按钮容器
+        const buttonContainer = this.add.container(0, 0);
+        
+        // 创建按钮背景
+        const buttonBackground = this.add.graphics();
+        const backgroundColor = buttonConfig.backgroundColor ?
+            parseInt(buttonConfig.backgroundColor.replace('#', '0x')) : 0xffffff;
+        buttonBackground.fillStyle(backgroundColor, 1);
+        buttonBackground.fillRoundedRect(
+            -buttonWidth / 2,
+            -buttonHeight / 2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        
+        // 添加按钮边框（可选，增强视觉效果）
+        buttonBackground.lineStyle(2, 0xcccccc, 1); // 浅灰色边框
+        buttonBackground.strokeRoundedRect(
+            -buttonWidth / 2,
+            -buttonHeight / 2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        
+        // 创建文字，使用配置的字体参数
+        this.playNowText = this.add.text(0, 0, translation.playNow, {
+            fontSize: `${buttonConfig.fontSize}px`,
+            fontFamily: buttonConfig.fontFamily || 'Arial, sans-serif',
+            color: buttonConfig.textColor || '#00AA00',
+            fontStyle: buttonConfig.fontStyle || 'bold'
+        });
+        this.playNowText.setOrigin(0.5, 0.5); // 居中对齐
+        
+        // 将背景和文字添加到容器
+        buttonContainer.add([buttonBackground, this.playNowText]);
+        
+        // 设置交互
+        buttonContainer.setSize(buttonWidth, buttonHeight);
+        buttonContainer.setInteractive();
+        
+        // 添加点击事件
+        buttonContainer.on('pointerdown', () => {
             EventBus.emit('play-ui-click');
             download();
         });
-
-        // 移除文本创建和文本动画，因为图片本身带文案
-        // 只保留按钮缩放动画
+        
+        // 添加悬停效果
+        buttonContainer.on('pointerover', () => {
+            buttonContainer.setScale(1.05);
+        });
+        
+        buttonContainer.on('pointerout', () => {
+            buttonContainer.setScale(1.0);
+        });
+        
+        // 保存按钮引用（现在是容器而不是图片）
+        this.playNowButton = buttonContainer as any;
+        
+        // 添加呼吸动画效果
         this.tweens.add({
-            targets: this.playNowButton,
-            scale: 0.8 * 1.1,
+            targets: buttonContainer,
+            scale: 1.1,
             duration: 500,
             yoyo: true,
             repeat: -1,
@@ -927,8 +986,56 @@ export class Game extends Scene {
     }
 
     private updatePlayNowButtonPosition(): void {
-        this.playNowButton.setPosition(this.currentLayout.downloadButton.x, this.currentLayout.downloadButton.y);
-        // 移除文本位置更新，因为不再显示文本
+        const buttonConfig = this.currentLayout.downloadButton;
+        
+        // 更新按钮位置
+        this.playNowButton.setPosition(buttonConfig.x, buttonConfig.y);
+        
+        // 更新按钮尺寸和交互区域
+        this.playNowButton.setSize(buttonConfig.width, buttonConfig.height);
+        
+        // 更新按钮内部元素（背景和文字）
+        if (this.playNowButton && this.playNowButton.list && this.playNowButton.list.length >= 2) {
+            const buttonBackground = this.playNowButton.list[0] as Phaser.GameObjects.Graphics;
+            const playNowText = this.playNowButton.list[1] as Phaser.GameObjects.Text;
+            
+            // 重新绘制背景
+            if (buttonBackground) {
+                const cornerRadius = buttonConfig.borderRadius || buttonConfig.height / 2;
+                const backgroundColor = buttonConfig.backgroundColor ?
+                    parseInt(buttonConfig.backgroundColor.replace('#', '0x')) : 0xffffff;
+                
+                buttonBackground.clear();
+                buttonBackground.fillStyle(backgroundColor, 1);
+                buttonBackground.fillRoundedRect(
+                    -buttonConfig.width / 2,
+                    -buttonConfig.height / 2,
+                    buttonConfig.width,
+                    buttonConfig.height,
+                    cornerRadius
+                );
+                
+                // 重新绘制边框
+                buttonBackground.lineStyle(2, 0xcccccc, 1);
+                buttonBackground.strokeRoundedRect(
+                    -buttonConfig.width / 2,
+                    -buttonConfig.height / 2,
+                    buttonConfig.width,
+                    buttonConfig.height,
+                    cornerRadius
+                );
+            }
+            
+            // 更新文字样式
+            if (playNowText) {
+                playNowText.setStyle({
+                    fontSize: `${buttonConfig.fontSize}px`,
+                    fontFamily: buttonConfig.fontFamily || 'Arial, sans-serif',
+                    color: buttonConfig.textColor || '#00AA00',
+                    fontStyle: buttonConfig.fontStyle || 'bold'
+                });
+            }
+        }
     }
 
     private updateAutoCompleteButtonPosition(): void {

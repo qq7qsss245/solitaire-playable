@@ -127,7 +127,8 @@ export class Preloader extends Scene {
         // 这些可以在后续重构时逐步替换为新的键名
         this.load.image('card-back', Assets.cards.back);
         this.load.image('card-fill', Assets.ui.slots.heart); // 用于空区域显示，使用红桃卡槽作为默认
-        this.load.image('download', Assets.ui.playFree); // 下载按钮
+        // 移除下载按钮图片加载，现在使用代码绘制的按钮
+        // this.load.image('download', Assets.ui.playFree); // 下载按钮
         this.load.image('hand', Assets.ui.hand);
 
         // 方块牌 - 兼容性映射
