@@ -12,7 +12,8 @@ const AUTO_COMPLETE_CONFIG = {
     CARD_FLIGHT_DURATION: 300,  // 卡牌飞行时间(ms)
     STOCK_FLIP_DURATION: 200,   // Stock翻牌时间(ms)
     MAX_LOOP_ITERATIONS: 100,   // 最大循环次数保护
-    DEBUG_MODE: false           // 调试模式开关
+    DEBUG_MODE: false,          // 调试模式开关
+    BUTTON_FADE_DURATION: 400   // 按钮淡出动画时长(ms)
 };
 
 // 卡牌移动动作接口
@@ -83,7 +84,7 @@ export class AutoCompleteManager {
 
             console.log('✅ AutoComplete完成');
             
-            // 延迟确保所有收牌动画完成，然后检测胜利
+            // 延迟确保所有收牌动画完成，然后检测胜利并执行淡出动画
             setTimeout(() => {
                 console.log('🏆 AutoComplete完成后检测胜利状态...');
                 console.log('🔍 当前Foundation状态:', this.scene.foundation.map(pile => pile.cards.length));
@@ -95,6 +96,9 @@ export class AutoCompleteManager {
                     console.log('🔍 游戏尚未完成，继续等待玩家操作');
                     console.log('🔍 需要每个Foundation都有13张牌才能胜利');
                 }
+                
+                // 无论是否胜利，都执行按钮淡出动画
+                this.requestButtonFadeOut();
             }, 800); // 增加延迟时间，确保所有动画完成
         } catch (error) {
             console.error('❌ AutoComplete执行失败:', error);
@@ -1241,6 +1245,17 @@ export class AutoCompleteManager {
         if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
             console.log('🚫 AutoComplete: 调用隐藏Stock区域');
         }
+    }
+
+    /**
+     * 请求Game场景执行AutoComplete按钮淡出动画
+     * 在自动完成功能执行完成后调用，提供优雅的按钮消失动画
+     */
+    private requestButtonFadeOut(): void {
+        console.log('🎭 请求AutoComplete按钮淡出动画');
+        
+        // 通过Game场景的公共方法来执行淡出动画
+        this.scene.fadeOutAutoCompleteButton();
     }
 
     /**

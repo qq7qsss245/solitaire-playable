@@ -806,6 +806,36 @@ export class Game extends Scene {
         }
     }
 
+    /**
+     * 淡出AutoComplete按钮
+     * 提供优雅的按钮消失动画效果
+     */
+    public fadeOutAutoCompleteButton(): void {
+        if (!this.autoCompleteButton) {
+            console.log('🔍 AutoComplete按钮不存在，跳过淡出动画');
+            return;
+        }
+
+        console.log('🎭 开始AutoComplete按钮淡出动画');
+        
+        // 停止可能存在的呼吸动画
+        this.tweens.killTweensOf(this.autoCompleteButton);
+        
+        // 执行淡出动画
+        this.tweens.add({
+            targets: this.autoCompleteButton,
+            alpha: 0,
+            duration: 400, // 400ms淡出时长
+            ease: 'Power2.easeOut',
+            onComplete: () => {
+                // 动画完成后隐藏按钮并重置透明度
+                this.autoCompleteButton.setVisible(false);
+                this.autoCompleteButton.setAlpha(1); // 重置透明度，以备下次显示
+                console.log('✅ AutoComplete按钮淡出动画完成');
+            }
+        });
+    }
+
     private createProductName(): void {
         // 创建产品名称图片
         this.productName = this.add.image(0, 0, AssetKeys.PRODUCT_NAME);
