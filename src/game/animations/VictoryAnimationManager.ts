@@ -2,6 +2,75 @@ import { Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
 
 /**
+ * 圆环中心位置配置
+ *
+ * 🎯 **配置模式说明**：
+ *
+ * **1. center 模式（居中）**：
+ * ```typescript
+ * {
+ *   mode: 'center',
+ *   offsetX: 0,     // 可选：在屏幕中心基础上的X偏移
+ *   offsetY: -50    // 可选：在屏幕中心基础上的Y偏移（向上偏移50px）
+ * }
+ * ```
+ *
+ * **2. relative 模式（相对比例）**：
+ * ```typescript
+ * {
+ *   mode: 'relative',
+ *   relativeX: 0.6,  // 屏幕宽度的60%位置
+ *   relativeY: 0.4,  // 屏幕高度的40%位置
+ *   offsetX: 20,     // 可选：额外偏移
+ *   offsetY: 0
+ * }
+ * ```
+ *
+ * **3. absolute 模式（绝对坐标）**：
+ * ```typescript
+ * {
+ *   mode: 'absolute',
+ *   absoluteX: 400,  // 固定X坐标400px
+ *   absoluteY: 300,  // 固定Y坐标300px
+ *   offsetX: 0,      // 可选：额外偏移
+ *   offsetY: 0
+ * }
+ * ```
+ *
+ * **4. 横竖屏不同配置示例**：
+ * ```typescript
+ * circleCenter: {
+ *   portrait: {      // 竖屏：圆环稍微上移
+ *     mode: 'center',
+ *     offsetX: 0,
+ *     offsetY: -80
+ *   },
+ *   landscape: {     // 横屏：圆环居中
+ *     mode: 'center',
+ *     offsetX: 0,
+ *     offsetY: 0
+ *   }
+ * }
+ * ```
+ */
+export interface CircleCenterConfig {
+    /** 中心位置模式：'center' | 'relative' | 'absolute' */
+    mode: 'center' | 'relative' | 'absolute';
+    
+    /** 相对模式：相对于屏幕尺寸的比例 (0.0-1.0) */
+    relativeX?: number;
+    relativeY?: number;
+    
+    /** 绝对模式：固定像素坐标 */
+    absoluteX?: number;
+    absoluteY?: number;
+    
+    /** 偏移量：在计算出的位置基础上的偏移 */
+    offsetX?: number;
+    offsetY?: number;
+}
+
+/**
  * 胜利动画配置
  */
 export interface VictoryAnimationConfig {
@@ -15,6 +84,11 @@ export interface VictoryAnimationConfig {
     CIRCLE_CARD_COUNT: number;
     /** 多余卡牌淡出时间(ms) */
     FADE_OUT_DURATION: number;
+    /** 圆环中心位置配置 */
+    circleCenter: {
+        portrait: CircleCenterConfig;   // 竖屏配置
+        landscape: CircleCenterConfig;  // 横屏配置
+    };
 }
 
 /**
@@ -42,7 +116,23 @@ export const DEFAULT_VICTORY_CONFIG: VictoryAnimationConfig = {
     CARD_FLY_TO_CIRCLE_DURATION: 300, // 卡牌飞到圆环顶部的时间(ms)
     CIRCLE_RADIUS: 480,               // 圆环半径(px)
     CIRCLE_CARD_COUNT: 24,            // 参与圆环旋转的最大卡牌数量
-    FADE_OUT_DURATION: 100            // 多余卡牌淡出时间(ms)
+    FADE_OUT_DURATION: 100,           // 多余卡牌淡出时间(ms)
+    
+    // 圆环中心位置配置
+    circleCenter: {
+        // 竖屏配置：默认居中模式
+        portrait: {
+            mode: 'center',
+            offsetX: 0,
+            offsetY: 0
+        },
+        // 横屏配置：默认居中模式
+        landscape: {
+            mode: 'center',
+            offsetX: -350,
+            offsetY: 0
+        }
+    }
 };
 
 /**
@@ -122,18 +212,85 @@ export class VictoryAnimationManager {
     }
 
     /**
-     * 更新屏幕中心位置
+     * 检测当前屏幕方向
+     * @returns 'portrait' | 'landscape'
+     */
+    private detectScreenOrientation(): 'portrait' | 'landscape' {
+        const width = this.scene.cameras.main.width;
+        const height = this.scene.cameras.main.height;
+        return width > height ? 'landscape' : 'portrait';
+    }
+
+    /**
+     * 根据配置计算圆环中心位置
+     * @param config 圆环中心位置配置
+     * @returns 计算后的中心坐标
+     */
+    private calculateCenterPosition(config: CircleCenterConfig): { x: number; y: number } {
+        const screenWidth = this.scene.cameras.main.width;
+        const screenHeight = this.scene.cameras.main.height;
+        
+        let centerX: number;
+        let centerY: number;
+        
+        switch (config.mode) {
+            case 'center':
+                // 居中模式：屏幕中心
+                centerX = screenWidth / 2;
+                centerY = screenHeight / 2;
+                break;
+                
+            case 'relative':
+                // 相对模式：相对于屏幕尺寸的比例
+                centerX = screenWidth * (config.relativeX ?? 0.5);
+                centerY = screenHeight * (config.relativeY ?? 0.5);
+                break;
+                
+            case 'absolute':
+                // 绝对模式：固定像素坐标
+                centerX = config.absoluteX ?? screenWidth / 2;
+                centerY = config.absoluteY ?? screenHeight / 2;
+                break;
+                
+            default:
+                // 默认居中
+                centerX = screenWidth / 2;
+                centerY = screenHeight / 2;
+                break;
+        }
+        
+        // 应用偏移量
+        centerX += config.offsetX ?? 0;
+        centerY += config.offsetY ?? 0;
+        
+        return { x: centerX, y: centerY };
+    }
+
+    /**
+     * 更新屏幕中心位置（配置化版本）
      */
     private updateScreenCenter(): void {
-        console.log('[ROTATION_DEBUG] 🎯 updateScreenCenter 开始执行');
+        console.log('[ROTATION_DEBUG] 🎯 updateScreenCenter 开始执行（配置化版本）');
         console.log('[ROTATION_DEBUG] 📊 场景状态检查:');
         console.log(`[ROTATION_DEBUG]   场景存在: ${!!this.scene}`);
         console.log(`[ROTATION_DEBUG]   相机存在: ${!!this.scene?.cameras?.main}`);
         console.log(`[ROTATION_DEBUG]   相机宽度: ${this.scene?.cameras?.main?.width}`);
         console.log(`[ROTATION_DEBUG]   相机高度: ${this.scene?.cameras?.main?.height}`);
         
-        this.centerX = this.scene.cameras.main.width / 2;
-        this.centerY = this.scene.cameras.main.height / 2;
+        // 检测屏幕方向
+        const orientation = this.detectScreenOrientation();
+        console.log(`[ROTATION_DEBUG] 📱 检测到屏幕方向: ${orientation}`);
+        
+        // 获取对应方向的配置
+        const centerConfig = this.config.circleCenter[orientation];
+        console.log(`[ROTATION_DEBUG] 📋 使用配置:`, centerConfig);
+        
+        // 根据配置计算中心位置
+        const centerPosition = this.calculateCenterPosition(centerConfig);
+        this.centerX = centerPosition.x;
+        this.centerY = centerPosition.y;
+        
+        console.log(`[ROTATION_DEBUG] 📐 配置化中心位置计算完成: (${this.centerX}, ${this.centerY})`);
         
         // 可选：根据屏幕尺寸限制圆环半径的最大值（防止超出屏幕）
         // 如果需要严格按照配置使用半径，可以注释掉下面这行
@@ -144,7 +301,7 @@ export class VictoryAnimationManager {
             this.config.CIRCLE_RADIUS = maxAllowedRadius;
         }
         
-        console.log(`[ROTATION_DEBUG] 📐 屏幕中心更新完成: (${this.centerX}, ${this.centerY}), 圆环半径: ${this.config.CIRCLE_RADIUS}`);
+        console.log(`[ROTATION_DEBUG] 📐 最终结果: 中心(${this.centerX}, ${this.centerY}), 圆环半径: ${this.config.CIRCLE_RADIUS}`);
     }
 
     /**
@@ -926,6 +1083,58 @@ export class VictoryAnimationManager {
         } catch (error) {
             console.error('[ROTATION_DEBUG] ❌ 备用动画方案失败:', error);
         }
+    }
+
+    /**
+     * 动态更新圆环中心位置配置
+     * @param orientation 屏幕方向 ('portrait' | 'landscape')
+     * @param config 新的圆环中心配置
+     */
+    public updateCircleCenterConfig(orientation: 'portrait' | 'landscape', config: CircleCenterConfig): void {
+        console.log(`[CONFIG_UPDATE] 🔧 更新${orientation}模式的圆环中心配置:`, config);
+        
+        // 更新配置
+        this.config.circleCenter[orientation] = { ...config };
+        
+        // 如果当前就是这个方向，立即更新中心位置
+        const currentOrientation = this.detectScreenOrientation();
+        if (currentOrientation === orientation) {
+            console.log(`[CONFIG_UPDATE] 📱 当前方向匹配，立即更新中心位置`);
+            this.updateScreenCenter();
+            
+            // 如果动画正在进行，更新旋转卡牌位置
+            if (this.isAnimationActive) {
+                this.updateRotatingCardsPosition();
+            }
+        }
+        
+        console.log(`[CONFIG_UPDATE] ✅ 圆环中心配置更新完成`);
+    }
+
+    /**
+     * 获取当前圆环中心位置配置
+     * @param orientation 可选：指定方向，不指定则返回当前方向的配置
+     * @returns 圆环中心位置配置
+     */
+    public getCircleCenterConfig(orientation?: 'portrait' | 'landscape'): CircleCenterConfig {
+        const targetOrientation = orientation || this.detectScreenOrientation();
+        return { ...this.config.circleCenter[targetOrientation] };
+    }
+
+    /**
+     * 获取当前计算出的圆环中心坐标
+     * @returns 当前圆环中心坐标
+     */
+    public getCurrentCenterPosition(): { x: number; y: number } {
+        return { x: this.centerX, y: this.centerY };
+    }
+
+    /**
+     * 获取当前屏幕方向
+     * @returns 当前屏幕方向
+     */
+    public getCurrentOrientation(): 'portrait' | 'landscape' {
+        return this.detectScreenOrientation();
     }
 
     /**
