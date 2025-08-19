@@ -4,7 +4,7 @@ import { Game } from '../scenes/Game';
 import { CardSuit, CardValue } from '../../config/klondike-layout';
 import { EventBus } from '../EventBus';
 import { AssetKeys } from '../../assets';
-import outputConfig from '../../config/output-config.json';
+import { getOutputConfigValue, getOutputConfigValueAsync } from '../../utils/outputConfigLoader';
 
 // AutoComplete配置参数
 const AUTO_COMPLETE_CONFIG = {
@@ -12,7 +12,7 @@ const AUTO_COMPLETE_CONFIG = {
     CARD_FLIGHT_DURATION: 300,  // 卡牌飞行时间(ms)
     STOCK_FLIP_DURATION: 200,   // Stock翻牌时间(ms)
     MAX_LOOP_ITERATIONS: 100,   // 最大循环次数保护
-    DEBUG_MODE: false,          // 调试模式开关
+    DEBUG_MODE: true,           // 调试模式开关 - 启用以便观察按钮显示逻辑
     BUTTON_FADE_DURATION: 400   // 按钮淡出动画时长(ms)
 };
 
@@ -715,7 +715,7 @@ export class AutoCompleteManager {
      * 播放卡牌飞行动画（根据配置选择轨迹）
      */
     private playCardFlightAnimation(card: CardComponent, targetX: number, targetY: number): Promise<void> {
-        const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
+        const trajectory = getOutputConfigValue('autoCompleteAnimation.trajectory', 'curve') as 'linear' | 'curve';
         
         if (trajectory === 'linear') {
             return this.playLinearFlightAnimation(card, targetX, targetY);
@@ -990,18 +990,21 @@ export class AutoCompleteManager {
     public canShowAutoCompleteButton(): boolean {
         // 检查步数是否达到配置的阈值
         const currentMoves = this.scene.getCurrentMoves();
-        const requiredMoves = outputConfig.autoCompleteButton?.showAfterMoves || 30;
+        const requiredMoves = getOutputConfigValue('autoCompleteButton.showAfterMoves', 30);
         const movesReached = currentMoves >= requiredMoves;
         
-        // 检查游戏状态条件
-        const allFaceUp = this.areAllTableauCardsFaceUp();
-        const hasCollectable = this.hasCollectableCards();
-        
-        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-            console.log(`🔍 AutoComplete按钮显示检查: 步数=${currentMoves}/${requiredMoves}, 所有卡牌翻开=${allFaceUp}, 有可收牌=${hasCollectable}`);
+        // 🔧 修复：步数达到配置值后强制显示，不管其他条件
+        if (movesReached) {
+            console.log(`🔘 步数已达到${requiredMoves}，强制显示AutoComplete按钮 (当前步数: ${currentMoves})`);
+            return true;
         }
         
-        return movesReached && allFaceUp && hasCollectable;
+        // 步数未达到时，不显示按钮
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 AutoComplete按钮显示检查: 步数=${currentMoves}/${requiredMoves} - 未达到显示条件`);
+        }
+        
+        return false;
     }
 
     /**
@@ -1094,7 +1097,7 @@ export class AutoCompleteManager {
             });
 
             // 飞行动画：整个过程移动到目标位置（根据配置选择轨迹）
-            const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
+            const trajectory = getOutputConfigValue('autoCompleteAnimation.trajectory', 'curve') as 'linear' | 'curve';
             
             const onAnimationComplete = () => {
                 // 动画完成后从StockStackManager中移除卡牌
@@ -1190,7 +1193,7 @@ export class AutoCompleteManager {
                     }
                     
                     // 第二阶段：放大并飞行（根据配置选择轨迹）
-                    const trajectory = outputConfig.autoCompleteAnimation?.trajectory || 'curve';
+                    const trajectory = getOutputConfigValue('autoCompleteAnimation.trajectory', 'curve') as 'linear' | 'curve';
                     
                     if (trajectory === 'linear') {
                         // 直线飞行

@@ -463,7 +463,7 @@ export const landscapeLayout: LayoutPositions = {
     darkMask: {
         x: 1200,  // 紧贴右侧（图片左边缘位置）
         y: 540,   // 垂直居中 (1080 / 2)
-        width: 900,  // 蒙版宽度（可调整）
+        width: 1900,  // 蒙版宽度（可调整）
         height: 1080, // 占满屏幕高度
     },
     

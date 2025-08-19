@@ -858,7 +858,15 @@ export class Game extends Scene {
         // 初始状态隐藏，只在横屏模式下显示
         this.darkMask.setVisible(false);
         
-        console.log('🎮 DarkMask created');
+        // 获取原始图片尺寸用于调试
+        const originalWidth = this.darkMask.width;
+        const originalHeight = this.darkMask.height;
+        
+        console.log('🎮 DarkMask created with original size:', {
+            originalWidth,
+            originalHeight,
+            textureKey: AssetKeys.DARK_MASK
+        });
     }
 
     private createHandGuide(): void {
@@ -1180,6 +1188,7 @@ export class Game extends Scene {
 
     private updateDarkMaskPosition(): void {
         if (!this.darkMask) {
+            console.log('🎮 DarkMask: darkMask object is null/undefined');
             return;
         }
 
@@ -1188,21 +1197,81 @@ export class Game extends Scene {
         
         if (isLandscape && this.currentLayout.darkMask) {
             // 横屏模式：显示暗色蒙版
-            this.darkMask.setVisible(true);
-            
-            // 设置位置和尺寸
             const maskConfig = this.currentLayout.darkMask;
+            
+            // 详细调试：检查原点设置
+            console.log('🎮 DarkMask: Current origin before update:', {
+                originX: this.darkMask.originX,
+                originY: this.darkMask.originY
+            });
+            
+            // 先设置位置和尺寸，再设置可见性
             this.darkMask.setPosition(maskConfig.x, maskConfig.y);
             
-            // 根据配置的宽度和高度设置显示尺寸
+            // 尝试多种方式设置尺寸
+            console.log('🎮 DarkMask: Before setDisplaySize:', {
+                width: this.darkMask.width,
+                height: this.darkMask.height,
+                displayWidth: this.darkMask.displayWidth,
+                displayHeight: this.darkMask.displayHeight,
+                scaleX: this.darkMask.scaleX,
+                scaleY: this.darkMask.scaleY
+            });
+            
+            // 方法1: 使用 setDisplaySize
             this.darkMask.setDisplaySize(maskConfig.width, maskConfig.height);
             
+            console.log('🎮 DarkMask: After setDisplaySize:', {
+                width: this.darkMask.width,
+                height: this.darkMask.height,
+                displayWidth: this.darkMask.displayWidth,
+                displayHeight: this.darkMask.displayHeight,
+                scaleX: this.darkMask.scaleX,
+                scaleY: this.darkMask.scaleY
+            });
+            
+            // 方法2: 如果 setDisplaySize 无效，尝试使用 setScale
+            if (this.darkMask.displayWidth !== maskConfig.width || this.darkMask.displayHeight !== maskConfig.height) {
+                console.log('🎮 DarkMask: setDisplaySize failed, trying setScale');
+                const scaleX = maskConfig.width / this.darkMask.width;
+                const scaleY = maskConfig.height / this.darkMask.height;
+                this.darkMask.setScale(scaleX, scaleY);
+                
+                console.log('🎮 DarkMask: After setScale:', {
+                    scaleX: scaleX,
+                    scaleY: scaleY,
+                    actualScaleX: this.darkMask.scaleX,
+                    actualScaleY: this.darkMask.scaleY,
+                    displayWidth: this.darkMask.displayWidth,
+                    displayHeight: this.darkMask.displayHeight
+                });
+            }
+            
+            // 最后设置可见性
+            this.darkMask.setVisible(true);
+            
+            // 获取实际的显示尺寸和位置进行验证
+            const actualBounds = this.darkMask.getBounds();
+            
             console.log('🎮 DarkMask position updated (landscape):', {
-                x: maskConfig.x,
-                y: maskConfig.y,
-                width: maskConfig.width,
-                height: maskConfig.height,
-                visible: true
+                configX: maskConfig.x,
+                configY: maskConfig.y,
+                configWidth: maskConfig.width,
+                configHeight: maskConfig.height,
+                actualX: this.darkMask.x,
+                actualY: this.darkMask.y,
+                actualDisplayWidth: this.darkMask.displayWidth,
+                actualDisplayHeight: this.darkMask.displayHeight,
+                actualBounds: {
+                    x: actualBounds.x,
+                    y: actualBounds.y,
+                    width: actualBounds.width,
+                    height: actualBounds.height
+                },
+                originX: this.darkMask.originX,
+                originY: this.darkMask.originY,
+                visible: this.darkMask.visible,
+                depth: this.darkMask.depth
             });
         } else {
             // 竖屏模式：隐藏暗色蒙版
