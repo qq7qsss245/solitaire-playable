@@ -395,7 +395,7 @@ export class VictoryAnimationManager {
             const currentRadius = this.getCurrentCircleRadius();
             const newX = this.centerX + currentRadius * Math.cos(angle);
             const newY = this.centerY + currentRadius * Math.sin(angle);
-            const newRotation = angle + Math.PI / 2; // 纵向指向圆心
+            const newRotation = angle + Math.PI / 2 + Math.PI; // 🎯 **修改：+π让卡牌上方朝向圆心**
             
             console.log(`🔄 卡牌 ${index}: 目标角度=${(targetAngle * 180 / Math.PI).toFixed(1)}°, 当前角度=${(currentAngle * 180 / Math.PI).toFixed(1)}°`);
             console.log(`🔄 卡牌 ${index}: 从 (${card.x.toFixed(1)}, ${card.y.toFixed(1)}) 移动到 (${newX.toFixed(1)}, ${newY.toFixed(1)})`);
@@ -544,7 +544,7 @@ export class VictoryAnimationManager {
                 const currentRadius = this.getCurrentCircleRadius();
                 const x = this.centerX + currentRadius * Math.cos(angle);
                 const y = this.centerY + currentRadius * Math.sin(angle);
-                const rotation = angle + Math.PI / 2; // 纵向指向圆心
+                const rotation = angle + Math.PI / 2 + Math.PI; // 🎯 **修改：+π让卡牌上方朝向圆心**
                 
                 card.setPosition(x, y);
                 card.setRotation(rotation);
@@ -1025,7 +1025,7 @@ export class VictoryAnimationManager {
             targets: card,
             x: topX,
             y: topY,
-            rotation: 0, // 🎯 **关键：初始旋转角度为0（指向圆环顶部）**
+            rotation: Math.PI, // 🎯 **修改：旋转180度，让卡牌上方朝向圆环中心**
             duration: this.config.CARD_FLY_TO_CIRCLE_DURATION,
             // 🔧 **修复圆环分布不均匀问题**：使用linear缓动确保所有卡牌以相同速度飞行
             // 这样可以保证卡牌到达圆环顶部的时间间隔完全一致，避免因缓动函数导致的时序偏差
@@ -1139,7 +1139,7 @@ export class VictoryAnimationManager {
                 const currentRadius = this.getCurrentCircleRadius();
                 const x = this.centerX + currentRadius * Math.cos(angle);
                 const y = this.centerY + currentRadius * Math.sin(angle);
-                const rotation = angle + Math.PI / 2; // 纵向指向圆心
+                const rotation = angle + Math.PI / 2 + Math.PI; // 🎯 **修改：+π让卡牌上方朝向圆心**
                 
                 card.setPosition(x, y);
                 card.setRotation(rotation);
