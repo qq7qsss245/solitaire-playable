@@ -5,8 +5,8 @@ export type CardValue = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '1
 // 调试变量 - 方便调整间距
 export const DEBUG_SPACING = {
     // 卡牌纵向间距
-    PORTRAIT_CARD_GAP: 55,    // 竖屏模式卡牌间距
-    LANDSCAPE_CARD_GAP: 55,   // 横屏模式卡牌间距（缩短）
+    PORTRAIT_CARD_GAP: 45,    // 竖屏模式卡牌间距
+    LANDSCAPE_CARD_GAP: 45,   // 横屏模式卡牌间距（缩短）
     
     // 其他间距（预留）
     COLUMN_GAP: 140,          // 列间距

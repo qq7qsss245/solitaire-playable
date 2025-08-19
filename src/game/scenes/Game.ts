@@ -1464,6 +1464,9 @@ export class Game extends Scene {
         // 保持兼容性，更新隐藏的分离元素
         this.movesValue.setText(this.moves.toString());
 
+        // 检查并更新 AutoComplete 按钮显示状态
+        this.updateAutoCompleteButtonVisibility();
+
         // 当移动次数超过配置的最大步数时自动下载
         this.checkMaxMovesAndDownload();
     }
@@ -2048,6 +2051,14 @@ export class Game extends Scene {
 
     public addMove(): void {
         this.incrementMoves();
+    }
+
+    /**
+     * 获取当前移动次数
+     * 供 AutoCompleteManager 等外部组件调用
+     */
+    public getCurrentMoves(): number {
+        return this.moves;
     }
 
     public getSuitExplosionManager(): any {

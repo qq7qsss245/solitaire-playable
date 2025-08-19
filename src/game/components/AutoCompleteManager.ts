@@ -985,17 +985,23 @@ export class AutoCompleteManager {
 
     /**
      * 检查是否可以显示AutoComplete按钮
-     * 条件：所有tableau卡牌都翻开 且 有可收的牌
+     * 条件：步数达到配置阈值 且 (所有tableau卡牌都翻开 且 有可收的牌)
      */
     public canShowAutoCompleteButton(): boolean {
+        // 检查步数是否达到配置的阈值
+        const currentMoves = this.scene.getCurrentMoves();
+        const requiredMoves = outputConfig.autoCompleteButton?.showAfterMoves || 30;
+        const movesReached = currentMoves >= requiredMoves;
+        
+        // 检查游戏状态条件
         const allFaceUp = this.areAllTableauCardsFaceUp();
         const hasCollectable = this.hasCollectableCards();
         
         if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-            console.log(`🔍 AutoComplete按钮显示检查: 所有卡牌翻开=${allFaceUp}, 有可收牌=${hasCollectable}`);
+            console.log(`🔍 AutoComplete按钮显示检查: 步数=${currentMoves}/${requiredMoves}, 所有卡牌翻开=${allFaceUp}, 有可收牌=${hasCollectable}`);
         }
         
-        return allFaceUp && hasCollectable;
+        return movesReached && allFaceUp && hasCollectable;
     }
 
     /**
