@@ -597,9 +597,6 @@ export class VictoryAnimationManager {
         });
         
         try {
-            // 创建并显示胜利动画中心元素
-            this.createVictoryElements();
-            
             // 新方案：卡牌飞到圆环顶部并开始独立旋转
             console.log('[ROTATION_DEBUG] 🚀 准备开始卡牌飞行和旋转阶段');
             console.log('[ROTATION_DEBUG] 🔍 DEBUG: 动画卡牌数量检查:', this.animationCards.length);
@@ -616,6 +613,10 @@ export class VictoryAnimationManager {
             
             await this.playCardsFlyToTopAndRotatePhase();
             console.log('[ROTATION_DEBUG] ✅ 卡牌飞行和旋转阶段完成');
+            
+            // 🎯 所有卡牌飞入圆环后，创建并显示胜利动画中心元素
+            console.log('[ROTATION_DEBUG] 🎨 所有卡牌已飞入圆环，开始显示胜利元素');
+            this.createVictoryElements();
             
         } catch (error) {
             console.error('[ROTATION_DEBUG] ❌ 胜利动画播放失败:', error);
