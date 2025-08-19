@@ -52,6 +52,7 @@ import hand from './images/ui/hand.png';
 import playFree from './images/ui/play-free.png';
 import productName from './images/ui/product-name.png';
 import darkMask from './images/ui/dark-mask.png';
+import icon from './images/ui/icon.png';
 
 // 新增按钮资源
 import autoCompleteButton from './images/ui/buttons/auto-complete.png';
@@ -226,6 +227,7 @@ export const Assets = {
     playFree,
     productName,
     darkMask,
+    icon,
     buttons: {
       autoComplete: autoCompleteButton,
       again: againButton,
@@ -357,6 +359,7 @@ export const AssetKeys = {
   PLAY_FREE: 'play-free',
   PRODUCT_NAME: 'product-name',
   DARK_MASK: 'dark-mask',
+  ICON: 'icon',
   
   // 新增按钮
   AUTO_COMPLETE_BUTTON: 'auto-complete-button',

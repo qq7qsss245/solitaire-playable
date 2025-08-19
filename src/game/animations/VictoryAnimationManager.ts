@@ -1,5 +1,7 @@
 import { Scene } from 'phaser';
 import { Card as CardComponent } from '../components/Card';
+import { AssetKeys } from '../../assets';
+import { portraitLayout, landscapeLayout } from '../../config/klondike-layout';
 
 /**
  * 圆环中心位置配置
@@ -78,12 +80,15 @@ export interface VictoryAnimationConfig {
     CIRCLE_ROTATION_DURATION: number;
     /** 卡牌飞到圆环位置的时间(ms) */
     CARD_FLY_TO_CIRCLE_DURATION: number;
-    /** 圆环半径(px) */
-    CIRCLE_RADIUS: number;
     /** 参与圆环旋转的卡牌数量 */
     CIRCLE_CARD_COUNT: number;
     /** 多余卡牌淡出时间(ms) */
     FADE_OUT_DURATION: number;
+    /** 圆环半径配置(px) */
+    circleRadius: {
+        portrait: number;   // 竖屏半径
+        landscape: number;  // 横屏半径
+    };
     /** 圆环中心位置配置 */
     circleCenter: {
         portrait: CircleCenterConfig;   // 竖屏配置
@@ -114,9 +119,14 @@ export interface VictoryAnimationConfig {
 export const DEFAULT_VICTORY_CONFIG: VictoryAnimationConfig = {
     CIRCLE_ROTATION_DURATION: 2560,   // 圆环旋转一周的时间(ms) - 延时圆环的核心参数
     CARD_FLY_TO_CIRCLE_DURATION: 300, // 卡牌飞到圆环顶部的时间(ms)
-    CIRCLE_RADIUS: 480,               // 圆环半径(px)
     CIRCLE_CARD_COUNT: 24,            // 参与圆环旋转的最大卡牌数量
     FADE_OUT_DURATION: 100,           // 多余卡牌淡出时间(ms)
+    
+    // 圆环半径配置(px)
+    circleRadius: {
+        portrait: 480,    // 竖屏半径
+        landscape: 400    // 横屏半径（稍小一些适应横屏布局）
+    },
     
     // 圆环中心位置配置
     circleCenter: {
@@ -129,7 +139,7 @@ export const DEFAULT_VICTORY_CONFIG: VictoryAnimationConfig = {
         // 横屏配置：默认居中模式
         landscape: {
             mode: 'center',
-            offsetX: -350,
+            offsetX: -400,
             offsetY: 0
         }
     }
@@ -170,6 +180,10 @@ export class VictoryAnimationManager {
     private rotationTween?: Phaser.Tweens.Tween;
     private isAnimationActive: boolean = false;
     private orientationChangeHandler?: () => void; // 保存orientationchange事件处理器的引用
+    
+    // 胜利动画中心元素
+    private victoryIcon?: Phaser.GameObjects.Image;
+    private solitaireText?: Phaser.GameObjects.Image;
 
     constructor(scene: Scene, config: VictoryAnimationConfig = DEFAULT_VICTORY_CONFIG) {
         this.scene = scene;
@@ -222,6 +236,9 @@ export class VictoryAnimationManager {
         // 如果有正在旋转的卡牌，更新它们的位置
         this.updateRotatingCardsPosition();
         
+        // 更新胜利元素位置
+        this.updateVictoryElementsPosition();
+        
         console.log('📱 屏幕方向变化处理完成');
     }
 
@@ -233,6 +250,15 @@ export class VictoryAnimationManager {
         const width = this.scene.cameras.main.width;
         const height = this.scene.cameras.main.height;
         return width > height ? 'landscape' : 'portrait';
+    }
+
+    /**
+     * 获取当前屏幕方向对应的圆环半径
+     * @returns 当前方向的圆环半径
+     */
+    private getCurrentCircleRadius(): number {
+        const orientation = this.detectScreenOrientation();
+        return this.config.circleRadius[orientation];
     }
 
     /**
@@ -308,14 +334,15 @@ export class VictoryAnimationManager {
         
         // 可选：根据屏幕尺寸限制圆环半径的最大值（防止超出屏幕）
         // 如果需要严格按照配置使用半径，可以注释掉下面这行
+        const currentRadius = this.getCurrentCircleRadius();
         const minDimension = Math.min(this.scene.cameras.main.width, this.scene.cameras.main.height);
         const maxAllowedRadius = minDimension * 0.4; // 增加到40%，给更多空间
-        if (this.config.CIRCLE_RADIUS > maxAllowedRadius) {
-            console.warn(`[ROTATION_DEBUG] ⚠️ 圆环半径 ${this.config.CIRCLE_RADIUS} 超出屏幕限制，调整为 ${maxAllowedRadius}`);
-            this.config.CIRCLE_RADIUS = maxAllowedRadius;
+        if (currentRadius > maxAllowedRadius) {
+            console.warn(`[ROTATION_DEBUG] ⚠️ 圆环半径 ${currentRadius} 超出屏幕限制，调整为 ${maxAllowedRadius}`);
+            this.config.circleRadius[orientation] = maxAllowedRadius;
         }
         
-        console.log(`[ROTATION_DEBUG] 📐 最终结果: 中心(${this.centerX}, ${this.centerY}), 圆环半径: ${this.config.CIRCLE_RADIUS}`);
+        console.log(`[ROTATION_DEBUG] 📐 最终结果: 中心(${this.centerX}, ${this.centerY}), 圆环半径: ${this.getCurrentCircleRadius()}`);
     }
 
     /**
@@ -365,8 +392,9 @@ export class VictoryAnimationManager {
             
             // 🎯 **计算新圆环中心下的位置**
             const angle = currentAngle - Math.PI / 2; // 转换为标准坐标系（顶部为起点）
-            const newX = this.centerX + this.config.CIRCLE_RADIUS * Math.cos(angle);
-            const newY = this.centerY + this.config.CIRCLE_RADIUS * Math.sin(angle);
+            const currentRadius = this.getCurrentCircleRadius();
+            const newX = this.centerX + currentRadius * Math.cos(angle);
+            const newY = this.centerY + currentRadius * Math.sin(angle);
             const newRotation = angle + Math.PI / 2; // 纵向指向圆心
             
             console.log(`🔄 卡牌 ${index}: 目标角度=${(targetAngle * 180 / Math.PI).toFixed(1)}°, 当前角度=${(currentAngle * 180 / Math.PI).toFixed(1)}°`);
@@ -513,8 +541,9 @@ export class VictoryAnimationManager {
                 
                 // 🧮 **实时位置计算**
                 const angle = currentAngle - Math.PI / 2; // 转换为标准坐标系
-                const x = this.centerX + this.config.CIRCLE_RADIUS * Math.cos(angle);
-                const y = this.centerY + this.config.CIRCLE_RADIUS * Math.sin(angle);
+                const currentRadius = this.getCurrentCircleRadius();
+                const x = this.centerX + currentRadius * Math.cos(angle);
+                const y = this.centerY + currentRadius * Math.sin(angle);
                 const rotation = angle + Math.PI / 2; // 纵向指向圆心
                 
                 card.setPosition(x, y);
@@ -563,11 +592,14 @@ export class VictoryAnimationManager {
         console.log('[ROTATION_DEBUG] 📋 动画配置:', {
             CIRCLE_ROTATION_DURATION: this.config.CIRCLE_ROTATION_DURATION,
             CARD_FLY_TO_CIRCLE_DURATION: this.config.CARD_FLY_TO_CIRCLE_DURATION,
-            CIRCLE_RADIUS: this.config.CIRCLE_RADIUS,
+            CIRCLE_RADIUS: this.getCurrentCircleRadius(),
             CIRCLE_CARD_COUNT: this.config.CIRCLE_CARD_COUNT
         });
         
         try {
+            // 创建并显示胜利动画中心元素
+            this.createVictoryElements();
+            
             // 新方案：卡牌飞到圆环顶部并开始独立旋转
             console.log('[ROTATION_DEBUG] 🚀 准备开始卡牌飞行和旋转阶段');
             console.log('[ROTATION_DEBUG] 🔍 DEBUG: 动画卡牌数量检查:', this.animationCards.length);
@@ -852,10 +884,11 @@ export class VictoryAnimationManager {
         // 🎯 **步骤1：计算圆环顶部的固定位置**
         // 所有卡牌都要先飞到这个位置
         const circleTopX = this.centerX;
-        const circleTopY = this.centerY - this.config.CIRCLE_RADIUS;
+        const currentRadius = this.getCurrentCircleRadius();
+        const circleTopY = this.centerY - currentRadius;
         console.log('[DELAY_RING_DEBUG] 📐 圆环顶部位置:', { circleTopX, circleTopY });
         console.log('[DELAY_RING_DEBUG] 📐 屏幕中心:', { centerX: this.centerX, centerY: this.centerY });
-        console.log('[DELAY_RING_DEBUG] 📐 圆环半径:', this.config.CIRCLE_RADIUS);
+        console.log('[DELAY_RING_DEBUG] 📐 圆环半径:', currentRadius);
 
         // 🎯 **步骤2：延时计算的数学分析**
         const actualCardCount = this.animationCards.length;
@@ -1040,7 +1073,7 @@ export class VictoryAnimationManager {
             rotationDuration,
             centerX: this.centerX,
             centerY: this.centerY,
-            circleRadius: this.config.CIRCLE_RADIUS
+            circleRadius: this.getCurrentCircleRadius()
         });
         
         if (!card) {
@@ -1102,8 +1135,9 @@ export class VictoryAnimationManager {
                 // 🧮 **延时圆环位置计算**
                 // 转换为标准坐标系：从圆环顶部开始（-π/2）
                 const angle = currentAngle - Math.PI / 2;
-                const x = this.centerX + this.config.CIRCLE_RADIUS * Math.cos(angle);
-                const y = this.centerY + this.config.CIRCLE_RADIUS * Math.sin(angle);
+                const currentRadius = this.getCurrentCircleRadius();
+                const x = this.centerX + currentRadius * Math.cos(angle);
+                const y = this.centerY + currentRadius * Math.sin(angle);
                 const rotation = angle + Math.PI / 2; // 纵向指向圆心
                 
                 card.setPosition(x, y);
@@ -1336,10 +1370,95 @@ export class VictoryAnimationManager {
     }
 
     /**
+     * 创建胜利动画中心元素（icon和solitaire文字）
+     */
+    private createVictoryElements(): void {
+        console.log('🎨 创建胜利动画中心元素');
+        
+        // 获取当前屏幕方向
+        const orientation = this.detectScreenOrientation();
+        const layout = orientation === 'portrait' ? portraitLayout : landscapeLayout;
+        const victoryConfig = layout.victoryAnimation;
+        
+        // 创建游戏图标
+        this.victoryIcon = this.scene.add.image(
+            victoryConfig.icon.x,
+            victoryConfig.icon.y,
+            AssetKeys.ICON
+        );
+        this.victoryIcon.setScale(victoryConfig.icon.scale);
+        this.victoryIcon.setOrigin(0.5, 0.5);
+        this.victoryIcon.setAlpha(0); // 初始透明
+        this.victoryIcon.setDepth(3000); // 确保在圆环上方
+        
+        // 创建Solitaire文字
+        this.solitaireText = this.scene.add.image(
+            victoryConfig.solitaireText.x,
+            victoryConfig.solitaireText.y,
+            AssetKeys.SOLITAIRE_TEXT
+        );
+        this.solitaireText.setScale(victoryConfig.solitaireText.scale);
+        this.solitaireText.setOrigin(0.5, 0.5);
+        this.solitaireText.setAlpha(0); // 初始透明
+        this.solitaireText.setDepth(3000); // 确保在圆环上方
+        
+        // 淡入动画
+        this.scene.tweens.add({
+            targets: [this.victoryIcon, this.solitaireText],
+            alpha: 1,
+            duration: 800,
+            ease: 'Power2.easeOut',
+            onComplete: () => {
+                console.log('✨ 胜利元素淡入完成');
+            }
+        });
+        
+        console.log(`🎨 胜利元素创建完成 - 方向: ${orientation}`);
+        console.log(`🎨 图标位置: (${victoryConfig.icon.x}, ${victoryConfig.icon.y}), 缩放: ${victoryConfig.icon.scale}`);
+        console.log(`🎨 文字位置: (${victoryConfig.solitaireText.x}, ${victoryConfig.solitaireText.y}), 缩放: ${victoryConfig.solitaireText.scale}`);
+    }
+    
+    /**
+     * 更新胜利元素位置（屏幕方向变化时调用）
+     */
+    private updateVictoryElementsPosition(): void {
+        if (!this.victoryIcon || !this.solitaireText) {
+            return;
+        }
+        
+        console.log('🔄 更新胜利元素位置');
+        
+        // 获取当前屏幕方向
+        const orientation = this.detectScreenOrientation();
+        const layout = orientation === 'portrait' ? portraitLayout : landscapeLayout;
+        const victoryConfig = layout.victoryAnimation;
+        
+        // 更新图标位置和缩放
+        this.victoryIcon.setPosition(victoryConfig.icon.x, victoryConfig.icon.y);
+        this.victoryIcon.setScale(victoryConfig.icon.scale);
+        
+        // 更新文字位置和缩放
+        this.solitaireText.setPosition(victoryConfig.solitaireText.x, victoryConfig.solitaireText.y);
+        this.solitaireText.setScale(victoryConfig.solitaireText.scale);
+        
+        console.log(`🔄 胜利元素位置更新完成 - 方向: ${orientation}`);
+    }
+
+    /**
      * 销毁管理器
      */
     public destroy(): void {
         this.stopAnimation();
+        
+        // 清理胜利元素
+        if (this.victoryIcon) {
+            this.victoryIcon.destroy();
+            this.victoryIcon = undefined;
+        }
+        if (this.solitaireText) {
+            this.solitaireText.destroy();
+            this.solitaireText = undefined;
+        }
         
         // 清理所有卡牌的旋转动画引用
         this.animationCards.forEach(cardData => {

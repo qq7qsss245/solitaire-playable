@@ -235,6 +235,22 @@ export interface LayoutPositions {
             y: number;
         };
     };
+    
+    // 胜利动画配置
+    victoryAnimation: {
+        // 游戏图标配置
+        icon: {
+            x: number;
+            y: number;
+            scale: number;
+        };
+        // Solitaire文字配置
+        solitaireText: {
+            x: number;
+            y: number;
+            scale: number;
+        };
+    };
 }
 
 // 竖屏布局位置
@@ -361,6 +377,22 @@ export const portraitLayout: LayoutPositions = {
         complete: {
             x: 540,  // 与intro位置相同
             y: 1000, // 与intro位置相同
+        },
+    },
+    
+    // 胜利动画配置 - 竖屏模式：在圆环顶部并排显示
+    victoryAnimation: {
+        // 游戏图标配置
+        icon: {
+            x: 380,  // 左侧位置，为文字留出空间
+            y: 200,  // 圆环顶部区域
+            scale: 0.8,
+        },
+        // Solitaire文字配置
+        solitaireText: {
+            x: 620,  // 右侧位置，与图标并排
+            y: 200,  // 与图标同一水平线
+            scale: 0.8,
         },
     },
 };
@@ -496,6 +528,22 @@ export const landscapeLayout: LayoutPositions = {
         complete: {
             x: 606,  // 与intro位置相同
             y: 650,   // 与intro位置相同
+        },
+    },
+    
+    // 胜利动画配置 - 横屏模式：在圆环中心并排显示
+    victoryAnimation: {
+        // 游戏图标配置
+        icon: {
+            x: 460,  // 圆环中心左侧位置
+            y: 540,  // 垂直居中
+            scale: .6,
+        },
+        // Solitaire文字配置
+        solitaireText: {
+            x: 660, // 圆环中心右侧位置，与图标并排
+            y: 540,  // 与图标同一水平线
+            scale: .6,
         },
     },
 };

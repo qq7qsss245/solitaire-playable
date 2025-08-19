@@ -6,7 +6,7 @@
     "description": "收牌动画轨迹类型: 'linear' 直线 | 'curve' 弧线"
   },
   "autoCompleteButton": {
-    "showAfterMoves": 30,
+    "showAfterMoves": 100,
     "description": "步数达到此数值后显示 auto complete 按钮"
   }
 }

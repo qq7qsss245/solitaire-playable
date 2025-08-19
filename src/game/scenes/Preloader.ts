@@ -68,6 +68,7 @@ export class Preloader extends Scene {
         this.load.image(AssetKeys.PLAY_FREE, Assets.ui.playFree);
         this.load.image(AssetKeys.PRODUCT_NAME, Assets.ui.productName);
         this.load.image(AssetKeys.DARK_MASK, Assets.ui.darkMask);
+        this.load.image(AssetKeys.ICON, Assets.ui.icon);
 
         // 加载卡槽图片 - 按花色分别加载
         this.load.image(AssetKeys.SLOT_HEART, Assets.ui.slots.heart);

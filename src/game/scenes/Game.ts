@@ -1457,6 +1457,9 @@ export class Game extends Scene {
             this.restoreWasteCardInteraction(flippedCard);
         }
         
+        // 更新AutoComplete按钮显示状态（stock翻牌可能影响显示条件）
+        this.updateAutoCompleteButtonVisibility();
+        
         // 清理动画
         this.cleanupAnimation();
         
@@ -1914,6 +1917,9 @@ export class Game extends Scene {
         
         // 添加到新列
         this.tableau[columnIndex].cards.push(...allCards);
+        
+        // 播放卡牌移动音效
+        EventBus.emit('play-card-place');
         
         if (countMove) {
             this.incrementMoves();

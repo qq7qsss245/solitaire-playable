@@ -519,9 +519,9 @@ export class Card extends GameObjects.Container {
                 gameScene.tableau[originalColumnIndex].cards.indexOf(this) : -1;
             
             if (dropResult.canDrop) {
-                // 播放成功音效
-                EventBus.emit('play-card-place');
-
+                // 不在这里播放音效，让具体的目标位置决定播放什么音效
+                // 例如：foundation会播放play-slot-place，tableau会播放play-card-place
+                
                 // 开始动画移动
                 await this.animateMove(
                     dropResult.x!,
@@ -878,8 +878,8 @@ export class Card extends GameObjects.Container {
                 });
             });
             
-            // 播放移动音效
-            EventBus.emit('play-card-place');
+            // 不在这里播放音效，让具体的目标位置决定播放什么音效
+            // EventBus.emit('play-card-place');
         });
     }
 

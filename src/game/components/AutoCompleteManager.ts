@@ -63,9 +63,9 @@ export class AutoCompleteManager {
         this.isRunning = true;
 
         try {
-            // 首先检查并翻转所有未翻到正面的牌
-            console.log('🔄 检查deck中是否有未翻到正面的牌...');
-            await this.flipAllFaceDownCards();
+            // 只翻开tableau中的背面卡牌，stock卡牌在飞行时翻开
+            console.log('🔄 检查tableau中是否有未翻到正面的牌...');
+            await this.flipTableauFaceDownCards();
             
             console.log('📋 开始生成收牌序列...');
             // 生成收牌序列
@@ -988,24 +988,89 @@ export class AutoCompleteManager {
     }
 
     /**
+     * 检查deck中的所有卡牌是否都已翻开
+     * 包括tableau、stock、waste区域的所有卡牌
+     */
+    public areAllDeckCardsFaceUp(): boolean {
+        // 检查tableau区域的所有卡牌
+        for (let i = 0; i < this.scene.tableau.length; i++) {
+            const column = this.scene.tableau[i];
+            for (let j = 0; j < column.cards.length; j++) {
+                const card = column.cards[j];
+                if (!card.faceUp) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`❌ tableau中发现背面朝上的卡牌: 列${i}[${j}] ${card.suit}${card.value}`);
+                    }
+                    return false;
+                }
+            }
+        }
+
+        // 检查stock区域的所有卡牌
+        if (this.scene.stock && this.scene.stock.cards) {
+            for (let i = 0; i < this.scene.stock.cards.length; i++) {
+                const card = this.scene.stock.cards[i];
+                if (!card.faceUp) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`❌ stock中发现背面朝上的卡牌: [${i}] ${card.suit}${card.value}`);
+                    }
+                    return false;
+                }
+            }
+        }
+
+        // waste区域的卡牌通常都是翻开的，但为了完整性也检查一下
+        if (this.scene.waste && this.scene.waste.cards) {
+            for (let i = 0; i < this.scene.waste.cards.length; i++) {
+                const card = this.scene.waste.cards[i];
+                if (!card.faceUp) {
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`❌ waste中发现背面朝上的卡牌: [${i}] ${card.suit}${card.value}`);
+                    }
+                    return false;
+                }
+            }
+        }
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log('✅ deck中所有卡牌都已翻开');
+        }
+        return true;
+    }
+
+    /**
      * 检查是否可以显示AutoComplete按钮
-     * 条件：步数达到配置阈值 且 (所有tableau卡牌都翻开 且 有可收的牌)
+     * 条件：(步数达到配置阈值) OR (tableau区域所有卡牌都翻开)
+     * 这是两个独立的条件，达成任何一个都会显示按钮
      */
     public canShowAutoCompleteButton(): boolean {
-        // 检查步数是否达到配置的阈值
+        // 条件1：检查步数是否达到配置的阈值
         const currentMoves = this.scene.getCurrentMoves();
         const requiredMoves = getOutputConfigValue('autoCompleteButton.showAfterMoves', 30);
         const movesReached = currentMoves >= requiredMoves;
         
-        // 🔧 修复：步数达到配置值后强制显示，不管其他条件
+        // 条件2：检查tableau区域所有卡牌是否都翻开
+        const allTableauCardsFaceUp = this.areAllTableauCardsFaceUp();
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 AutoComplete按钮显示检查:`);
+            console.log(`  - 步数条件: ${currentMoves}/${requiredMoves} = ${movesReached}`);
+            console.log(`  - tableau卡牌翻开条件: ${allTableauCardsFaceUp}`);
+        }
+        
+        // 两个条件任一满足即显示按钮
         if (movesReached) {
-            console.log(`🔘 步数已达到${requiredMoves}，强制显示AutoComplete按钮 (当前步数: ${currentMoves})`);
+            console.log(`🔘 步数已达到${requiredMoves}，显示AutoComplete按钮 (当前步数: ${currentMoves})`);
             return true;
         }
         
-        // 步数未达到时，不显示按钮
+        if (allTableauCardsFaceUp) {
+            console.log(`🔘 tableau区域所有卡牌都已翻开，显示AutoComplete按钮`);
+            return true;
+        }
+        
         if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
-            console.log(`🔍 AutoComplete按钮显示检查: 步数=${currentMoves}/${requiredMoves} - 未达到显示条件`);
+            console.log(`🔍 两个显示条件都未满足，不显示按钮`);
         }
         
         return false;
@@ -1296,6 +1361,68 @@ export class AutoCompleteManager {
         }
         
         return faceDownCards;
+    }
+
+    /**
+     * 只翻转tableau中未翻到正面的牌
+     * @returns Promise<void>
+     */
+    private async flipTableauFaceDownCards(): Promise<void> {
+        const faceDownCards: CardComponent[] = [];
+        
+        // 只检查tableau区域中的卡牌
+        for (let i = 0; i < this.scene.tableau.length; i++) {
+            const column = this.scene.tableau[i];
+            for (let j = 0; j < column.cards.length; j++) {
+                const card = column.cards[j];
+                if (!card.faceUp) {
+                    faceDownCards.push(card);
+                    if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                        console.log(`🔍 发现tableau未翻牌: 列${i}[${j}] ${card.suit}${card.value}`);
+                    }
+                }
+            }
+        }
+        
+        if (faceDownCards.length === 0) {
+            console.log('✅ tableau中所有卡牌都已翻到正面，无需翻牌');
+            return;
+        }
+        
+        console.log(`🔄 开始翻转tableau中 ${faceDownCards.length} 张未翻到正面的牌...`);
+        
+        // 创建翻牌动画的Promise数组
+        const flipPromises: Promise<void>[] = [];
+        
+        for (let i = 0; i < faceDownCards.length; i++) {
+            const card = faceDownCards[i];
+            
+            // 为每张牌添加延迟，创建流畅的翻牌效果
+            const delay = i * 50; // 每张牌间隔50ms
+            
+            const flipPromise = new Promise<void>((resolve) => {
+                this.scene.time.delayedCall(delay, async () => {
+                    try {
+                        if (!card.faceUp) {
+                            await card.flip();
+                            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                                console.log(`✅ 已翻转tableau卡牌: ${card.suit}${card.value}`);
+                            }
+                        }
+                        resolve();
+                    } catch (error) {
+                        console.error(`❌ 翻转tableau卡牌失败: ${card.suit}${card.value}`, error);
+                        resolve(); // 即使失败也要resolve，避免阻塞
+                    }
+                });
+            });
+            
+            flipPromises.push(flipPromise);
+        }
+        
+        // 等待所有翻牌动画完成
+        await Promise.all(flipPromises);
+        console.log(`✅ tableau翻牌完成，共翻转 ${faceDownCards.length} 张牌`);
     }
 
     /**
