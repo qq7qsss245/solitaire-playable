@@ -63,6 +63,10 @@ export class AutoCompleteManager {
         this.isRunning = true;
 
         try {
+            // 首先检查并翻转所有未翻到正面的牌
+            console.log('🔄 检查deck中是否有未翻到正面的牌...');
+            await this.flipAllFaceDownCards();
+            
             console.log('📋 开始生成收牌序列...');
             // 生成收牌序列
             const actions = this.generateCollectionSequence();
@@ -1265,6 +1269,87 @@ export class AutoCompleteManager {
         
         // 通过Game场景的公共方法来执行淡出动画
         this.scene.fadeOutAutoCompleteButton();
+    }
+
+    /**
+     * 检查deck中是否有未翻到正面的牌
+     * @returns 返回所有未翻到正面的卡牌数组
+     */
+    private findFaceDownCardsInDeck(): CardComponent[] {
+        const faceDownCards: CardComponent[] = [];
+        
+        // 检查所有游戏区域中的卡牌
+        const allCards = this.scene.getAllCards();
+        
+        for (const card of allCards) {
+            // 只检查未翻到正面的卡牌
+            if (!card.faceUp) {
+                faceDownCards.push(card);
+                if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                    console.log(`🔍 发现未翻牌: ${card.suit}${card.value} (位置: ${this.getCardLocation(card)})`);
+                }
+            }
+        }
+        
+        if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+            console.log(`🔍 总共发现 ${faceDownCards.length} 张未翻到正面的牌`);
+        }
+        
+        return faceDownCards;
+    }
+
+    /**
+     * 统一翻转所有未翻到正面的牌
+     * @returns Promise<void>
+     */
+    private async flipAllFaceDownCards(): Promise<void> {
+        const faceDownCards = this.findFaceDownCardsInDeck();
+        
+        if (faceDownCards.length === 0) {
+            console.log('✅ 所有卡牌都已翻到正面，无需翻牌');
+            return;
+        }
+        
+        console.log(`🔄 开始翻转 ${faceDownCards.length} 张未翻到正面的牌...`);
+        
+        // 创建翻牌动画的Promise数组
+        const flipPromises: Promise<void>[] = [];
+        
+        for (let i = 0; i < faceDownCards.length; i++) {
+            const card = faceDownCards[i];
+            
+            // 为每张牌添加延迟，创建流畅的翻牌效果
+            const delay = i * 50; // 每张牌间隔50ms
+            
+            const flipPromise = new Promise<void>((resolve) => {
+                this.scene.time.delayedCall(delay, async () => {
+                    try {
+                        if (!card.faceUp) {
+                            await card.flip();
+                            if (AUTO_COMPLETE_CONFIG.DEBUG_MODE) {
+                                console.log(`✅ 已翻转: ${card.suit}${card.value}`);
+                            }
+                        }
+                        resolve();
+                    } catch (error) {
+                        console.error(`❌ 翻转卡牌失败: ${card.suit}${card.value}`, error);
+                        resolve(); // 即使失败也要resolve，避免阻塞其他卡牌
+                    }
+                });
+            });
+            
+            flipPromises.push(flipPromise);
+        }
+        
+        // 等待所有翻牌动画完成
+        await Promise.all(flipPromises);
+        
+        // 额外等待一小段时间，确保所有动画完全完成
+        await new Promise(resolve => {
+            this.scene.time.delayedCall(200, resolve);
+        });
+        
+        console.log('✅ 所有未翻牌已统一翻转完成');
     }
 
     /**
