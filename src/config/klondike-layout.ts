@@ -415,13 +415,13 @@ export const landscapeLayout: LayoutPositions = {
     },
     
     productName: {
-        x: 1600, // 右上角区域
+        x: 1570, // 右上角区域
         y: 700,   // 顶部
         scale: 0.8, // 横屏时稍微缩小
     },
     
     downloadButton: {
-        x: 1600,  // 水平居中 (1920 / 2)
+        x: 1570,  // 水平居中 (1920 / 2)
         y: 800, // 距离底部50单位 (1080 - 50)
         width: 320,
         height: 80,
